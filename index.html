@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="stage-books-20261113d">
+<meta name="build" content="intent-lobby-20261113f">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -416,7 +416,7 @@ body.slowmo #shake{animation:slo .55s ease}
 .card.paper .illu{filter:none;color:#2a1a0c}
 .card.paper .illu .ico,.ci-card.paper .ico{stroke:#2a1a0c;color:#2a1a0c}
 .card.paper .gem{
-  clip-path:none;width:22px;height:22px;border-radius:50%;
+  clip-path:none;width:auto;min-width:26px;height:22px;padding:0 6px 0 4px;gap:2px;border-radius:999px;
   background:radial-gradient(circle at 35% 30%,#f4e4c4,#e2c48a);
   border:1.5px solid #3a2410;color:#2a1a0c;letter-spacing:0;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 1px 2px rgba(0,0,0,.2);
@@ -535,7 +535,7 @@ body.dressing{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .card.paper.mini .tx{display:none}
 .card.paper.mini .dice{font-size:9px;gap:3px}
 .card.paper.mini .flavor{-webkit-line-clamp:2;font-size:9px;margin-top:4px;padding-top:3px}
-.card.paper.mini .gem{width:18px;height:18px;font-size:10px}
+.card.paper.mini .gem{width:auto;min-width:22px;height:18px;padding:0 5px 0 3px;font-size:10px}
 .card.paper.mini .wax{width:18px;height:18px;top:6px;right:6px;font-size:6px}
 .card.paper.mini .emo{font-size:9px}
 .cost-curve{display:grid;gap:5px;margin:0 0 14px;padding:10px 12px}
@@ -564,7 +564,7 @@ body.dressing{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .card{position:relative;width:100%;height:100%;padding:12px 11px 10px;overflow:hidden;
   color:#2a1c10;display:flex;flex-direction:column}
 .card .row{display:flex;justify-content:space-between;align-items:center;z-index:3;position:relative;padding-right:24px}
-.card .gem{width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.card .gem{height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
 .card .emo{display:flex;align-items:center;gap:3px;font-size:10px;letter-spacing:.010em}
 .card .illu{display:flex;align-items:center;justify-content:center;height:44px;margin:4px 0 2px;z-index:3;position:relative}
 .card .nm{margin-top:2px;letter-spacing:.010em;font-size:14px;z-index:3;position:relative}
@@ -1038,14 +1038,19 @@ b,strong{font-weight:700}
 .state-note{position:absolute;left:50%;top:calc(100% - var(--feet) - var(--fig-h) - 28px);transform:translateX(-50%);z-index:9;
   padding:7px 16px;border-radius:999px;font-weight:750;font-size:13px;color:#1b1306;background:linear-gradient(180deg,#ffe38a,#ffc43a);box-shadow:0 8px 24px rgba(255,196,58,.4);pointer-events:none;white-space:nowrap}
 /* intent preview above the guest */
-.intent{position:absolute;right:0;bottom:calc(100% + 2px);width:max(100%,min(58vw,232px));z-index:6;pointer-events:none;
-  padding:8px 10px 9px;border-radius:12px;background:rgba(10,13,24,.82);border:1px solid var(--line-hi);
+.intent{position:absolute;right:0;bottom:calc(100% + 2px);width:max-content;max-width:min(62vw,240px);z-index:6;pointer-events:none;
+  display:flex;flex-wrap:wrap;align-items:center;gap:3px 6px;
+  padding:5px 8px;border-radius:10px;background:rgba(10,13,24,.82);border:1px solid var(--line-hi);
   -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 10px 26px rgba(0,0,0,.5);text-align:left;transition:opacity .2s}
 .intent .in-head{display:flex;align-items:center;gap:6px;min-width:0}
 .intent .in-head b{font-size:13px;font-weight:800;letter-spacing:-.02em;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .intent .in-lab{font-size:9px;font-weight:800;letter-spacing:.08em;color:var(--accent);padding:1px 6px;border-radius:999px;border:1px solid rgba(var(--accent-rgb),.4);flex:0 0 auto}
 .intent .in-star{font-size:10px;font-weight:800;color:#fff;padding:1px 7px;border-radius:999px;background:linear-gradient(180deg,#ff6a55,#c8321f);flex:0 0 auto;box-shadow:0 0 12px rgba(255,80,60,.7)}
-.intent .in-dice{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.intent .in-ic{display:inline-flex;color:var(--accent);flex:0 0 auto}
+.intent.big .in-ic{color:#ff8a78}
+.intent .in-name{font-size:12px;font-weight:800;letter-spacing:-.02em;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%;flex:0 1 auto}
+.intent .in-dice{display:inline-flex;flex-wrap:wrap;gap:3px;margin-left:auto}
+.intent.down .in-head{display:flex;align-items:center;gap:6px}
 .intent .in-die{display:inline-flex;align-items:center;gap:3px;font-family:var(--display);font-weight:600;font-size:11px;color:var(--parch);padding:2px 7px;border-radius:7px;background:rgba(255,255,255,.08);white-space:nowrap}
 .intent .in-die b{font-family:var(--sans);font-weight:700}
 .intent .in-die.t-방어{color:#8ff0c0}.intent .in-die.t-회피{color:#9bc3ff}
@@ -1060,7 +1065,7 @@ b,strong{font-weight:700}
 .intent.down{border-color:rgba(255,200,64,.6)}
 .battle-stage.rolling .intent{opacity:0}
 .battle-stage.result-on .intent{display:none}
-@media (min-width:861px){.intent{width:max(100%,260px)}}
+@media (min-width:861px){.intent{max-width:280px}}
 /* key / short-answer question panel */
 .qpanel.key{border-color:rgba(255,90,70,.7)!important;box-shadow:0 0 0 1px rgba(255,90,70,.35),0 0 32px rgba(255,70,50,.4),0 16px 40px rgba(0,0,0,.55)}
 .q-key{display:inline-block;margin-left:6px;font-size:10px;font-weight:800;letter-spacing:0;color:#fff;padding:1px 8px;border-radius:999px;background:linear-gradient(180deg,#ff6a55,#c8321f)}
@@ -1107,7 +1112,7 @@ b,strong{font-weight:700}
 .bars.left .bar-lab span:last-child,.bars.right .bar-lab span:last-child{font-variant-numeric:tabular-nums}
 .bars .bar-lab{align-items:center;gap:8px}
 .bars .bar{height:11px}
-.emo-chip{position:absolute;top:-26px;left:0;z-index:5;display:flex;align-items:center;gap:4px;padding:3px 9px 3px 8px;border-radius:999px;
+.emo-chip{position:absolute;top:-26px;left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:4px;padding:3px 9px 3px 8px;border-radius:999px;
   background:rgba(8,10,18,.62);border:1px solid rgba(var(--accent-rgb),.38);backdrop-filter:blur(4px);white-space:nowrap;pointer-events:none}
 .emo-chip .pip{border-left-width:5px;border-right-width:5px;border-bottom-width:9px;transition:border-bottom-color .3s,filter .3s}
 .emo-chip .pip.gain{animation:pipGain .95s ease-out}
@@ -1123,7 +1128,7 @@ b,strong{font-weight:700}
 @keyframes lightSpend{0%{opacity:.5}100%{opacity:1}}
 .battle-stage:has(.qpanel.on) .lightchip{opacity:0;visibility:hidden}
 .battle-stage.result-on .lightchip{opacity:0!important;visibility:hidden!important}
-@media (max-width:860px){ .lightchip{bottom:148px;left:8px} .emo-chip{left:-12px;padding:3px 7px} }
+@media (max-width:860px){ .lightchip{bottom:148px;left:8px} .emo-chip{padding:3px 7px} }
 
 /* ===== floor carousel header ===== */
 .floor-nav{display:flex;align-items:center;justify-content:space-between;gap:6px;flex:0 0 auto}
@@ -1326,6 +1331,10 @@ b,strong{font-weight:700}
 .bk-empty-t{font-size:16px;font-weight:700;color:var(--parch)}
 .bk-empty-s{font-size:12px;color:var(--parch2);opacity:.8;margin-bottom:6px}
 /* 손님 정보: 책장 수집 현황 */
+.gcoll{display:flex;align-items:center;flex-wrap:wrap;gap:3px 8px;margin:4px 0 0;font-size:11px;color:var(--parch2);white-space:nowrap}
+.gcoll b{font-family:var(--display);color:var(--parch);font-variant-numeric:tabular-nums}.gcoll b.ok{color:#7ee2a8}
+.gc-pips{display:inline-flex;gap:3px}.gc-pips i{width:7px;height:7px;border-radius:2px;border:1px solid rgba(var(--accent-rgb),.45);opacity:.6}
+.gc-pips i.on{opacity:1;background:linear-gradient(180deg,#ffd98a,#f0a93c);border-color:transparent}.gc-pips i.on.k{background:linear-gradient(180deg,#ff9aa8,#d9455c)}
 .sheet-coll{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;margin:2px 0 0;font-size:12px;color:var(--parch2)}
 .sheet-coll b{font-family:var(--display);color:var(--parch);font-variant-numeric:tabular-nums}.sheet-coll b.ok{color:#7ee2a8}
 .sc-cells{display:inline-flex;gap:4px}
@@ -1337,6 +1346,30 @@ b,strong{font-weight:700}
 .ci-die{flex-wrap:nowrap}
 .dprev{margin-left:0}
 .card.mini .dice .dprev{flex-direction:column;gap:0;line-height:1.15;font-size:9px}
+
+/* 장서복/기프트: 좌우 카드 정렬 + 6개 단위 세로 스크롤 */
+.dress-top{align-items:stretch;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.dress-char{display:flex;flex-direction:column;padding:12px 10px 10px}
+.dress-char .dc-head{margin:0 2px 8px;flex:0 0 auto}
+.dc-stage{flex:1 1 auto;min-height:190px;aspect-ratio:auto}
+.dc-name{flex:0 0 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.dress-side{display:flex;flex-direction:column;padding:12px 10px 10px;border-radius:var(--r-lg);background:rgba(8,10,18,.55);position:relative;min-width:0}
+.dress-side .dress-head{margin:0 2px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dress-gridwrap{overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;touch-action:pan-y;flex:0 0 auto}
+.dress-gridwrap::-webkit-scrollbar{display:none}
+.dress-gridwrap.paged{scroll-snap-type:y mandatory}
+.dress-gridwrap .dtile.snap{scroll-snap-align:start}
+.dress-grid.g2{gap:10px}
+.dress .dtile{touch-action:pan-y}
+.dress-foot{margin-top:auto;padding-top:6px;display:flex;flex-direction:column;gap:3px}
+.dress-pg{display:flex;align-items:center;justify-content:center;gap:5px;min-height:10px;font-size:10px;color:var(--parch2)}
+.dress-pg i{width:6px;height:6px;border-radius:99px;background:#2b2f3c;border:1px solid rgba(var(--accent-rgb),.55)}
+.dress-pg i.on{background:var(--gold,#e9c46a);width:14px}
+.dress-pg span{margin-left:4px;font-variant-numeric:tabular-nums}
+.dress-tip{margin-top:0;font-size:10.5px;text-align:center}
+.dd-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dd-head .gold-title{min-width:0}
+.dress-char .dc-stage svg{max-height:100%}
 </style>
 </head>
 <body>
@@ -2308,6 +2341,7 @@ const SFX = (() => {
 function ico(name,s=16){
   const filled=name==="hp"||name==="emotion";
   const p={
+    dice:`<rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="9" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/>`,
     light:`<circle cx="12" cy="14" r="4"/><path d="M12 3v3M6.2 6.2 8.3 8.3M17.8 6.2 15.7 8.3"/>`,
     emotion:`<path d="M12 3.5 14.7 9.2 21 9.8 16.4 14.2 17.7 20.5 12 17.4 6.3 20.5 7.6 14.2 3 9.8 9.3 9.2 Z" fill="currentColor" stroke="none"/>`,
     book:`<path d="M6 5h9a3 3 0 0 1 3 3v12H9a3 3 0 0 0-3 3Z"/><path d="M6 5v15a3 3 0 0 1 3-3h12"/>`,
@@ -3118,7 +3152,10 @@ function ownedCount(s,id){
 }
 function deckLimit(s,id){ return Math.min(DECK_MAX_COPIES,ownedCount(s,id)); }
 function bookCount(s,gid){ return Math.max(0,(s.bookCounts||{})[gid]||0); }
-function totalBooks(s){ return Object.values(s.bookCounts||{}).reduce((a,b)=>a+Math.max(0,b|0),0); }
+/* 책장을 전부 모은 손님의 책은 소각해도 새로 얻을 것이 없으므로 보유 수·목록에서 제외한다 */
+function bookMaxed(s,gid){ const l=BOOK_POOLS[gid]; return !!l&&l.every(e=>{ const o=entryOwned(s,e); return o.count>=o.cap; }); }
+function shownBookCount(s,gid){ return bookMaxed(s,gid)?0:bookCount(s,gid); }
+function totalBooks(s){ return Object.keys(s.bookCounts||{}).reduce((a,g)=>a+shownBookCount(s,g),0); }
 function addBooks(s,gid,n){ if(n>0) s.bookCounts={...(s.bookCounts||{}),[gid]:bookCount(s,gid)+n}; return n; }
 function rollRecallBooks(rng){ return (rng||Math.random)()<BOOK_RULES.recallOne?1:2; }
 function entryName(e){ return e.k==="page"?(PAGE_BY[e.id]||{}).name:(KEY_BY[e.id]||{}).name; }
@@ -3357,7 +3394,7 @@ function paperCardHtml(page, opts={}){
   const flavor=page.flavor?`<div class="flavor">${page.flavor}</div>`:"";
   const tx=mini?"":`<div class="tx">${page.text||""}</div>`;
   return `<div class="card paper ${mini?"mini":""} rar-${page.rarity||"N"}">${paperLayers()}${waxHtml(page.rarity)}
-    <div class="row"><span class="gem" title="빛">${page.cost}</span><span class="emo">${ico("emotion",12)} ${page.emotion}+</span></div>
+    <div class="row"><span class="gem" title="빛 ${page.cost}" aria-label="빛 ${page.cost}">${ico("light",mini?11:13)}<b>${page.cost}</b></span><span class="emo">${ico("emotion",12)} ${page.emotion}+</span></div>
     <div class="illu">${dieMark(first, mini?28:34)}</div>
     <div class="nm">${page.name}</div>
     ${tx}
@@ -3744,7 +3781,7 @@ function renderLobby(){
           return `<button class="guest-card frame ${sheetOpen&&gs.id===selectedGuestId?"on":""}" data-guest="${gs.id}">${cornerHtml()}
             <div class="bust">${guestSvg(gs,false,88,120,true)}</div>
             <div class="ginfo"><div class="gold-title" style="font-size:16px;letter-spacing:.019em">${gs.concept}</div>
-            <div class="gmeta">취약 ${weaknessLabel(gs.weakness)} · ${ok?"회상 가능":"대기"}</div></div>
+            ${guestCollHtml(gs)}</div>
             <span class="chev">${ico("chev",16)}</span>
           </button>`;
         }).join("")}</div>
@@ -3762,6 +3799,13 @@ function renderLobby(){
   if(sheetOpen && selectedGuestId) openGuestSheet(selectedGuestId, true);
 }
 function xBtn(id,label){ return `<button class="x-btn" ${id?`id="${id}" `:""}type="button" aria-label="${label||"닫기"}"><span class="x-ico"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2 12 12M12 2 2 12"/></svg></span></button>`; }
+function guestCollHtml(g){
+  const pool=poolEntries(save,g.id);
+  const pages=pool.filter(e=>e.k==="page"), keys=pool.filter(e=>e.k==="key");
+  const got=pages.filter(e=>e.count>0).length, keyOk=keys.some(e=>e.count>0);
+  const label=`책장 ${got}/${pages.length}${keys.length?` · 핵심 ${keyOk?"✓":"—"}`:""}`;
+  return `<div class="gcoll" aria-label="${label}"><span>책장 <b>${got}/${pages.length}</b>${keys.length?` · 핵심 <b class="${keyOk?"ok":""}">${keyOk?"✓":"—"}</b>`:""}</span><span class="gc-pips">${pool.map(e=>`<i class="${e.count>0?"on":""}${e.k==="key"?" k":""}"></i>`).join("")}</span></div>`;
+}
 function sheetCollHtml(g){
   const pool=poolEntries(save,g.id);
   const pages=pool.filter(e=>e.k==="page"), keys=pool.filter(e=>e.k==="key");
@@ -3781,7 +3825,7 @@ function guestSheetHtml(g){
   const acc=st.total?Math.round(100*st.correct/st.total):null;
   const trend=st.history&&st.history.length?st.history.map(n=>Math.round(n*100)+"%").join(" → "):"—";
   const qn=g.questions.length;
-  const bn=bookCount(save,g.id);
+  const bn=shownBookCount(save,g.id);
   const bookSt=done?`책 ${bn}권`:"아직 책이 되지 않음";
   return `${cornerHtml()}
     <div class="sheet-head" id="sheet-grab"><div class="sheet-handle"></div>${xBtn("sheet-close")}</div>
@@ -3796,7 +3840,6 @@ function guestSheetHtml(g){
           <span class="pill">체력 ${COMBAT.guestHp[g.weakness]}</span>
           <span class="pill">흐트러짐 저항 ${COMBAT.guestStagger[g.weakness]}</span>
         </div>
-        ${sheetCollHtml(g)}
       </div>
     </div>
     <p style="margin:12px 0;font-size:13px;line-height:1.7;color:var(--parch)">${g.explanation}</p>
@@ -4078,14 +4121,10 @@ function bindHandInteract(){
 
 /* ---------- intent preview / resist table ---------- */
 function intentHtml(rec){
-  if(rec.g.stag>0) return `<div class="intent down" id="intent"><div class="in-head"><span class="in-lab">상태</span><b>흐트러짐</b></div><div class="in-sub">이 막은 행동할 수 없다</div></div>`;
+  if(rec.g.stag>0) return `<div class="intent down" id="intent"><div class="in-head"><span class="in-ic">${ico("dice",13)}</span><b>흐트러짐 · 행동 불가</b></div></div>`;
   const it=rec.intent; if(!it) return "";
-  const ex=expectedDamage(it.dice,rec.p);
-  const dice=it.dice.map(d=>`<span class="in-die t-${d.type}">${dieMark(d.type,13)}<b>${d.type}</b> ${dprevHtml(guestDiePreview(d),"gp")}</span>`).join("");
-  const hasAtk=it.dice.some(d=>isAttack(d.type));
-  const dmg=hasAtk?`<div class="in-dmg"><span class="in-if">맞으면</span> <span class="hp">♥ −${ex.hpLo}~${ex.hpHi}</span> <span class="st">${ico("stag",10)} −${ex.stLo}~${ex.stHi}</span></div>`
-    :`<div class="in-dmg"><span class="in-if">방어·회피 태세</span></div>`;
-  return `<div class="intent ${it.big?"big":""}" id="intent"><div class="in-head">${it.big?`<span class="in-star">★ 고난도</span>`:`<span class="in-lab">예고</span>`}<b>${it.name}</b></div><div class="in-dice">${dice}</div>${dmg}</div>`;
+  const dice=it.dice.map(d=>`<span class="in-die t-${d.type}" title="${d.type}">${dieMark(d.type,13)}${dprevHtml(guestDiePreview(d),"gp")}</span>`).join("");
+  return `<div class="intent ${it.big?"big":""}" id="intent"><span class="in-ic">${ico("dice",13)}</span><b class="in-name">${it.name}</b><span class="in-dice">${dice}</span></div>`;
 }
 function tierChip(name){ return `<span class="tier" data-t="${name}">${name}<i>×${TIER[name]}</i></span>`; }
 function resistGridHtml(kit){
@@ -4696,7 +4735,7 @@ function showWin(){
   const msg=rec.isRecall?"회상을 마쳤다.":"손님이 서고의 책이 되었다. 책장에서 소각하면 이 손님의 책장이 나온다.";
   const nb=rec.bookGain||0;
   const bookRow=`<div class="rb-gift book"><span class="rb-gift-ico">${ico("book",22)}</span>
-      <div class="rb-gift-tx"><span class="rb-gift-lab">책 획득</span><b>${guest.concept} ×${nb}</b><small>보유 ${bookCount(save,guest.id)}권 · 책장에서 소각하면 책장이 나온다</small></div></div>`;
+      <div class="rb-gift-tx"><span class="rb-gift-lab">책 획득</span><b>${guest.concept} ×${nb}</b><small>보유 ${shownBookCount(save,guest.id)}권 · 책장에서 소각하면 책장이 나온다</small></div></div>`;
   const giftRow=drops.map((d,k)=>{
     const L=libOf(save,libIds[k]);
     if(d&&!d.dup) return `<div class="rb-gift"><span class="rb-gift-ico">${ico("gift",22)}</span>
@@ -4747,7 +4786,7 @@ function showLose(){
 
 /* ---------- shelf / collection ---------- */
 let bookSel=null, bookAnimDir=0;
-function heldBooks(){ return WEAK_POINTS.filter(g=>bookCount(save,g.id)>0); }
+function heldBooks(){ return WEAK_POINTS.filter(g=>shownBookCount(save,g.id)>0); }
 function selectBook(gid){ bookSel=gid; if($("#scene-shelf")&&shelfTab==="books") renderShelf(); }
 function goBook(idx,dir){
   const list=heldBooks(); if(list.length<2) return;
@@ -4767,7 +4806,7 @@ function booksCarouselHtml(){
       <button class="btn primary" type="button" data-go="lobby">접대하러 가기</button></div>`;
   }
   let idx=list.findIndex(g=>g.id===bookSel); if(idx<0){ idx=0; bookSel=list[0].id; }
-  const g=list[idx], n=bookCount(save,g.id), pool=poolEntries(save,g.id), maxed=!pool.some(e=>e.w>0);
+  const g=list[idx], n=shownBookCount(save,g.id), pool=poolEntries(save,g.id), maxed=!pool.some(e=>e.w>0);
   const last=lastBurn&&lastBurn.gid===g.id?lastBurn:null;
   const many=list.length>1;
   const dots=(()=>{ const N=list.length, MAXD=7; let a=0,b=N-1; if(N>MAXD){ a=Math.max(0,Math.min(N-MAXD,idx-Math.floor(MAXD/2))); b=a+MAXD-1; }
@@ -4948,7 +4987,7 @@ function renderDress(mode){
     tiles=KEY_PAGES.map(k=>dTileHtml(k.id,KEY_ICON[k.id]||KEY_ICON.novice,{locked:!save.unlockedKeyIds.includes(k.id),equipped:save.equippedKeyId===k.id,sel:(dressSel.outfit||save.equippedKeyId)===k.id,label:k.name})).join("");
   } else {
     const owned=egoOwned(save).length;
-    head=`${libOf(save).name}의 기프트 · 보유 <b>${owned}/${EGO_GIFTS.length}</b> · 착용 <b>${equippedGifts(save).length}/${EGO_GIFT_RULES.slots.length}</b>`;
+    head=`${libOf(save).name}의 기프트 <b>${owned}/${EGO_GIFTS.length}</b>`;
     tiles=EGO_GIFTS.map(g=>dTileHtml(g.id,GIFT_ICON[g.art]||GIFT_ICON.orb,{locked:!egoOwned(save).includes(g.id),equipped:egoEquip(save)[g.slot]===g.id,sel:dressSel.gifts===g.id,label:g.name,sub:g.slot})).join("");
   }
   const sc=$("#scene-shelf");
@@ -4958,13 +4997,15 @@ function renderDress(mode){
     <div class="dress ${outfit?"is-outfit":"is-gifts"}">
       <div class="dress-top">
         <div class="dress-char frame" id="dress-char" aria-label="사서 미리보기 — 아이콘을 여기로 끌어 놓으면 착용합니다">${cornerHtml()}
+          <div class="dress-head dc-head">외형 미리보기</div>
           <div class="dc-stage" id="dc-stage">${svgOld?`<div class="dc-old">${svgOld}</div>`:""}<div class="dc-new${fx&&outfit?" morph":""}">${svgNew}</div>${fx?`<div class="dc-flash"></div>`:""}</div>
           <div class="dc-drop" aria-hidden="true">여기에 놓아 착용</div>
-          <div class="dc-name">사서 큐 양${outfit?` · ${(KEY_BY[save.equippedKeyId]||KEY_PAGES[0]).name}`:""}</div>
+          <div class="dc-name" title="${outfit?(KEY_BY[save.equippedKeyId]||KEY_PAGES[0]).name:""}">사서 큐 양${outfit?` · ${(KEY_BY[save.equippedKeyId]||KEY_PAGES[0]).name}`:""}</div>
         </div>
-        <div class="dress-side"><div class="dress-head">${head}</div>
-          <div class="dress-grid ${outfit?"g2":"g4"}" id="dress-grid" role="list">${tiles}</div>
-          <div class="dress-tip">${outfit?"끌어서 캐릭터에 놓거나, 눌러서 자세히 보기":"끌어서 캐릭터에 놓기 · 착용한 아이콘을 밖으로 끌면 해제"}</div></div>
+        <div class="dress-side frame">${cornerHtml()}<div class="dress-head">${head}</div>
+          <div class="dress-gridwrap"><div class="dress-grid g2" id="dress-grid" role="list">${tiles}</div></div>
+          <div class="dress-foot"><div class="dress-pg" id="dress-pg" aria-hidden="true"></div>
+          <div class="dress-tip">${outfit?"길게 누르거나 왼쪽으로 끌어 착용 · 눌러서 자세히":"길게 누르거나 왼쪽으로 끌어 착용 · 착용 아이콘을 밖으로 끌면 해제"}</div></div></div>
       </div>
       <div class="dress-detail frame" id="dress-detail">${cornerHtml()}${dressDetailHtml(mode)}</div>
     </div></div>
@@ -4977,7 +5018,7 @@ function equipKey(id){
   const old=oldPreviewHtml();
   save.equippedKeyId=id; dressSel.outfit=null; persist(); SFX.equip("outfit");
   dressFx={mode:"outfit",old,fresh:null};
-  renderShelf(); toast(`${k.name} 착용`);
+  renderShelf();
 }
 function equipGift(id,on){
   const g=EGO_BY[id]; if(!g||!egoOwned(save).includes(id)) return;
@@ -4987,7 +5028,7 @@ function equipGift(id,on){
   if(on===false||(on==null&&cur===id)){ if(cur!==id) return; E[g.slot]=null; msg=`${g.name} 해제`; SFX.equip("off"); dressFx={mode:"gifts",old,fresh:null}; }
   else { if(cur===id) return; const swap=!!cur; E[g.slot]=id; const fresh={id,swap}; msg=swap?`${EGO_BY[cur].name} → ${g.name} 교체 (${g.slot})`:`${g.name} 착용`; SFX.equip(swap?"swap":"on"); dressFx={mode:"gifts",old:swap?old:"",fresh}; }
   if(save.hp>effectiveMaxHp(save)) save.hp=effectiveMaxHp(save);
-  persist(); renderShelf(); toast(msg);
+  persist(); renderShelf();
 }
 function bindDress(mode){
   const outfit=mode==="outfit", key=outfit?"outfit":"gifts";
@@ -5007,16 +5048,29 @@ function bindDress(mode){
     t.addEventListener("pointerdown",e=>{
       if(e.pointerType==="mouse"&&e.button!==0) return;
       if(t.dataset.locked==="1") return;
+      const touch=e.pointerType!=="mouse";
       const id=t.dataset.t, x0=e.clientX, y0=e.clientY, pid=e.pointerId;
       const equipped=t.classList.contains("eq");
-      let ghost=null, dragging=false;
+      let ghost=null, dragging=false, held=false, dead=false, lpT=0;
+      const startDrag=(cx,cy)=>{
+        dragging=true; suppress=true; document.body.classList.add("dressing");
+        ghost=document.createElement("div"); ghost.className="dghost"; ghost.innerHTML=`<svg viewBox="0 0 24 24">${(outfit?KEY_ICON[id]:GIFT_ICON[EGO_BY[id].art])||""}</svg>`;
+        document.body.appendChild(ghost); t.classList.add("drag-src"); stage.classList.add("can-drop"); if(equipped&&!outfit) grid.classList.add("can-off");
+        ghost.style.transform=`translate(${cx-28}px,${cy-28}px) scale(1.08)`;
+      };
+      /* 터치: 길게 누르면 끌기 모드(스크롤 잠금), 아니면 세로는 스크롤, 왼쪽 가로 끌기는 바로 착용 */
+      const lock=ev=>{ if(held||dragging) ev.preventDefault(); };
+      t.addEventListener("touchmove",lock,{passive:false});
+      if(touch) lpT=setTimeout(()=>{ if(dead||dragging) return; held=true; if(navigator.vibrate) try{navigator.vibrate(12)}catch(e){} startDrag(x0,y0); },380);
       const move=ev=>{
         if(ev.pointerId!==pid) return;
         if(!dragging){
-          if(Math.hypot(ev.clientX-x0,ev.clientY-y0)<8) return;
-          dragging=true; suppress=true; document.body.classList.add("dressing");
-          ghost=document.createElement("div"); ghost.className="dghost"; ghost.innerHTML=`<svg viewBox="0 0 24 24">${(outfit?KEY_ICON[id]:GIFT_ICON[EGO_BY[id].art])||""}</svg>`;
-          document.body.appendChild(ghost); t.classList.add("drag-src"); stage.classList.add("can-drop"); if(equipped&&!outfit) grid.classList.add("can-off");
+          const dx=ev.clientX-x0, dy=ev.clientY-y0, dist=Math.hypot(dx,dy);
+          if(dist<8) return;
+          if(touch){
+            if(dx<0&&Math.abs(dx)>Math.abs(dy)*1.2){ clearTimeout(lpT); startDrag(ev.clientX,ev.clientY); }
+            else { dead=true; clearTimeout(lpT); return; }   // 세로(또는 오른쪽) 이동 = 스크롤
+          } else startDrag(ev.clientX,ev.clientY);
         }
         ghost.style.transform=`translate(${ev.clientX-28}px,${ev.clientY-28}px) scale(1.08)`;
         stage.classList.toggle("drop-on",over(ev.clientX,ev.clientY));
@@ -5025,9 +5079,10 @@ function bindDress(mode){
       };
       const end=ev=>{
         if(ev.pointerId!==pid) return;
+        clearTimeout(lpT); t.removeEventListener("touchmove",lock);
         window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",end); window.removeEventListener("pointercancel",end);
         document.body.classList.remove("dressing");
-        if(!dragging) return;
+        if(!dragging){ if(held) suppress=true, setTimeout(()=>{ suppress=false; },0); return; }
         const inside=ev.type!=="pointercancel"&&over(ev.clientX,ev.clientY);
         ghost&&ghost.remove(); t.classList.remove("drag-src"); stage.classList.remove("can-drop","drop-on"); grid.classList.remove("can-off","drop-off");
         setTimeout(()=>{ suppress=false; },0);
@@ -5039,6 +5094,28 @@ function bindDress(mode){
       window.addEventListener("pointermove",move,{passive:false}); window.addEventListener("pointerup",end); window.addEventListener("pointercancel",end);
     });
   });
+  setupDressPaging();
+}
+/* 한 화면 6개(2x3) · 넘치면 6개 단위로 세로 스냅 스크롤 */
+function setupDressPaging(){
+  const wrap=$(".dress-gridwrap"), grid=$("#dress-grid"), pg=$("#dress-pg"); if(!wrap||!grid) return;
+  const tiles=$$(".dtile",grid); if(!tiles.length) return;
+  const gap=parseFloat(getComputedStyle(grid).rowGap)||10;
+  const fit=()=>{
+    const th=tiles[0].getBoundingClientRect().height; if(!th) return;
+    wrap.style.height=(th*3+gap*2)+"px"; wrap.style.setProperty("--page-h",(th*3+gap*3)+"px");
+  };
+  tiles.forEach((t,i)=>t.classList.toggle("snap",i%6===0));
+  fit();
+  const pages=Math.ceil(tiles.length/6);
+  wrap.classList.toggle("paged",pages>1);
+  const paint=()=>{ if(!pg) return; if(pages<2){ pg.innerHTML=""; return; }
+    const ph=wrap.clientHeight+gap, cur=Math.min(pages-1,Math.round(wrap.scrollTop/ph));
+    pg.innerHTML=Array.from({length:pages},(_,i)=>`<i class="${i===cur?"on":""}"></i>`).join("")+`<span>${cur+1}/${pages}</span>`; };
+  wrap.addEventListener("scroll",paint,{passive:true}); paint();
+  /* 선택한 아이콘이 다른 페이지에 있으면 그 페이지로 */
+  const sel=grid.querySelector(".dtile.sel,.dtile.eq");
+  if(sel&&pages>1){ const idx=tiles.indexOf(sel); wrap.scrollTop=Math.floor(idx/6)*(wrap.clientHeight+gap); paint(); }
 }
 function renderShelf(){
   if(shelfTab==="outfit") return renderDress("outfit");
@@ -5280,7 +5357,7 @@ function boot(){
     beginReception, selectBook, answer, answerShort, choosePage, SFX, takPunch, showWin, showLose, engine:{COMBAT,TIER,ATK_TYPES,mkUnit,resolveScene,guestCombat,planIntent,expectedDamage,checkShort,keyQsOf,WEAK_POINTS,COMBAT_PAGES,PAGE_BY,hitUnit,playerDieRange,guestDieRange,playerStaggerMax,FLAT_RESIST,getRec(){return reception;}}, pullGacha, giveTickets(n){ save.ticketsSpent=Math.max(0, save.ticketsSpent-n); persist(); },
     gx:{guestSvg,GX_VARIANTS,GX_VLABEL,GX_LABEL,gxAttack,gxExFlash,gxPick,GUEST_ART},
     data:{EGO_GIFTS,KEY_PAGES,COSMETIC_ITEMS,WEAK_POINTS,COMBAT_PAGES,FLOORS,KEY_QUESTIONS},
-    acq:{BOOK_POOLS,BOOK_RULES,poolEntries,burnBookOnce,addBooks,bookCount,totalBooks,ownedCount,deckLimit,DECK_MIN,DECK_MAX,sourcesOf,acqAudit,migrateAcq,rollRecallBooks,loadSave,defaultSave,SAVE_KEY},
+    acq:{bookMaxed,shownBookCount,BOOK_POOLS,BOOK_RULES,poolEntries,burnBookOnce,addBooks,bookCount,totalBooks,ownedCount,deckLimit,DECK_MIN,DECK_MAX,sourcesOf,acqAudit,migrateAcq,rollRecallBooks,loadSave,defaultSave,SAVE_KEY},
     setGifts(owned,equipped){ const L=libOf(save); L.gifts.owned=[...owned]; L.gifts.equipped={...emptyEgoEquip(),...(equipped||{})}; persist(); },
     gifts:{withKeyMods,effectiveMaxHp,libOf,giftTotals,giftMaxTotals,activeSets,rollEgoGift,migrateLibrarians,sanitizeLibrarians,equipGift,egoOwned,egoEquip,EGO_GIFT_RULES,loadSave,SAVE_KEY},
     toggleDeckPage, currentQuestion, setShelfTab(t){ shelfTab=t; },
