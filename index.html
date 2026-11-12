@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
+<meta name="build" content="layout-fix-20261112c">
 <meta name="theme-color" content="#07080d">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect fill='%2307080d' width='64' height='64'/%3E%3Cpath fill='%23c4a35a' d='M18 50 V22 Q32 12 46 22 V50 L32 42 Z'/%3E%3C/svg%3E">
 <style>
@@ -13,6 +14,11 @@
   --parch:#e8d5b0;--parch2:#cbb992;--ink:#1a140c;--blood:#c45c4a;
   --hp:#6ebd96;--stag:#e0b43a;--mute:#7aa0c4;--shadow:rgba(0,0,0,.62);
   --ui:16px;
+  --nav-h:72px;
+  --safe-bottom:env(safe-area-inset-bottom, 0px);
+  --panel-pad-bottom:calc(var(--nav-h) + var(--safe-bottom) + 16px);
+  --mute-top:10px;
+  --mute-size:36px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:var(--n0);color:var(--parch);
@@ -32,7 +38,7 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 #transition{position:absolute;inset:0;z-index:40;background:var(--n0);opacity:0;pointer-events:none;
   transition:opacity .45s ease}
 #transition.go{opacity:1}
-#mute{position:absolute;top:10px;right:10px;z-index:30;width:46px;height:36px;letter-spacing:.08em;font-size:11px}
+#mute{position:absolute;top:var(--mute-top);right:10px;z-index:30;width:46px;height:var(--mute-size);padding:0 6px;letter-spacing:.08em;font-size:11px;display:inline-flex;align-items:center;justify-content:center;min-width:46px}
 
 /* ornaments */
 .gold-title{font-family:Georgia,"Iowan Old Style","Apple SD Gothic Neo",serif;font-weight:600;
@@ -80,7 +86,8 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
   box-shadow:inset 0 1px 0 rgba(243,230,192,.15)}
 
 /* title */
-#scene-title{align-items:center;justify-content:center;text-align:center}
+#scene-title{align-items:center;justify-content:center;text-align:center;
+  padding:28px 20px calc(28px + var(--safe-bottom));overflow:auto;-webkit-overflow-scrolling:touch}
 #scene-title .emblem{width:88px;height:88px;margin-bottom:18px;filter:drop-shadow(0 0 16px rgba(196,163,90,.4));
   animation:floaty 4.5s ease-in-out infinite}
 #scene-title h1{font-size:clamp(36px,6vw,72px);margin:8px 0 6px}
@@ -96,11 +103,22 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
   background:radial-gradient(circle,rgba(255,180,70,.5),rgba(255,160,40,.12) 45%,transparent 70%);animation:glow 1.6s ease-in-out infinite}
 
 /* lobby */
-#scene-lobby,.panel-scene{padding:8px 24px 78px;
+#scene-lobby,.panel-scene{padding:8px 24px 0;
   display:flex;flex-direction:column;min-height:0;overflow:hidden;
   background:linear-gradient(180deg,rgba(7,8,13,.55) 0%,rgba(7,8,13,.78) 40%,rgba(7,8,13,.88) 100%)}
+#scene-lobby{padding-bottom:var(--panel-pad-bottom)}
+.page-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  padding-bottom:var(--panel-pad-bottom)}
+.sec-head{font-size:16px;margin:20px 0 10px;flex:0 0 auto}
+.empty-state{padding:28px 22px;text-align:center;min-height:132px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.empty-state .gmeta{max-width:28em;margin:0 auto;line-height:1.6}
+.item-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.dress-grid{display:grid;grid-template-columns:min(280px,40vw) 1fr;gap:16px}
 .topbar{position:relative;top:auto;left:auto;right:auto;display:flex;gap:6px 10px;align-items:center;flex-wrap:wrap;
-  z-index:5;flex:0 0 auto;width:100%;padding:2px 52px 10px 0}
+  z-index:5;flex:0 0 auto;width:100%;padding:2px 64px 8px 0;
+  min-height:calc(var(--mute-top) + var(--mute-size))}
 .topbar .brand{letter-spacing:.2em;color:var(--gold);font-size:13px;margin-right:8px}
 .hudstat{font-size:12px;color:var(--parch2);letter-spacing:.04em;display:inline-flex;align-items:center;gap:4px}
 .hudstat .ico,.topbar .ico{width:13px;height:13px}
@@ -151,17 +169,17 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .detail{display:none}
 .detail h3{letter-spacing:.12em;color:var(--gold2);font-size:20px}
 .detail p{font-size:13px;line-height:1.7;color:var(--parch);opacity:.9}
-.botnav{position:absolute;bottom:14px;left:0;right:0;display:flex;justify-content:center;gap:10px;z-index:6;
-  transition:transform .38s cubic-bezier(.2,.8,.2,1),opacity .3s ease}
-.botnav.away{transform:translateY(130%);opacity:0;pointer-events:none}
-
-.botnav{transition:transform .38s cubic-bezier(.2,.8,.2,1),opacity .3s ease}
+.botnav{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:10px;z-index:22;
+  padding:12px 12px calc(12px + var(--safe-bottom));
+  background:linear-gradient(180deg,transparent 0%,rgba(7,8,13,.88) 36%,rgba(7,8,13,.96) 100%);
+  transition:transform .38s cubic-bezier(.2,.8,.2,1),opacity .3s ease;pointer-events:none}
+.botnav .btn{pointer-events:auto}
 .botnav.away{transform:translateY(130%);opacity:0;pointer-events:none}
 .sheet-backdrop{position:absolute;inset:0;z-index:16;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .3s ease}
 .sheet-backdrop.on{opacity:1;pointer-events:auto}
 .guest-sheet{position:absolute;left:0;right:0;bottom:0;z-index:18;max-height:78%;overflow:auto;
   transform:translateY(110%);transition:transform .42s cubic-bezier(.2,.8,.2,1);
-  padding:8px 16px 22px;
+  padding:8px 16px calc(24px + var(--safe-bottom));
   background:linear-gradient(180deg,rgba(48,40,28,.2),transparent 18%),linear-gradient(180deg,rgba(22,26,38,.98),rgba(7,8,13,.98));
   border-top:1px solid var(--gold4);
   box-shadow:inset 0 1px 0 rgba(243,230,192,.25),0 -18px 40px rgba(0,0,0,.55);-webkit-overflow-scrolling:touch}
@@ -172,9 +190,9 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .sheet-actions{display:flex;gap:8px;margin-top:14px}
 .sheet-actions .btn.primary{flex:1;padding:16px 18px;font-size:16px;letter-spacing:.16em}
 .sheet-close{position:absolute;top:12px;right:12px;width:36px;height:36px;border:1px solid var(--gold3);color:var(--gold2)}
-.bonus-sum{padding:10px 12px;border:1px solid var(--gold3);background:rgba(0,0,0,.28);color:var(--gold2);font-size:12px;letter-spacing:.04em;line-height:1.6}
+.bonus-sum{padding:14px 22px;border:1px solid var(--gold3);background:rgba(0,0,0,.28);color:var(--gold2);font-size:12px;letter-spacing:.04em;line-height:1.6}
 .gift-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
-.gift-cell{padding:10px;display:flex;flex-direction:column;gap:4px}
+.gift-cell{padding:16px 22px;display:flex;flex-direction:column;gap:4px}
 .gift-cell .on{border-color:var(--gold)}
 @media (min-width:861px){
   .guest-sheet{left:auto;right:20px;bottom:24px;top:auto;width:min(460px,40vw);max-height:calc(100% - 110px);
@@ -264,7 +282,30 @@ body.slowmo #shake{animation:slo .55s ease}
 .hand .cc{pointer-events:auto;position:relative;width:148px;height:210px;margin:0 -18px;transform-origin:50% 100%;
   transition:transform .25s ease,z-index 0s;cursor:pointer}
 .hand .cc:hover{transform:translateY(-28px) rotate(0deg) scale(1.06)!important;z-index:9!important}
-.hand .cc.off{opacity:.38;pointer-events:none;filter:grayscale(.4)}
+.hand .cc.off{opacity:.38;pointer-events:auto;filter:grayscale(.4)}
+.hand .cc,.hand .card{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none;-webkit-tap-highlight-color:transparent}
+
+/* combat page inspect (press-and-hold) */
+.card-inspect{position:absolute;inset:0;z-index:28;display:flex;align-items:center;justify-content:center;
+  padding:max(88px,14vh) 16px max(176px,24vh);
+  background:radial-gradient(ellipse at 50% 42%,rgba(24,18,10,.25),rgba(0,0,0,.76) 72%);
+  opacity:0;visibility:hidden;pointer-events:none;transition:opacity .16s ease,visibility .16s ease}
+.card-inspect.on{opacity:1;visibility:visible}
+.ci-card{width:min(340px,92vw);max-height:100%;overflow:auto;-webkit-overflow-scrolling:touch;
+  position:relative;padding:22px 20px 18px;color:var(--parch)}
+.ci-art{display:flex;justify-content:center;margin:6px 0 12px;filter:drop-shadow(0 8px 16px rgba(0,0,0,.55))}
+.ci-name{font-size:22px;text-align:center;letter-spacing:.16em;margin:2px 0 12px;line-height:1.35}
+.ci-meta{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:12px}
+.ci-dies{display:flex;flex-direction:column;gap:8px;margin:4px 0 12px}
+.ci-die{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--gold3);
+  background:rgba(0,0,0,.32);font-size:13px;letter-spacing:.06em}
+.ci-die .range{margin-left:auto;color:var(--gold2);font-variant-numeric:tabular-nums}
+.ci-die .mod{color:var(--hp);font-size:11px;margin-left:8px}
+.ci-text{font-size:14px;line-height:1.75;color:var(--parch);margin:4px 0 12px}
+.ci-sec{margin-top:8px;padding-top:10px;border-top:1px solid rgba(196,163,90,.28)}
+.ci-sec .lab{color:var(--gold2);font-size:11px;letter-spacing:.16em;margin-bottom:6px}
+.ci-sec .gmeta{line-height:1.65}
+.ci-hint{text-align:center;color:var(--parch2);font-size:10px;letter-spacing:.14em;margin-top:12px;opacity:.7}
 .card{position:relative;width:100%;height:100%;padding:12px 11px 10px;overflow:hidden;
   background:
     radial-gradient(ellipse at 50% 0%,rgba(196,163,90,.16),transparent 46%),
@@ -316,10 +357,9 @@ body.slowmo #shake{animation:slo .55s ease}
 #shake{position:absolute;inset:0}
 
 /* shelf & collection */
-.panel-scene{padding:56px 24px 86px;overflow:hidden}
-.scroll{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;padding-bottom:12px}
-.book-item,.key-item{padding:14px;display:flex;gap:12px;align-items:center}
-.album{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;padding-bottom:88px}
+.scroll,.item-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.book-item,.key-item{padding:16px 22px;display:flex;gap:12px;align-items:center}
+.album{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;padding-bottom:8px}
 .al-cell{padding:10px;text-align:center;min-height:128px;border:1px solid var(--n4);background:rgba(0,0,0,.25)}
 .al-cell.own{border-color:var(--gold3);background:rgba(26,33,48,.7)}
 .al-cell.eq{border-color:var(--gold);box-shadow:0 0 12px rgba(196,163,90,.35)}
@@ -381,9 +421,18 @@ body.slowmo #shake{animation:slo .55s ease}
 @keyframes bookIn{0%{transform:scale(1.3) rotate(-8deg);filter:blur(6px);opacity:.2}100%{transform:none;filter:none;opacity:1}}
 
 @media (max-width:860px){
-  #scene-lobby,.panel-scene{padding:6px 10px 70px}
-  .topbar{padding:0 48px 8px 0;gap:4px 8px}
-  .topbar .brand{font-size:11px;letter-spacing:.14em;margin-right:4px;width:100%}
+  #scene-lobby,.panel-scene{padding:6px 10px 0}
+  #scene-lobby{padding-bottom:var(--panel-pad-bottom)}
+  .item-grid,.scroll{grid-template-columns:1fr}
+  .gift-grid{grid-template-columns:1fr}
+  .dress-grid{grid-template-columns:1fr}
+  .gacha-stage{min-height:min(380px,52vh)}
+  .empty-state{min-height:120px;padding:24px 18px}
+  #scene-title h1{font-size:clamp(28px,11vw,48px)}
+  #scene-title .sub{letter-spacing:.16em;font-size:11px}
+  :root{--mute-top:8px;--mute-size:32px}
+  .topbar{padding:0 56px 8px 0;gap:4px 8px;min-height:calc(var(--mute-top) + var(--mute-size))}
+  .topbar .brand{font-size:11px;letter-spacing:.12em;margin-right:4px;width:auto;max-width:calc(100% - 4px);flex:0 1 auto}
   .hudstat,.pill{font-size:10px}
   .lobby-grid{display:flex;flex-direction:column;grid-template-columns:none;grid-template-rows:none;gap:8px;min-height:0;overflow:hidden}
   .portrait-box{display:none}
@@ -397,14 +446,18 @@ body.slowmo #shake{animation:slo .55s ease}
   .detail{flex:0 1 auto;max-height:30%;min-height:0;overflow:auto;padding:10px 12px}
   .detail h3{font-size:16px}
   .detail p{font-size:12px;line-height:1.5;max-height:4.6em;overflow:auto}
-  .botnav{bottom:8px;left:8px;right:8px;gap:8px}
+  .botnav{bottom:0;left:0;right:0;gap:8px;padding:8px 8px calc(8px + var(--safe-bottom))}
   .botnav .btn{padding:10px 16px;font-size:13px}
-  #mute{top:8px;right:8px;bottom:auto;width:42px;height:32px}
+  #mute{top:var(--mute-top);right:8px;bottom:auto;width:42px;height:var(--mute-size)}
   .fighter{width:30vw;max-height:46vh;bottom:22%}
   .fighter.librarian{left:1%}
   .fighter.guest{right:1%}
   .hand{height:156px;bottom:2px}
   .hand .cc{width:86px;height:128px;margin:0 -14px}
+  .card-inspect{padding:108px 8px 168px}
+  .ci-card{width:min(360px,94vw);padding:18px 16px}
+  .ci-name{font-size:18px;letter-spacing:.12em}
+  .ci-text{font-size:13px}
   .card{padding:8px 6px 6px}
   .card .illu{height:20px;margin:0}
   .card .illu .ico{width:18px;height:18px}
@@ -423,7 +476,7 @@ body.slowmo #shake{animation:slo .55s ease}
   #lineup{gap:1vw;padding:8% 2% 10%;align-items:flex-end}
   #lineup .lu-name{font-size:11px}
 }
-#mute{white-space:nowrap;word-break:keep-all;min-width:3.4em}
+#mute{white-space:nowrap;word-break:keep-all}
 </style>
 </head>
 <body>
@@ -440,6 +493,7 @@ body.slowmo #shake{animation:slo .55s ease}
   <div id="toast"></div>
   <div id="learn-toast" class="learn-toast" aria-live="polite"></div>
   <div id="lineup"></div>
+  <div id="card-inspect" class="card-inspect" aria-hidden="true"></div>
   <div id="transition"></div>
 </div>
 <svg width="0" height="0" style="position:absolute">
@@ -1418,6 +1472,7 @@ function transit(next, fn){
   setTimeout(()=>{ fn&&fn(); showScene(next); tr.classList.remove("go"); }, 420);
 }
 function showScene(name){
+  closeCardInspect();
   scene=name; FX.setMode(name);
   $$(".scene").forEach(s=>{
     const on=s.id==="scene-"+name;
@@ -1703,6 +1758,118 @@ function beginReception(guestId){
   transit("battle", ()=>renderBattle());
 }
 
+let inspectState={timer:0,hoverTimer:0,press:false,suppressClick:false,pageId:null,reason:null};
+
+function cardInspectHtml(page){
+  const t=giftTotals(save);
+  const dieMin=t.dieMin||0;
+  const dies=(page.dice||[]).map(d=>{
+    const lo=d.min+dieMin, hi=Math.max(lo,d.max);
+    const shown=dieMin?`${d.min}–${d.max} → ${lo}–${hi}`:`${d.min}–${d.max}`;
+    return `<div class="ci-die">${dieMark(d.type,22)} <span>${d.type}</span>
+      <span class="range">${shown}</span>${dieMin?`<span class="mod">최솟값 +${dieMin}</span>`:""}</div>`;
+  }).join("");
+  const conds=[];
+  conds.push(page.cost?`빛 ${page.cost} 소모`:"빛 소모 없음");
+  conds.push(page.emotion?`감정 레벨 ${page.emotion} 이상`:"감정 조건 없음");
+  if(reception){
+    if(reception.light<(page.cost||0)) conds.push(`빛이 부족합니다 (현재 ${reception.light})`);
+    if(reception.emotion<(page.emotion||0)) conds.push(`감정이 부족합니다 (현재 ${reception.emotion})`);
+  }
+  const mods=[];
+  if(t.dieMin) mods.push(`주사위 최솟값 +${t.dieMin}`);
+  if(t.dmgPct) mods.push(`피해 +${Math.round(t.dmgPct*100)}%`);
+  if(t.staggerPct) mods.push(`흐트러짐 피해 +${Math.round(t.staggerPct*100)}%`);
+  if(t.lightRegen) mods.push(`빛 회복 +${t.lightRegen}`);
+  return `${cornerHtml()}
+    <div class="ci-art">${dieMark((page.dice[0]||{}).type,64)}</div>
+    <h3 class="gold-title ci-name">${page.name}</h3>
+    <div class="ci-meta">
+      <span class="pill">${ico("light",12)} 빛 ${page.cost}</span>
+      <span class="pill">${ico("emotion",12)} ${page.emotion?`감정 ${page.emotion}+`:"감정 조건 없음"}</span>
+    </div>
+    <div class="ci-dies">${dies||`<div class="gmeta">주사위 없음</div>`}</div>
+    <p class="ci-text">${page.text}</p>
+    <div class="ci-sec"><div class="lab">조건</div><div class="gmeta">${conds.join(" · ")}</div></div>
+    <div class="ci-sec"><div class="lab">장착 기프트 보정</div><div class="gmeta">${mods.length?mods.join(" · "):"이 책장에 적용되는 기프트 보정이 없습니다."}</div></div>
+    <div class="ci-hint">손을 떼면 닫힙니다</div>`;
+}
+function openCardInspect(pageId){
+  const page=PAGE_BY[pageId]; const el=$("#card-inspect"); if(!page||!el) return;
+  el.innerHTML=`<div class="ci-card frame">${cardInspectHtml(page)}</div>`;
+  el.classList.add("on"); el.setAttribute("aria-hidden","false");
+  inspectState.pageId=pageId;
+}
+function closeCardInspect(){
+  const el=$("#card-inspect");
+  if(el){ el.classList.remove("on"); el.setAttribute("aria-hidden","true"); el.innerHTML=""; }
+  inspectState.pageId=null; inspectState.press=false; inspectState.reason=null;
+  if(inspectState.timer){ clearTimeout(inspectState.timer); inspectState.timer=0; }
+  if(inspectState.hoverTimer){ clearTimeout(inspectState.hoverTimer); inspectState.hoverTimer=0; }
+}
+function bindHandInteract(){
+  const rec=reception;
+  $$("#hand .cc").forEach(c=>{
+    const pageId=c.dataset.page;
+    c.addEventListener("contextmenu",ev=>{ ev.preventDefault(); ev.stopPropagation(); });
+    c.addEventListener("selectstart",ev=>ev.preventDefault());
+    c.addEventListener("pointerdown",ev=>{
+      if(ev.pointerType==="mouse" && ev.button===1) return;
+      if(ev.pointerType==="mouse" && ev.button===2){
+        ev.preventDefault();
+        if(inspectState.timer){clearTimeout(inspectState.timer);inspectState.timer=0}
+        inspectState.press=true; inspectState.suppressClick=true; inspectState.reason="press";
+        openCardInspect(pageId);
+        try{ c.setPointerCapture(ev.pointerId); }catch(e){}
+        return;
+      }
+      if(ev.pointerType==="mouse" && ev.button!==0) return;
+      if(inspectState.timer){clearTimeout(inspectState.timer);inspectState.timer=0}
+      inspectState.press=false; inspectState.suppressClick=false;
+      inspectState.timer=setTimeout(()=>{
+        inspectState.press=true; inspectState.suppressClick=true; inspectState.reason="press";
+        openCardInspect(pageId);
+        try{ c.setPointerCapture(ev.pointerId); }catch(e){}
+      },300);
+    });
+    const endHold=()=>{
+      if(inspectState.timer){clearTimeout(inspectState.timer);inspectState.timer=0}
+      if(inspectState.press){
+        closeCardInspect();
+        setTimeout(()=>{inspectState.suppressClick=false},400);
+      }
+      inspectState.press=false;
+    };
+    c.addEventListener("pointerup",endHold);
+    c.addEventListener("pointercancel",endHold);
+    c.addEventListener("pointerenter",ev=>{
+      if(ev.pointerType!=="mouse") return;
+      SFX.hover();
+      if(inspectState.hoverTimer) clearTimeout(inspectState.hoverTimer);
+      inspectState.hoverTimer=setTimeout(()=>{
+        if(!inspectState.press){ inspectState.reason="hover"; openCardInspect(pageId); }
+      },300);
+    });
+    c.addEventListener("pointerleave",ev=>{
+      if(ev.pointerType==="mouse" && !inspectState.press){
+        if(inspectState.hoverTimer){clearTimeout(inspectState.hoverTimer);inspectState.hoverTimer=0}
+        if(inspectState.reason==="hover") closeCardInspect();
+      }
+    });
+    if(rec&&rec.phase==="select"){
+      c.addEventListener("click",ev=>{
+        if(inspectState.suppressClick){
+          ev.preventDefault(); ev.stopImmediatePropagation();
+          inspectState.suppressClick=false;
+          return;
+        }
+        if(c.classList.contains("off")) return;
+        choosePage(pageId);
+      });
+    }
+  });
+}
+
 function renderBattle(){
   const rec=reception, guest=rec&&GUEST_BY[rec.guestId];
   if(!rec||!guest){ transit("lobby",()=>renderLobby()); return; }
@@ -1756,13 +1923,11 @@ function renderBattle(){
     </div>`;
   paintBattleFloor($("#arena-bg"), guest.floorId);
   if(rec.phase==="select"){
-    $$(".cc:not(.off)").forEach(c=>{
-      c.onmouseenter=()=>SFX.hover();
-      c.onclick=()=>choosePage(c.dataset.page);
-    });
+    bindHandInteract();
   } else {
     $("#hand").style.opacity=".2";
     $("#hand").style.pointerEvents="none";
+    closeCardInspect();
   }
   if(rec.phase==="question") showQuestion();
   if(rec.phase==="win") showWin();
@@ -2041,34 +2206,40 @@ function showLose(){
 /* ---------- shelf / collection ---------- */
 function renderShelf(){
   const books=WEAK_POINTS.filter(g=>save.books[g.id]);
-  $("#scene-shelf").innerHTML=`
-    <div class="topbar">${hudStats()}</div>
-    <h2 class="gold-title" style="font-size:22px;margin-bottom:8px">책장</h2>
-    <p class="gmeta" style="margin-bottom:12px">접대에 성공한 손님이 책이 됩니다. 열람은 새 책장을, 소각은 핵심 책장을 엽니다.</p>
-    <div class="scroll">${books.length?books.map(g=>{
+  const bookList=books.length?`<div class="item-grid">${books.map(g=>{
       const st=save.books[g.id], rw=BOOK_REWARDS[g.id];
       const rn=rw&&PAGE_BY[rw.readPage]?.name, bn=rw&&KEY_BY[rw.burnKey]?.name;
       return `<div class="book-item frame">${cornerHtml()}${bookSvg(g.concept)}
-        <div style="flex:1"><div class="gold-title" style="font-size:16px">${g.concept}</div>
+        <div style="flex:1;min-width:0"><div class="gold-title" style="font-size:16px">${g.concept}</div>
         <div class="gmeta">${st==="shelved"?"보관 중":st==="read"?"열람함":"소각함"} · 열람: ${rn||"—"} · 소각: ${bn||"—"}</div>
-        ${st==="shelved"?`<div style="margin-top:8px;display:flex;gap:6px">
+        ${st==="shelved"?`<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn primary" data-read="${g.id}">열람</button>
           <button class="btn" data-burn="${g.id}">소각</button></div>`:
           `<div class="gmeta" style="margin-top:6px">이 책은 이미 서고의 힘이 되었습니다.</div>`}
         </div></div>`;
-    }).join(""):`<div class="frame" style="padding:20px">${cornerHtml()}아직 책장이 비어 있습니다. 손님을 접대해 책을 남기세요.</div>`}</div>
-    <h3 class="gold-title" style="font-size:16px;margin:16px 0 8px">핵심 책장</h3>
-    <div class="scroll" style="flex:0 0 auto;grid-template-rows:auto">${KEY_PAGES.map(p=>{
+    }).join("")}</div>`:`<div class="empty-state frame">${cornerHtml()}
+        ${bookSvg("빈 책장")}
+        <div class="gold-title" style="font-size:16px">아직 책장이 비어 있습니다</div>
+        <div class="gmeta">손님을 접대해 책을 남기세요.</div>
+      </div>`;
+  $("#scene-shelf").innerHTML=`
+    <div class="topbar">${hudStats()}</div>
+    <div class="page-scroll">
+    <h2 class="gold-title" style="font-size:22px;margin-bottom:8px">책장</h2>
+    <p class="gmeta" style="margin-bottom:14px">접대에 성공한 손님이 책이 됩니다. 열람은 새 책장을, 소각은 핵심 책장을 엽니다.</p>
+    ${bookList}
+    <h3 class="gold-title sec-head">핵심 책장</h3>
+    <div class="item-grid">${KEY_PAGES.map(p=>{
       const un=save.unlockedKeyIds.includes(p.id), eq=save.equippedKeyId===p.id;
-      return `<div class="key-item frame">${cornerHtml()}<div>
+      return `<div class="key-item frame">${cornerHtml()}<div style="min-width:0">
         <div class="gold-title" style="font-size:15px">${p.name}</div>
         <div class="gmeta">${un?p.text:"아직 열리지 않은 장서복입니다."}</div>
         ${un?`<button class="btn ${eq?"":"primary"}" style="margin-top:8px" data-key="${p.id}">${eq?"착장 중":"착장"}</button>`:`<span class="pill">미획득</span>`}
       </div></div>`;
     }).join("")}</div>
-    <h3 class="gold-title" style="font-size:16px;margin:16px 0 8px">에고 기프트</h3>
+    <h3 class="gold-title sec-head">에고 기프트</h3>
     <p class="gmeta" style="margin-bottom:8px">접대와 회상으로 모은 기프트. 개별 효과는 아주 작지만, 장착한 기프트와 세트 보너스가 쌓입니다. 장서 뽑기와는 별개입니다.</p>
-    <div class="bonus-sum" style="margin-bottom:10px">누적 효과 · ${bonusLabel(giftTotals(save))}</div>
+    <div class="bonus-sum frame" style="margin-bottom:10px">${cornerHtml()}누적 효과 · ${bonusLabel(giftTotals(save))}</div>
     <div class="gift-grid">${EGO_GIFTS.map(g=>{
       const have=(save.egoOwned||[]).includes(g.id), eq=(save.egoEquipped||{})[g.slot]===g.id;
       const from=GUEST_BY[g.guestId]?.concept||g.guestId;
@@ -2079,6 +2250,16 @@ function renderShelf(){
         ${have?`<button class="btn ${eq?"":"primary"}" style="margin-top:6px" data-gift="${g.id}">${eq?"해제":"장착"}</button>`:""}
       </div>`;
     }).join("")}</div>
+    <h3 class="gold-title sec-head">전투 책장</h3>
+    <div class="item-grid">${COMBAT_PAGES.map(p=>{
+      const un=(save.unlockedPageIds||[]).includes(p.id);
+      const dice=(p.dice||[]).map(d=>`${d.type} ${d.min}–${d.max}`).join(" · ");
+      return `<div class="key-item frame">${cornerHtml()}<div style="min-width:0">
+        <div class="gold-title" style="font-size:15px">${un?p.name:"????"}</div>
+        <div class="gmeta">${un?`${p.cost}빛 · ${dice}<br>${p.text}`:"아직 열리지 않은 전투 책장입니다."}</div>
+      </div></div>`;
+    }).join("")}</div>
+    </div>
     ${botNav("shelf")}`;
   bindNav();
   $$("[data-read]").forEach(b=>b.onclick=()=>handleBook(b.dataset.read,"read"));
@@ -2114,12 +2295,14 @@ function renderCollection(){
   const items=slotFilter==="전체"?COSMETIC_ITEMS:COSMETIC_ITEMS.filter(i=>i.slot===slotFilter);
   $("#scene-collection").innerHTML=`
     <div class="topbar">${hudStats()}</div>
+    <div class="page-scroll">
     <h2 class="gold-title" style="font-size:22px">장서</h2>
     <p class="gmeta" style="margin:6px 0 10px">장신구는 외형 전용이며 전투 수치에 영향이 없습니다. 도감 ${save.ownedIds.length}/${COLLECTION_TOTAL} · 권 ${held}장 · SSR 천장 ${Math.max(0,GACHA_RULES.ssrPity-save.pullsSinceSsr)}회</p>
     <div class="tabs">
       ${[["gacha","뽑기"],["album","도감"],["dress","코디"]].map(([id,lb])=>`<button class="btn ${collectTab===id?"primary":""}" data-ct="${id}">${lb}</button>`).join("")}
     </div>
-    <div id="col-body" style="flex:1;overflow:auto"></div>
+    <div id="col-body"></div>
+    </div>
     ${botNav("collection")}`;
   bindNav();
   $$("[data-ct]").forEach(b=>b.onclick=()=>{ collectTab=b.dataset.ct; renderCollection(); });
@@ -2155,13 +2338,13 @@ function renderCollection(){
     $$("[data-sf]").forEach(b=>b.onclick=()=>{ slotFilter=b.dataset.sf; renderCollection(); });
     $$("[data-eq]").forEach(b=>b.onclick=()=>equipItem(b.dataset.eq));
   } else {
-    body.innerHTML=`<div style="display:grid;grid-template-columns:min(280px,40vw) 1fr;gap:16px">
-      <div class="frame" style="padding:12px;text-align:center">${cornerHtml()}${librarianSvg(save,240,340)}
+    body.innerHTML=`<div class="dress-grid">
+      <div class="frame" style="padding:18px 16px;text-align:center">${cornerHtml()}${librarianSvg(save,240,340)}
         <div class="pname">사서 큐 양</div><div class="gmeta">${keyPerk(save).name} · 장신구는 외형만 변경</div></div>
       <div>${SLOTS.map(slot=>{
         const eq=ITEM_BY[save.equipped[slot]||""];
         const owned=COSMETIC_ITEMS.filter(i=>i.slot===slot&&save.ownedIds.includes(i.id));
-        return `<div class="frame" style="padding:10px;margin-bottom:8px">${cornerHtml()}
+        return `<div class="frame" style="padding:16px 18px;margin-bottom:8px">${cornerHtml()}
           <div style="display:flex;justify-content:space-between"><b style="color:var(--gold2)">${slot}</b>
           ${eq?`<button class="btn" data-off="${slot}">해제</button>`:""}</div>
           <div class="gmeta">${eq?eq.name:"기본 모습"}</div>
@@ -2296,6 +2479,7 @@ function boot(){
         }
       }
     },
+    openCardInspect, closeCardInspect,
     openGuestSheet, closeGuestSheet, showGuestLineup, hideGuestLineup,
     giftTotals, bonusLabel
   };
