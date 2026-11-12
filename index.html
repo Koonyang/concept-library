@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="ruina-combat-20261112j">
+<meta name="build" content="crime-floor-20261112L">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -1094,6 +1094,63 @@ b,strong{font-weight:700}
 .sheet-resist{margin:10px 0 6px;padding:10px 12px 10px;border-radius:var(--r-md);background:rgba(255,255,255,.04);border:1px solid var(--line)}
 .sr-title{font-weight:800;font-size:13px;color:#fff;letter-spacing:-.02em}
 .sr-title small{font-weight:500;color:var(--parch2);margin-left:6px;font-size:11px}
+
+/* ===== battle HUD v2: right-aligned guest panel, per-unit emotion pips, light chip above hand ===== */
+.bars{position:relative}
+.bars.left{box-shadow:inset 3px 0 0 rgba(var(--accent-rgb),.6),0 10px 28px var(--shadow)}
+.bars.right{text-align:right;box-shadow:inset -3px 0 0 rgba(var(--accent-rgb),.6),0 10px 28px var(--shadow)}
+.bars.right .bar-lab{flex-direction:row-reverse}
+.bars.right .bar .ghost,.bars.right .bar .fill{left:auto;right:0}
+.bars.right .bar-lab span:first-child{display:inline-flex;flex-direction:row-reverse;align-items:center;gap:4px}
+.bars .bar-lab:first-child{font-size:12px;font-weight:700;color:var(--parch)}
+.bars.left .bar-lab span:first-child{display:inline-flex;align-items:center;gap:4px}
+.bars.left .bar-lab span:last-child,.bars.right .bar-lab span:last-child{font-variant-numeric:tabular-nums}
+.bars .bar-lab{align-items:center;gap:8px}
+.bars .bar{height:11px}
+.emo-chip{position:absolute;top:-26px;left:0;z-index:5;display:flex;align-items:center;gap:4px;padding:3px 9px 3px 8px;border-radius:999px;
+  background:rgba(8,10,18,.62);border:1px solid rgba(var(--accent-rgb),.38);backdrop-filter:blur(4px);white-space:nowrap;pointer-events:none}
+.emo-chip .pip{border-left-width:5px;border-right-width:5px;border-bottom-width:9px;transition:border-bottom-color .3s,filter .3s}
+.emo-chip .pip.gain{animation:pipGain .95s ease-out}
+.emo-chip small{font-size:10px;font-weight:700;color:var(--parch2);margin-left:2px}
+@keyframes pipGain{0%{transform:scale(.3) translateY(4px);filter:brightness(3) drop-shadow(0 0 8px var(--gold))}55%{transform:scale(1.6) translateY(-2px)}100%{transform:scale(1) translateY(0)}}
+.lightchip{position:absolute;left:12px;bottom:170px;z-index:8;display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;
+  background:rgba(8,10,18,.68);border:1px solid rgba(var(--accent-rgb),.4);color:var(--gold2);font-size:12px;pointer-events:none;backdrop-filter:blur(4px)}
+.lightchip b{font-family:var(--display);font-size:14px;font-weight:700;color:var(--parch);font-variant-numeric:tabular-nums}
+.lightchip small{font-size:10px;color:var(--parch2)}
+.lightchip.gain{animation:lightGain .9s ease-out}
+.lightchip.spend{animation:lightSpend .6s ease-out}
+@keyframes lightGain{0%{box-shadow:0 0 0 0 rgba(255,236,170,.9)}60%{box-shadow:0 0 0 9px rgba(255,236,170,0);transform:scale(1.08)}100%{box-shadow:0 0 0 0 transparent;transform:scale(1)}}
+@keyframes lightSpend{0%{opacity:.5}100%{opacity:1}}
+.battle-stage:has(.qpanel.on) .lightchip{opacity:0;visibility:hidden}
+.battle-stage.result-on .lightchip{opacity:0!important;visibility:hidden!important}
+@media (max-width:860px){ .lightchip{bottom:148px;left:8px} .emo-chip{left:-12px;padding:3px 7px} }
+
+/* ===== floor carousel header ===== */
+.floor-nav{display:flex;align-items:center;justify-content:space-between;gap:6px;flex:0 0 auto}
+.fn-arrow{width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,.04);border:1px solid rgba(var(--accent-rgb),.35);color:var(--gold2);cursor:pointer;transition:transform .15s,background .15s}
+.fn-arrow svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.fn-arrow:hover{background:rgba(var(--accent-rgb),.16)}.fn-arrow:active{transform:scale(.92)}
+.fn-title{flex:1;min-width:0;text-align:center}
+.fn-count{font-size:10px;letter-spacing:.08em;color:var(--parch2);font-variant-numeric:tabular-nums}
+.fn-name{font-size:20px;letter-spacing:.02em;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fn-dots{position:relative;display:flex;align-items:center;justify-content:center;gap:0;height:16px;flex:0 0 auto;margin:-2px 0 2px}
+.fn-dots:before{content:"";position:absolute;left:calc(50% - var(--fn-w,60px));right:calc(50% - var(--fn-w,60px));top:50%;height:1px;background:rgba(var(--accent-rgb),.35);transform:translateY(-.5px)}
+.fn-dot{position:relative;width:26px;height:16px;display:grid;place-items:center;background:none;border:0;padding:0;cursor:pointer}
+.fn-dot i{display:block;width:7px;height:7px;border-radius:99px;background:#2b2f3c;border:1px solid rgba(var(--accent-rgb),.55);transition:width .25s,background .25s}
+.fn-dot.on i{width:22px;background:var(--gold);border-color:var(--gold)}
+.fn-dot.tiny i{width:4px;height:4px;opacity:.7}
+.floor-swipe{display:flex;flex-direction:column;gap:12px;flex:1 1 auto;min-height:0;touch-action:pan-y}
+.floor-swipe.slide-in-r,.fn-title.slide-in-r{animation:fnInR .34s cubic-bezier(.2,.8,.2,1)}
+.floor-swipe.slide-in-l,.fn-title.slide-in-l{animation:fnInL .34s cubic-bezier(.2,.8,.2,1)}
+.floor-swipe.slide-out-l,.fn-title.slide-out-l{animation:fnOutL .15s ease-in forwards}
+.floor-swipe.slide-out-r,.fn-title.slide-out-r{animation:fnOutR .15s ease-in forwards}
+@keyframes fnInR{from{opacity:0;transform:translateX(36px)}to{opacity:1;transform:none}}
+@keyframes fnInL{from{opacity:0;transform:translateX(-36px)}to{opacity:1;transform:none}}
+@keyframes fnOutL{to{opacity:0;transform:translateX(-36px)}}
+@keyframes fnOutR{to{opacity:0;transform:translateX(36px)}}
+@media (max-width:860px){ .fn-arrow{width:48px;height:48px} .fn-name{font-size:17px} }
+.ticket-chip{display:flex;align-items:center;justify-content:center;gap:6px;margin:12px auto 0;width:max-content;padding:5px 14px;border-radius:999px;background:rgba(8,10,18,.55);border:1px solid rgba(var(--accent-rgb),.4);color:var(--gold2);font-size:12px}
+.ticket-chip b{font-family:var(--display);font-size:15px;color:var(--parch)}
 </style>
 </head>
 <body>
@@ -1140,11 +1197,84 @@ b,strong{font-weight:700}
  * 개념의 서고 — 데이터 (나중에 FLOORS / WEAK_POINTS / TICKET_RULES / GACHA_RULES 만 교체)
  * ============================================================ */
 const FLOORS = [
-  { id:"memory", name:"기억의 층", subject:"학습법 (예시)", motto:"잊힐 때까지 기다리는 책장." },
-  { id:"cognition", name:"인지의 층", subject:"학습법 (예시)", motto:"알고 있는지, 아직 모르는지를 보는 창." }
+  { id:"crime", name:"범죄학의 층", subject:"범죄학의 기초", motto:"처벌은 복수가 아니라 예방이라는 오래된 문장들." },
+  { id:"memory", name:"기억의 층 · 예시", subject:"학습법 (예시)", motto:"잊힐 때까지 기다리는 책장." },
+  { id:"cognition", name:"인지의 층 · 예시", subject:"학습법 (예시)", motto:"알고 있는지, 아직 모르는지를 보는 창." }
 ];
 
 const WEAK_POINTS = [
+  {
+    id:"beccaria", floorId:"crime", concept:"베카리아", subject:"범죄학의 기초", weakness:1, archetype:"scholar", palette:"bone", accessory:"quill",
+    sourceNote:"범죄학의 기초 2강 · 범죄학의 탄생 (11/12)",
+    explanation:"18세기 유럽에서는 판사의 재량과 신분에 따른 처벌, 고문 같은 잔혹한 형벌이 흔했고, 고전주의 학파는 이에 대한 반발로 나왔습니다. 체사레 베카리아는 1764년 『범죄와 형벌』에서 인간이 비용과 이익을 합리적으로 따진다고 보았고, 형벌의 목적은 복수가 아니라 예방이라며 고문과 사형에 반대했습니다.",
+    questions:[
+      { type:"mc", prompt:"베카리아가 1764년에 펴낸 책의 제목은?", options:["『범죄와 형벌』","『감시와 처벌』","『국부론』","『사회계약론』"], correctIndex:0 },
+      { type:"mc", prompt:"18세기 유럽 형벌의 모습으로 알맞은 것은?", options:["판사의 재량과 신분에 따른 처벌, 고문 같은 잔혹한 형벌이 흔했다","모든 사람이 똑같은 법정형으로 처벌받았다","범죄와 형벌이 법률로 미리 엄격히 정해져 있었다","고문은 거의 쓰이지 않았다"], correctIndex:0 },
+      { type:"ox", prompt:"베카리아는 형벌의 목적이 복수가 아니라 예방이라고 보았다.", options:["O","X"], correctIndex:0 },
+      { type:"mc", prompt:"베카리아의 주장으로 알맞은 것은?", options:["고문과 사형에 반대했다","고문은 범죄 예방에 꼭 필요하다고 보았다","형벌은 신분에 따라 달리해야 한다고 보았다","형벌의 목적은 복수(응보)라고 보았다"], correctIndex:0 },
+      { type:"mc", prompt:"고전주의 학파가 인간을 바라본 관점으로 알맞은 것은?", options:["인간은 비용과 이익을 합리적으로 따져 행동한다","인간은 타고난 범죄 기질이 정해져 있다","인간은 신분에 따라 행동이 정해진다","인간은 충동만으로 움직인다"], correctIndex:0 }
+    ]
+  },
+  {
+    id:"three-conditions", floorId:"crime", concept:"확실성·신속성·비례성", subject:"범죄학의 기초", weakness:2, archetype:"knight", palette:"steel", accessory:"watch",
+    sourceNote:"범죄학의 기초 2강 · 고전주의 학파 (11/12)",
+    explanation:"베카리아는 형벌의 엄격함(가혹함)보다 확실성(반드시 처벌받는다), 신속성(빠르게 처벌받는다), 비례성(범죄의 무게에 맞는 처벌)이 더 중요하다고 보았습니다. 단속 없이 과태료를 1억 원으로 정해도 위반은 계속되지만, 5만 원이라도 매번 단속하면 위반하지 않게 되는 것이 확실성과 신속성의 예입니다.",
+    questions:[
+      { type:"mc", prompt:"베카리아가 형벌에서 중요하다고 본 세 가지 조건은?", options:["확실성·신속성·비례성","엄격성·잔혹성·공개성","신분·재량·관습","확실성·엄격성·보복성"], correctIndex:0 },
+      { type:"mc", prompt:"베카리아에 따르면 억제 효과에서 더 중요한 것은?", options:["확실성·신속성·비례성","형벌의 엄격함(가혹함)","판사의 재량","범죄자의 신분"], correctIndex:0 },
+      { type:"ox", prompt:"형벌이 가혹하기만 하면 확실성·신속성·비례성이 없어도 억제 효과가 가장 크다.", options:["O","X"], correctIndex:1 },
+      { type:"mc", prompt:"단속이 없는 상태에서 과태료를 1억 원으로 정해도 위반이 계속되는 사례가 보여 주는 것은?", options:["처벌받을 확실성이 없으면 무거운 처벌도 억제하지 못한다","과태료는 무거울수록 항상 효과적이다","신속성은 억제와 관계가 없다","비례성이 높아서 위반이 계속된다"], correctIndex:0 },
+      { type:"mc", prompt:"5만 원이어도 매번 단속하면 위반하지 않게 되는 사례에 가장 가까운 조건은?", options:["확실성과 신속성","엄격성","신분에 따른 차등","판사의 재량"], correctIndex:0 }
+    ]
+  },
+  {
+    id:"bentham", floorId:"crime", concept:"벤담의 쾌락 계산", subject:"범죄학의 기초", weakness:2, archetype:"mage", palette:"crimson", accessory:"cage",
+    sourceNote:"범죄학의 기초 2강 · 고전주의 학파 (11/12)",
+    explanation:"제러미 벤담은 공리주의자로, '최대 다수의 최대 행복'을 내세웠습니다. 형벌의 고통이 범죄의 쾌락을 조금만 넘으면 범죄를 막을 수 있다고 보았고, 이것이 쾌락 계산입니다. 파놉티콘은 벤담이 구상한 원형 감옥으로, 한 명의 감시자가 모든 수감자를 볼 수 있습니다.",
+    questions:[
+      { type:"mc", prompt:"제러미 벤담의 사상적 입장은?", options:["공리주의","실증주의","낭만주의","신비주의"], correctIndex:0 },
+      { type:"mc", prompt:"'최대 다수의 최대 행복'을 내세운 사람은?", options:["벤담","베카리아","피니어스 게이지","판사"], correctIndex:0 },
+      { type:"mc", prompt:"벤담의 쾌락 계산에서 형벌의 고통은 범죄의 쾌락보다 어느 정도면 되는가?", options:["조금만 넘으면 된다","훨씬 커야 한다","정확히 같아야 한다","고려할 필요가 없다"], correctIndex:0 },
+      { type:"mc", prompt:"파놉티콘의 특징은?", options:["원형 감옥에서 한 명의 감시자가 모든 수감자를 볼 수 있다","수감자들이 서로를 감시하는 지하 독방이다","사형을 집행하는 시설이다","죄수를 신분별로 나누어 가두는 건물이다"], correctIndex:0 },
+      { type:"ox", prompt:"파놉티콘은 벤담이 구상한 원형 감옥이다.", options:["O","X"], correctIndex:0 }
+    ]
+  },
+  {
+    id:"legality", floorId:"crime", concept:"죄형법정주의", subject:"범죄학의 기초", weakness:1, archetype:"fixer", palette:"amber", accessory:"banner",
+    sourceNote:"범죄학의 기초 2강 · 고전주의 학파 (11/12)",
+    explanation:"죄형법정주의는 어떤 행위가 범죄인지, 그리고 어떤 형벌을 받는지가 미리 법률로 정해져 있어야 한다는 원칙으로, 베카리아와 연결됩니다.",
+    questions:[
+      { type:"mc", prompt:"죄형법정주의의 내용으로 알맞은 것은?", options:["범죄와 형벌은 미리 법률로 정해져 있어야 한다","판사가 사건마다 형벌을 정한다","범죄가 일어난 뒤에 법을 만들어 처벌할 수 있다","신분에 따라 형벌이 달라진다"], correctIndex:0 },
+      { type:"ox", prompt:"죄형법정주의에서는 판사가 사건마다 재량으로 형벌을 정한다.", options:["O","X"], correctIndex:1 },
+      { type:"mc", prompt:"죄형법정주의와 연결되는 학자는?", options:["베카리아","벤담","피니어스 게이지","판사"], correctIndex:0 },
+      { type:"mc", prompt:"다음 중 죄형법정주의에 어긋나는 상황은?", options:["법에 정해지지 않은 행위를 판사가 나중에 범죄로 처벌한다","법에 정해진 범죄를 법에 정해진 형벌로 처벌한다","형벌을 법률로 미리 정해 둔다","법률에 정해진 대로 재판한다"], correctIndex:0 }
+    ]
+  },
+  {
+    id:"deterrence", floorId:"crime", concept:"한계 억제", subject:"범죄학의 기초", weakness:2, archetype:"scholar", palette:"rust", accessory:"chain",
+    sourceNote:"범죄학의 기초 2강 · 고전주의 학파 (11/12)",
+    explanation:"한계 억제는 범죄의 무게에 비례해 처벌해야 범죄자가 더 큰 범죄로 나아가지 않는다는 생각입니다(예: 폭행에서 살인으로). 억제 연구에서는 형벌을 엄하게 하는 것보다 잡힐 확률, 곧 확실성을 높이는 것이 일관되게 더 효과적이었습니다. 생활반응 같은 과학수사의 발달은 검거 가능성을 높여 억제에 기여할 수 있고, CSI 효과는 토론 주제입니다.",
+    questions:[
+      { type:"mc", prompt:"한계 억제의 내용으로 알맞은 것은?", options:["범죄의 무게에 비례해 처벌해 더 큰 범죄로 나아가지 않게 한다","모든 범죄를 같은 형벌로 처벌한다","가벼운 범죄일수록 더 무겁게 처벌한다","형벌을 비밀로 한다"], correctIndex:0 },
+      { type:"mc", prompt:"한계 억제가 막으려는 상황의 예로 알맞은 것은?", options:["폭행을 저지른 사람이 살인으로 나아가는 것","신분에 따라 처벌이 달라지는 것","법이 없는데 처벌받는 것","감시자가 한 명뿐인 것"], correctIndex:0 },
+      { type:"mc", prompt:"억제 연구가 일관되게 보여 준 것은?", options:["잡힐 확률(확실성)을 높이는 것이 형벌을 엄하게 하는 것보다 효과적이다","형벌을 엄하게 하는 것이 가장 효과적이다","확실성과 엄격성의 효과는 같다","신속성만 효과가 있다"], correctIndex:0 },
+      { type:"mc", prompt:"생활반응 같은 과학수사의 발달이 억제에 기여하는 방식은?", options:["검거 가능성(확실성)을 높인다","형벌을 더 가혹하게 만든다","재판을 신분별로 나눈다","판사의 재량을 늘린다"], correctIndex:0 },
+      { type:"ox", prompt:"살인이든 폭행이든 같은 벌이라면 한계 억제가 잘 작동한다.", options:["O","X"], correctIndex:1 }
+    ]
+  },
+  {
+    id:"limits", floorId:"crime", concept:"고전주의의 한계", subject:"범죄학의 기초", weakness:3, archetype:"knight", palette:"violet", accessory:"mirror",
+    sourceNote:"범죄학의 기초 2강 · 고전주의 학파 + 심화 (11/12)",
+    explanation:"고전주의는 모든 사람이 똑같이 합리적이라고 가정해서 범죄성의 개인차를 설명하지 못하고, 이 한계가 다음 강의의 실증주의로 이어집니다. 심화로, 전전두엽이 손상되면(1848년 피니어스 게이지) 비용과 이익을 따지는 추론이 약해져 억제가 약해질 수 있습니다. 형법 제10조는 심신상실자는 벌하지 않고 심신미약자는 형을 감경할 수 있다고 정합니다.",
+    questions:[
+      { type:"mc", prompt:"고전주의 학파의 한계로 알맞은 것은?", options:["모든 사람이 똑같이 합리적이라고 가정한다","형벌의 확실성을 무시한다","고문을 옹호한다","범죄를 신분으로만 설명한다"], correctIndex:0 },
+      { type:"mc", prompt:"고전주의가 잘 설명하지 못하는 것은?", options:["범죄성의 개인차","형벌의 목적","죄형법정주의의 뜻","검거 확률의 효과"], correctIndex:0 },
+      { type:"mc", prompt:"고전주의의 한계에서 이어지는 다음 강의의 주제는?", options:["실증주의","공리주의","파놉티콘","한계 억제"], correctIndex:0 },
+      { type:"mc", prompt:"전전두엽이 손상되면 억제가 약해질 수 있는 이유는?", options:["비용과 이익을 따지는 추론이 약해지기 때문","검거 확률이 높아지기 때문","형벌이 가혹해지기 때문","신분이 바뀌기 때문"], correctIndex:0 },
+      { type:"mc", prompt:"형법 제10조에서 심신상실 상태의 행위는?", options:["벌하지 않는다","반드시 사형에 처한다","형을 더 무겁게 한다","재판 없이 풀어 준다"], correctIndex:0 },
+      { type:"mc", prompt:"형법 제10조에서 심신미약 상태의 행위는?", options:["형을 감경할 수 있다","벌하지 않는다","반드시 형을 가중한다","심신상실과 똑같이 취급한다"], correctIndex:0 }
+    ]
+  },
   {
     id:"pomodoro", floorId:"memory", concept:"포모도로 기법", subject:"학습법 (예시)", weakness:1, archetype:"fixer", palette:"teal", accessory:"hourglass",
     explanation:"포모도로는 25분 집중과 5분 휴식을 한 세트로 반복하며, 집중 중에는 다른 일을 끼워 넣지 않는 기법입니다. 목적은 무작정 긴 공부가 아니라, 집중과 휴식의 리듬을 만드는 것입니다.",
@@ -1237,7 +1367,43 @@ const EGO_GIFTS = [
   { id:"unknown-sigil", guestId:"metacognition", name:"아직 모름의 인", slot:"얼굴", art:"sigil",
     text:"모르는 것을 입가에 적어두었다.", perk:{ hp:1 } },
   { id:"blind-spot-pin", guestId:"metacognition", name:"사각의 핀", slot:"발", art:"pin",
-    text:"놓친 부분을 발끝에 새긴다.", perk:{ dmgPct:1 } }
+    text:"놓친 부분을 발끝에 새긴다.", perk:{ dmgPct:1 } },
+  { id:"becc-bookmark", guestId:"beccaria", name:"『범죄와 형벌』의 책갈피", slot:"가슴", art:"bookmark",
+    text:"1764년, 복수가 아닌 예방을 적은 쪽에 꽂혀 있다.", perk:{ dmgPct:1 } },
+  { id:"becc-eye", guestId:"beccaria", name:"반(反)고문의 눈", slot:"눈", art:"eye",
+    text:"고문과 사형에 반대하는 맑은 시선.", perk:{ hp:1 } },
+  { id:"becc-knot", guestId:"beccaria", name:"합리의 매듭", slot:"목", art:"knot",
+    text:"인간은 비용과 이익을 따진다는 생각이 매듭 지어져 있다.", perk:{ staggerPct:1 } },
+  { id:"cert-stamp", guestId:"three-conditions", name:"확실의 인장", slot:"손", art:"stamp",
+    text:"반드시 처벌받는다는 확신이 찍힌다.", perk:{ dmgPct:1 } },
+  { id:"swift-wing", guestId:"three-conditions", name:"신속의 날개", slot:"발", art:"wing",
+    text:"빠르게 닿는 처벌의 가벼운 걸음.", perk:{ staggerPct:1 } },
+  { id:"prop-crown", guestId:"three-conditions", name:"비례의 저울관", slot:"머리", art:"scale",
+    text:"범죄의 무게에 맞는 처벌만을 올려 둔다.", perk:{ hp:1 } },
+  { id:"hedon-abacus", guestId:"bentham", name:"쾌락 계산판", slot:"손", art:"abacus",
+    text:"형벌의 고통이 범죄의 쾌락을 조금만 넘으면 된다.", perk:{ staggerPct:1 } },
+  { id:"greatest-badge", guestId:"bentham", name:"최대 행복의 배지", slot:"가슴", art:"badge",
+    text:"최대 다수의 최대 행복이 가슴에 달려 있다.", perk:{ hp:1 } },
+  { id:"panopticon-eye", guestId:"bentham", name:"원형 감시의 눈", slot:"눈", art:"oculus",
+    text:"원형 감옥의 한 명의 감시자가 모두를 본다.", perk:{ dmgPct:1 } },
+  { id:"legal-scroll", guestId:"legality", name:"법전의 두루마리", slot:"등", art:"scroll",
+    text:"죄와 벌이 미리 적혀 있다.", perk:{ staggerPct:1 } },
+  { id:"legal-wig", guestId:"legality", name:"재판관의 가발", slot:"머리", art:"wig",
+    text:"재량이 아니라 법으로 판결한다는 표식.", perk:{ dmgPct:1 } },
+  { id:"legal-tablet", guestId:"legality", name:"죄형의 석판", slot:"가슴", art:"tablet",
+    text:"범죄와 형벌이 새겨진 석판.", perk:{ hp:1 } },
+  { id:"marginal-stairs", guestId:"deterrence", name:"한계의 계단", slot:"발", art:"stairs",
+    text:"폭행에서 살인으로 오르지 못하게 한 칸씩 막아 둔 계단.", perk:{ dmgPct:1 } },
+  { id:"catch-chart", guestId:"deterrence", name:"검거 확률의 그래프", slot:"등", art:"chart",
+    text:"잡힐 확률이 높을수록 억제가 커진다.", perk:{ hp:1 } },
+  { id:"vital-vial", guestId:"deterrence", name:"생활반응의 시약병", slot:"손", art:"vial",
+    text:"과학수사가 검거 가능성을 끌어올린다.", perk:{ staggerPct:1 } },
+  { id:"equal-mask", guestId:"limits", name:"똑같은 얼굴의 가면", slot:"얼굴", art:"mask",
+    text:"모두가 똑같이 합리적이라는 가정.", perk:{ hp:1 } },
+  { id:"prefrontal-compass", guestId:"limits", name:"전전두엽의 나침반", slot:"머리", art:"compass",
+    text:"비용과 이익을 가늠하는 추론의 바늘.", perk:{ staggerPct:1 } },
+  { id:"article10-gavel", guestId:"limits", name:"제10조의 판결봉", slot:"목", art:"gavel",
+    text:"심신상실은 벌하지 않고, 심신미약은 형을 감경할 수 있다.", perk:{ dmgPct:1 } }
 ];
 const EGO_BY = Object.fromEntries(EGO_GIFTS.map(g=>[g.id,g]));
 
@@ -1288,18 +1454,58 @@ const COMBAT_PAGES = [
   {id:"night-study",name:"심야 열람",cost:3,emotion:3,dice:[{type:"관통",min:6,max:9}],text:"밤이 깊을수록 필촉이 밝아진다.",rarity:"SR",floorId:"cognition",subject:"학습법 (예시)",sourceGuest:"metacognition",
     flavor:"밤이 깊을수록 묻게 된다. 나는 이것을, 정말 이해하고 있는가."},
   {id:"apex",name:"개념의 정점",cost:3,emotion:4,dice:[{type:"참격",min:8,max:12}],text:"감정을 담아 한 줄에 마침표를 찍는다.",rarity:"SSR",floorId:"cognition",subject:"학습법 (예시)",sourceGuest:"metacognition",
-    flavor:"아는 것과 아는 척을 가려낼 때, 비로소 개념은 정점에 선다."}
+    flavor:"아는 것과 아는 척을 가려낼 때, 비로소 개념은 정점에 선다."},
+  {id:"crime-and-punishment",name:"범죄와 형벌",cost:2,emotion:1,dice:[{type:"관통",min:5,max:8}],text:"1764년의 한 권을 꽂아 찌른다.",rarity:"R",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"beccaria",
+    flavor:"1764년, 베카리아는 형벌의 목적이 복수가 아니라 예방이라고 적었다."},
+  {id:"anti-torture",name:"고문 반대 변론",cost:1,emotion:0,dice:[{type:"방어",min:4,max:8}],text:"고문과 사형에 반대한 변론으로 받아낸다.",rarity:"R",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"beccaria",
+    flavor:"고문과 사형에 반대한 목소리는, 방패가 되어 돌아온다."},
+  {id:"prevention-not-revenge",name:"복수 아닌 예방",cost:2,emotion:2,dice:[{type:"참격",min:3,max:5},{type:"참격",min:3,max:5}],text:"복수가 아니라 예방을 위해, 두 번 벤다.",rarity:"SR",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"beccaria",
+    flavor:"처벌은 복수가 아니라 예방을 위해 존재한다."},
+  {id:"certainty-brand",name:"확실성의 낙인",cost:2,emotion:1,dice:[{type:"타격",min:5,max:9}],text:"반드시 처벌받는다는 확신으로 내려찍는다.",rarity:"R",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"three-conditions",
+    flavor:"엄한 벌보다, 반드시 받게 된다는 확신이 사람을 멈춘다."},
+  {id:"swift-verdict",name:"신속한 판결",cost:1,emotion:0,dice:[{type:"참격",min:3,max:6}],text:"처벌이 늦지 않게, 빠르게 닿는다.",rarity:"R",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"three-conditions",
+    flavor:"형벌은 확실하고 신속해야 한다. 5만 원이라도 매번 단속하면 사람은 위반하지 않는다."},
+  {id:"proportion-scale",name:"비례의 저울",cost:2,emotion:2,dice:[{type:"방어",min:3,max:6},{type:"관통",min:3,max:6}],text:"범죄의 무게만큼, 딱 그만큼만 되돌려 준다.",rarity:"SR",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"three-conditions",
+    flavor:"범죄의 무게에 맞는 처벌. 그것이 비례성이다."},
+  {id:"hedonic-calculus",name:"쾌락 계산",cost:2,emotion:2,dice:[{type:"관통",min:4,max:6},{type:"참격",min:3,max:5}],text:"쾌락과 고통을 저울질해 찌른다.",rarity:"R",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"bentham",
+    flavor:"형벌의 고통이 범죄의 쾌락을 조금만 넘으면, 범죄는 계산에서 진다."},
+  {id:"greatest-happiness",name:"최대 다수의 최대 행복",cost:3,emotion:3,dice:[{type:"참격",min:6,max:9},{type:"방어",min:3,max:5}],text:"공리주의의 한 줄로 베고, 곁을 지킨다.",rarity:"SR",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"bentham",
+    flavor:"벤담의 공리주의: 최대 다수의 최대 행복."},
+  {id:"panopticon-gaze",name:"파놉티콘의 시선",cost:2,emotion:1,dice:[{type:"관통",min:5,max:8}],text:"시선 하나가 모든 곳을 꿰뚫는다.",rarity:"R",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"bentham",
+    flavor:"원형 감옥의 중앙, 한 명의 감시자가 모든 수감자를 본다."},
+  {id:"statute-clause",name:"미리 쓰인 조문",cost:1,emotion:0,dice:[{type:"방어",min:3,max:7}],text:"미리 법에 적힌 조문으로 막아낸다.",rarity:"R",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"legality",
+    flavor:"죄와 벌은 미리 법에 적혀 있어야 한다. 죄형법정주의."},
+  {id:"statutory-sentence",name:"법정 선고",cost:2,emotion:1,dice:[{type:"타격",min:5,max:8}],text:"법이 정한 죄에, 법이 정한 벌을 내려친다.",rarity:"R",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"legality",
+    flavor:"범죄와 형벌은 미리 법률로 정해 두어야 한다."},
+  {id:"marginal-brake",name:"한계 억제",cost:2,emotion:2,dice:[{type:"타격",min:4,max:6},{type:"회피",min:3,max:5}],text:"한 칸씩 막아 더 큰 범죄로 번지지 않게 한다.",rarity:"SR",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"deterrence",
+    flavor:"범죄의 무게에 비례해 처벌하면, 폭행이 살인이 되는 일을 막는다."},
+  {id:"catch-chance",name:"잡힐 확률",cost:3,emotion:3,dice:[{type:"관통",min:6,max:9}],text:"놓치지 않는다는 확신이 가장 깊게 박힌다.",rarity:"SR",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"deterrence",
+    flavor:"억제 연구: 형을 높이는 것보다, 잡힐 확률을 높이는 것이 일관되게 더 효과적이다."},
+  {id:"equal-assumption",name:"똑같은 합리성의 가정",cost:2,emotion:1,dice:[{type:"참격",min:4,max:7}],text:"모두가 똑같다는 가정으로 벤다.",rarity:"R",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"limits",
+    flavor:"고전주의는 모두가 똑같이 합리적이라 가정했다. 개인차는 설명하지 못한다."},
+  {id:"prefrontal-warning",name:"전전두엽의 경고",cost:3,emotion:3,dice:[{type:"타격",min:6,max:10}],text:"추론이 무너진 곳에 일격이 박힌다.",rarity:"SR",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"limits",
+    flavor:"전전두엽이 손상되면 비용과 이익을 따지는 추론이 약해져 억제도 약해진다. 1848년, 게이지처럼."},
+  {id:"article-ten",name:"형법 제10조",cost:3,emotion:3,dice:[{type:"방어",min:5,max:9},{type:"타격",min:4,max:7}],text:"조문 한 줄로 받아내고 되돌려 친다.",rarity:"SSR",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"limits",
+    flavor:"심신상실은 벌하지 않고, 심신미약은 형을 감경할 수 있다."}
 ];
 
 const KEY_PAGES = [
   {id:"novice",name:"초보 사서의 장서복",text:"기본 착장. 특별한 효과는 없다.",perk:"none",coat:0},
   {id:"reading-room",name:"열람실의 장서복",text:"열람의 기율을 입는다. 접대 시작 빛 +1.",perk:"light",coat:1},
   {id:"midnight",name:"심야 사서",text:"밤을 허비하지 않는 자세. 감정 단계 1로 시작.",perk:"emotion",coat:2},
-  {id:"archivist",name:"소장관의 망토",text:"서고를 지키는 자의 옷. 매 턴 빛 회복 +1.",perk:"recover",coat:3}
+  {id:"archivist",name:"소장관의 망토",text:"서고를 지키는 자의 옷. 매 턴 빛 회복 +1.",perk:"recover",coat:3},
+  {id:"classical-robe",name:"고전주의 재판관의 법복",text:"합리의 저울을 입는다. 최대 체력 +10.",perk:"hp10",coat:4},
+  {id:"panopticon-coat",name:"파놉티콘 감시관의 외투",text:"모든 곳을 보는 눈. 흐트러짐 피해 +10%.",perk:"stagger10",coat:5}
 ];
 
 /* 책 소각 풀 — 모든 비기본 책장/핵심 책장은 최소 한 손님의 책에서 나온다 (acqAudit가 검사) */
 const BOOK_POOLS = {
+  beccaria:[{k:"page",id:"crime-and-punishment",w:10},{k:"page",id:"anti-torture",w:10},{k:"page",id:"prevention-not-revenge",w:6},{k:"key",id:"classical-robe",w:4}],
+  "three-conditions":[{k:"page",id:"certainty-brand",w:10},{k:"page",id:"swift-verdict",w:10},{k:"page",id:"proportion-scale",w:6},{k:"key",id:"classical-robe",w:4}],
+  bentham:[{k:"page",id:"hedonic-calculus",w:10},{k:"page",id:"panopticon-gaze",w:10},{k:"page",id:"greatest-happiness",w:6},{k:"key",id:"panopticon-coat",w:4}],
+  legality:[{k:"page",id:"statute-clause",w:10},{k:"page",id:"statutory-sentence",w:10},{k:"page",id:"crime-and-punishment",w:4},{k:"key",id:"classical-robe",w:4}],
+  deterrence:[{k:"page",id:"marginal-brake",w:8},{k:"page",id:"catch-chance",w:8},{k:"page",id:"certainty-brand",w:4},{k:"key",id:"panopticon-coat",w:4}],
+  limits:[{k:"page",id:"equal-assumption",w:10},{k:"page",id:"prefrontal-warning",w:6},{k:"page",id:"article-ten",w:4},{k:"page",id:"marginal-brake",w:3},{k:"key",id:"panopticon-coat",w:3},{k:"key",id:"classical-robe",w:3}],
   pomodoro:[{k:"page",id:"underline",w:10},{k:"page",id:"heavy-tome",w:10},{k:"key",id:"reading-room",w:5}],
   "active-recall":[{k:"page",id:"repeat-line",w:10},{k:"page",id:"underline",w:5},{k:"key",id:"reading-room",w:5}],
   "spaced-repetition":[{k:"page",id:"blank-fill",w:10},{k:"page",id:"heavy-tome",w:5},{k:"key",id:"midnight",w:5}],
@@ -1397,19 +1603,39 @@ function giftTotals(s,id){
   return t;
 }
 /* 슬롯 선택 전부를 따져 본 이론상 최대치 (표/테스트용) */
+let _gmtCache=null;
 function giftMaxTotals(){
+  if(_gmtCache) return _gmtCache;
+  const u=EGO_GIFT_RULES.unit, sb=EGO_GIFT_RULES.setBonus;
+  const gids=[...new Set(EGO_GIFTS.map(g=>g.guestId))], need={};
+  gids.forEach(id=>need[id]=EGO_GIFTS.filter(g=>g.guestId===id).length);
   const bySlot=EGO_GIFT_RULES.slots.map(sl=>[null,...EGO_GIFTS.filter(g=>g.slot===sl)]);
-  let best=null, bestScore=-1; const fake=()=>({librarians:{kyu:mkLibrarian("kyu","큐 양")},activeLibrarianId:"kyu"});
-  (function rec(i,pick){
+  let best=null, bestScore=-1; const cnt={}; gids.forEach(id=>cnt[id]=0);
+  const cur={hp:0,staggerPct:0,dmgPct:0,dieMin:0,startLight:0,startEmotion:0,lightRegen:0};
+  const picks=[];
+  (function rec(i){
     if(i===bySlot.length){
-      const s=fake(); const L=s.librarians.kyu.gifts; pick.forEach(g=>{ if(g){ L.owned.push(g.id); L.equipped[g.slot]=g.id; } });
-      const t=giftTotals(s); const sc=t.hp*1+t.staggerPct*100*1+t.dmgPct*100*1;
-      if(sc>bestScore){ bestScore=sc; best={...t,picks:pick.filter(Boolean).map(g=>g.id)}; }
+      let sets=0; gids.forEach(id=>{ if(cnt[id]===need[id]) sets++; });
+      const t={...cur,sets};
+      for(const [k,v] of Object.entries(sb)) t[k]=(t[k]||0)+v*sets;
+      const sc=t.hp+t.staggerPct*100+t.dmgPct*100;
+      if(sc>bestScore){ bestScore=sc; best={...t,picks:picks.slice()}; }
       return;
     }
-    bySlot[i].forEach(g=>rec(i+1,[...pick,g]));
-  })(0,[]);
-  return best;
+    for(const g of bySlot[i]){
+      if(g){
+        for(const [k,n] of Object.entries(g.perk||{})) cur[k]+=(u[k]||1)*n;
+        cnt[g.guestId]++; picks.push(g.id);
+      }
+      rec(i+1);
+      if(g){
+        for(const [k,n] of Object.entries(g.perk||{})) cur[k]-=(u[k]||1)*n;
+        cnt[g.guestId]--; picks.pop();
+      }
+    }
+  })(0);
+  best.staggerPct=Math.round(best.staggerPct*1000)/1000; best.dmgPct=Math.round(best.dmgPct*1000)/1000;
+  return (_gmtCache=best);
 }
 function bonusLabel(t){
   const parts=[];
@@ -1423,7 +1649,13 @@ function bonusLabel(t){
   if(t.sets) parts.push("세트 "+t.sets+"개 활성");
   return parts.length?parts.join(" · "):"아직 누적된 효과가 없습니다.";
 }
-function effectiveMaxHp(s){ return s.maxHp+giftTotals(s).hp; }
+function withKeyMods(t,s){
+  const p=keyPerk(s).perk, o=Object.assign({},t);
+  if(p==="hp10") o.hp=(o.hp||0)+10;
+  if(p==="stagger10") o.staggerPct=Math.round(((o.staggerPct||0)+0.10)*1000)/1000;
+  return o;
+}
+function effectiveMaxHp(s){ return s.maxHp+withKeyMods(giftTotals(s),s).hp; }
 function startLight(s){ return Math.min(COMBAT.maxLightCap, COMBAT.baseLight+(keyPerk(s).perk==="light"?1:0)+giftTotals(s).startLight); }
 function startEmotion(s){ return (keyPerk(s).perk==="emotion"?1:0)+giftTotals(s).startEmotion; }
 function lightRegen(s){ return COMBAT.lightPerTurn+(keyPerk(s).perk==="recover"?1:0)+giftTotals(s).lightRegen; }
@@ -1534,6 +1766,12 @@ const ARCH_COMBAT={
     resist:{hp:{참격:"견딤",관통:"내성",타격:"취약"},st:{참격:"취약",관통:"면역",타격:"치명"}}}
 };
 const GUEST_COMBAT={
+  beccaria:{names:["판사의 재량","신분별 처벌","잔혹한 고문"],bigName:"고문대의 그림자",atk:"관통",alt:"참격"},
+  "three-conditions":{names:["느려터진 재판","엄벌의 허상","단속 없는 과태료"],bigName:"일억 원의 허풍",atk:"참격",alt:"타격"},
+  bentham:{names:["쾌락의 저울질","불균형한 계산","원형의 시선"],bigName:"감시탑의 외눈",atk:"관통",alt:"참격"},
+  legality:{names:["법정의 망치","빈 조항 찌르기","재량의 칼날"],bigName:"선고의 철퇴",atk:"참격",alt:"타격"},
+  deterrence:{names:["폭행의 일격","벌 없는 질주","더 큰 범죄로의 도약"],bigName:"확산의 포효",atk:"관통",alt:"참격"},
+  limits:{names:["똑같다는 가정","흐려진 판단","전전두엽의 균열"],bigName:"1848년의 충격",atk:"참격",alt:"타격",big:{name:"1848년의 충격",dice:[{type:"참격",min:5,max:8},{type:"타격",min:2,max:4}]},pages:[{name:"똑같다는 가정",dice:[{type:"참격",min:2,max:4}]},{name:"흐려진 판단",dice:[{type:"타격",min:1,max:3},{type:"참격",min:2,max:4}]},{name:"전전두엽의 균열",dice:[{type:"방어",min:3,max:6},{type:"참격",min:2,max:4}]}]},
   pomodoro:{names:["알람 울리기","쪼개기 연타","휴식 거부"],bigName:"과집중의 늪",atk:"참격",alt:"관통",bigType:"타격"},
   "active-recall":{names:["다시 읽기의 유혹","형광펜 난사","익숙함의 착각"],bigName:"유창성의 착각",atk:"관통",alt:"참격"},
   "spaced-repetition":{names:["벼락치기 타작","줄 당기기","굳은 자세"],bigName:"몰아치기의 난타",atk:"타격",alt:"참격"},
@@ -1592,6 +1830,42 @@ function checkShort(input,q){
 /* 핵심/고난도 문항 (예시 데이터) — 손님의 큰 공격 책장과 묶여 있다.
    type:"mc" 는 헷갈리는 보기의 4지선다, type:"short" 는 주관식(answer + accept 동의어, 띄어쓰기/대소문자 무시). */
 const KEY_QUESTIONS={
+  beccaria:[
+    {type:"mc",hard:true,prompt:"다음 중 베카리아의 입장과 가장 거리가 먼 것은?",
+      options:["형벌의 목적은 예방이다","고문과 사형에 반대한다","형벌의 목적은 복수(응보)다","인간은 비용과 이익을 따져 행동한다"],correctIndex:2},
+    {type:"short",hard:true,prompt:"1764년 『범죄와 형벌』을 쓴 고전주의 학파의 학자 이름은?",
+      answer:"베카리아",accept:["체사레 베카리아","체사레베카리아","베까리아","beccaria","cesare beccaria"]}
+  ],
+  "three-conditions":[
+    {type:"mc",hard:true,prompt:"억제 효과를 높이려는 방안으로 베카리아의 주장에 가장 잘 맞는 것은?",
+      options:["형량을 두 배로 올린다","적발과 처벌이 확실하고 신속하게 이뤄지게 한다","판사의 재량을 넓힌다","공개적으로 고문한다"],correctIndex:1},
+    {type:"short",hard:true,prompt:"형벌이 범죄의 무게에 맞아야 한다는 조건을 무엇이라 하는가? (○○성)",
+      answer:"비례성",accept:["비례","비례의 원칙","비례원칙","proportionality"]}
+  ],
+  bentham:[
+    {type:"mc",hard:true,prompt:"벤담의 쾌락 계산에 따라 범죄를 막으려면?",
+      options:["형벌의 고통이 범죄의 쾌락을 조금 넘게 한다","형벌의 고통을 범죄 쾌락의 몇 배로 키운다","형벌을 없앤다","범죄자를 신분별로 나눈다"],correctIndex:0},
+    {type:"short",hard:true,prompt:"벤담이 구상한, 한 명의 감시자가 모든 수감자를 볼 수 있는 원형 감옥의 이름은?",
+      answer:"파놉티콘",accept:["판옵티콘","팬옵티콘","panopticon"]}
+  ],
+  legality:[
+    {type:"mc",hard:true,prompt:"다음 중 죄형법정주의에 가장 잘 맞는 판단은?",
+      options:["법에 정해지지 않은 행위는 판사가 나쁘게 보더라도 처벌할 수 없다","판사가 사건마다 상황을 보고 형벌을 정한다","범죄가 일어난 뒤에 만든 법으로 형벌을 정한다","신분이 높은 사람은 형을 줄여 준다"],correctIndex:0},
+    {type:"short",hard:true,prompt:"범죄와 형벌은 미리 법률로 정해져 있어야 한다는 원칙의 이름은?",
+      answer:"죄형법정주의",accept:["죄형법정","죄형 법정주의"]}
+  ],
+  deterrence:[
+    {type:"mc",hard:true,prompt:"억제 연구가 일관되게 더 효과적이라고 본 방법은?",
+      options:["잡힐 확률(확실성)을 높인다","형량을 높인다","재판을 늦춘다","판사의 재량을 넓힌다"],correctIndex:0},
+    {type:"short",hard:true,prompt:"폭행에서 살인으로 나아가지 않도록 범죄의 무게에 비례해 처벌한다는 원리는?",
+      answer:"한계 억제",accept:["한계억제","marginal deterrence"]}
+  ],
+  limits:[
+    {type:"mc",hard:true,prompt:"형법 제10조의 내용을 바르게 짝지은 것은?",
+      options:["심신상실은 벌하지 않고, 심신미약은 형을 감경할 수 있다","심신상실은 형을 감경하고, 심신미약은 벌하지 않는다","심신상실과 심신미약 모두 벌하지 않는다","심신상실과 심신미약 모두 감경할 수 없다"],correctIndex:0},
+    {type:"short",hard:true,prompt:"1848년 전전두엽 손상 사례로 언급된 인물의 이름은?",
+      answer:"피니어스 게이지",accept:["피니어스게이지","게이지","phineas gage","gage","피니아스 게이지"]}
+  ],
   pomodoro:[
     {type:"mc",hard:true,prompt:"포모도로 집중 세트 도중 급한 메시지가 왔다. 기법에 가장 충실한 행동은?",
       options:["세트를 끝낸 뒤 쉬는 시간에 확인한다","타이머를 멈추고 1분만 답한 뒤 이어서 센다","급하면 세트를 유지한 채 틈틈이 답한다","세트를 버리고 처음부터 다시 센다"],correctIndex:0},
@@ -1901,7 +2175,18 @@ const OUTFITS={
       <path d="M82 184 v14 M88 186 v14 M94 188 v14 M100 188 v12 M180 188 v12 M186 188 v14 M192 186 v14 M198 184 v14" stroke="#f3d27a" stroke-width="1.4"/>
       <path d="M104 206 Q140 236 176 206" fill="none" stroke="#f3d27a" stroke-width="1.6"/>
       <g transform="translate(140 258)"><circle r="8" fill="none" stroke="#f3d27a" stroke-width="2"/><path d="M0 8 V30 M0 20 H8 M0 28 H6" stroke="#f3d27a" stroke-width="2.4" stroke-linecap="round"/></g>`,
-    hat:()=>`<path d="M172 90 Q198 62 192 30 Q180 56 168 80 Z" fill="#c43c52" stroke="#f3d27a" stroke-width=".8"/><circle cx="170" cy="92" r="3.4" fill="#f3d27a"/>`}
+    hat:()=>`<path d="M172 90 Q198 62 192 30 Q180 56 168 80 Z" fill="#c43c52" stroke="#f3d27a" stroke-width=".8"/><circle cx="170" cy="92" r="3.4" fill="#f3d27a"/>`},
+  "classical-robe":{coat:["#ddd5c0","#a79e84","#5a5440"],cape:["#6e6850","#26231a"],trim:"#e6c866",
+    decor:()=>`<path d="M112 176 L140 232 L168 176 Z" fill="#f4efe2" stroke="#e6c866" stroke-width=".8"/>
+      <path d="M128 182 l12 14 l12 -14" fill="none" stroke="#bdb49a" stroke-width="1.2"/>
+      <g transform="translate(140 262)" stroke="#8f6b2a" stroke-width="1.6" fill="none"><path d="M-16 0H16M0 -8V16"/><path d="M-16 0l-6 12h12zM16 0l-6 12h12z" fill="#e6c866"/></g>
+      <circle cx="140" cy="236" r="2.4" fill="#e6c866"/><circle cx="140" cy="300" r="2.4" fill="#e6c866"/>`,
+    hat:()=>`<path d="M108 98 Q98 130 108 156 Q106 124 114 100 Z M172 98 Q182 130 172 156 Q174 124 166 100 Z" fill="#f4efe2" stroke="#bdb49a" stroke-width=".8"/>`},
+  "panopticon-coat":{coat:["#7a5224","#43290e","#170d05"],cape:["#4a3216","#120b05"],trim:"#ffcf6a",
+    decor:()=>`<path d="M96 176 L112 160 H168 L184 176 L176 198 H104 Z" fill="#2a1a08" stroke="#ffcf6a" stroke-width="1"/>
+      <g transform="translate(140 246)"><path d="M-22 0 Q0 -18 22 0 Q0 18 -22 0Z" fill="#1a0f05" stroke="#ffcf6a" stroke-width="1.4"/><circle r="6" fill="#ffcf6a"/><circle r="2.4" fill="#1a0f05"/></g>
+      <g stroke="#ffcf6a" stroke-width=".9" opacity=".6"><path d="M140 246 L96 300 M140 246 L184 300 M140 246 L140 310"/></g>`,
+    hat:()=>`<circle cx="140" cy="76" r="8" fill="#ffe08a" stroke="#ffcf6a" stroke-width=".8"/><circle cx="140" cy="76" r="14" fill="#ffe08a" opacity=".18"/>`}
 };
 function giftSpriteLayers(s,fresh){
   const a="#c4a35a", l="#e6d3a3";
@@ -1917,7 +2202,25 @@ function giftSpriteLayers(s,fresh){
     clasp:`<g transform="translate(140 230)"><rect x="-7" y="0" width="14" height="6" fill="${a}"/></g>`,
     orb:`<g transform="translate(86 250)"><circle cx="0" cy="0" r="7" fill="#1a140c" stroke="${a}"/><circle cx="0" cy="0" r="3.5" fill="${l}" opacity=".7"/></g>`,
     sigil:`<g transform="translate(140 126)"><path d="M-7 0 L0 7 L7 0" fill="none" stroke="${a}" stroke-width="1.8"/></g>`,
-    pin:`<g transform="translate(124 400)"><circle cx="0" cy="0" r="5" fill="${a}" stroke="${l}" stroke-width=".8"/><path d="M0 5 V14" stroke="${l}" stroke-width="1.2"/></g>`
+    pin:`<g transform="translate(124 400)"><circle cx="0" cy="0" r="5" fill="${a}" stroke="${l}" stroke-width=".8"/><path d="M0 5 V14" stroke="${l}" stroke-width="1.2"/></g>`,
+    bookmark:`<g transform="translate(146 192)"><path d="M0 0h9v28l-4.5-5-4.5 5z" fill="#8fd0ff" stroke="${l}" stroke-width=".6"/></g>`,
+    eye:`<g><ellipse cx="127" cy="112" rx="8" ry="5" fill="none" stroke="${l}" stroke-width="1.2"/><ellipse cx="153" cy="112" rx="8" ry="5" fill="none" stroke="${l}" stroke-width="1.2"/></g>`,
+    knot:`<g transform="translate(140 158)"><path d="M-14 0 Q0 10 14 0" fill="none" stroke="${a}" stroke-width="2.2"/><circle cx="0" cy="8" r="3" fill="${l}"/></g>`,
+    stamp:`<g transform="translate(192 244)"><rect x="2" y="9" width="15" height="6" fill="${a}"/><rect x="6" y="0" width="7" height="9" fill="${l}"/></g>`,
+    wing:`<g><path d="M112 410 Q96 404 90 392 Q104 394 116 402z" fill="${l}" stroke="${a}" stroke-width=".7"/><path d="M168 410 Q184 404 190 392 Q176 394 164 402z" fill="${l}" stroke="${a}" stroke-width=".7"/></g>`,
+    scale:`<g transform="translate(140 64)"><path d="M-14 6h28M0 -4v10" stroke="${a}" stroke-width="1.4"/><path d="M-14 6l-4 8h8zM14 6l-4 8h8z" fill="${l}"/></g>`,
+    abacus:`<g transform="translate(190 250)"><rect width="22" height="16" rx="2" fill="#1a140c" stroke="${a}"/><path d="M0 5h22M0 11h22" stroke="${a}" stroke-width=".7"/><circle cx="6" cy="3" r="1.6" fill="${l}"/><circle cx="14" cy="8" r="1.6" fill="${l}"/><circle cx="9" cy="13.5" r="1.6" fill="${l}"/></g>`,
+    badge:`<g transform="translate(122 202)"><circle r="8" fill="${a}" stroke="${l}" stroke-width=".8"/><path d="M-4 0l3 3 5-6" stroke="#1a140c" fill="none" stroke-width="1.4"/></g>`,
+    oculus:`<g><circle cx="127" cy="112" r="6.5" fill="none" stroke="#ff7a7a" stroke-width="1.4"/><circle cx="153" cy="112" r="6.5" fill="none" stroke="#ff7a7a" stroke-width="1.4"/><circle cx="127" cy="112" r="2" fill="#ff7a7a"/><circle cx="153" cy="112" r="2" fill="#ff7a7a"/></g>`,
+    scroll:`<g transform="translate(206 196) rotate(12)"><rect width="14" height="26" rx="3" fill="#e8d5b0" stroke="${a}" stroke-width=".8"/><path d="M3 7h8M3 12h8M3 17h6" stroke="#8f6b2a" stroke-width=".8"/></g>`,
+    tablet:`<g transform="translate(130 196)"><path d="M0 24V9a10 10 0 0 1 20 0v15z" fill="#d8cdb0" stroke="${a}" stroke-width=".8"/><path d="M5 10h10M5 15h10" stroke="#6b5a2a" stroke-width=".8"/></g>`,
+    wig:`<g><path d="M106 96 Q98 130 108 150 Q104 120 112 100z M174 96 Q182 130 172 150 Q176 120 168 100z" fill="#f0e6d0" stroke="${a}" stroke-width=".8"/><path d="M110 88 Q140 72 170 88 Q140 80 110 88" fill="#f0e6d0"/></g>`,
+    stairs:`<g transform="translate(150 398)"><path d="M0 14h9v-6h9v-6h9" fill="none" stroke="${l}" stroke-width="2"/></g>`,
+    chart:`<g transform="translate(208 200)"><rect width="22" height="18" rx="2" fill="#1a140c" stroke="${a}"/><path d="M3 14l5-6 4 3 7-8" fill="none" stroke="#7ee0c0" stroke-width="1.4"/></g>`,
+    vial:`<g transform="translate(190 246)"><path d="M3 0h6v8l4 10a3 3 0 0 1-3 4H2a3 3 0 0 1-3-4l4-10z" fill="#7ee0c0" fill-opacity=".6" stroke="${l}" stroke-width=".8"/></g>`,
+    mask:`<g transform="translate(140 130)"><path d="M-16 -6h32v8c0 8-6 12-16 12s-16-4-16-12z" fill="#e8e0d0" fill-opacity=".92" stroke="${a}" stroke-width=".8"/><path d="M-8 2h3M5 2h3" stroke="#1a140c" stroke-width="1.8"/></g>`,
+    compass:`<g transform="translate(140 58)"><circle r="10" fill="#1a140c" stroke="${a}" stroke-width="1.2"/><path d="M0 -7l3 7-3 7-3-7z" fill="${l}"/></g>`,
+    gavel:`<g transform="translate(140 164)"><path d="M0 0v10" stroke="${a}"/><rect x="-7" y="10" width="14" height="6" rx="2" fill="${l}" stroke="${a}" stroke-width=".7"/></g>`
   };
   return equippedGifts(s).map(g=>`<g class="gs${fresh&&fresh.id===g.id?(fresh.swap?" fresh swap":" fresh"):""}" data-gift="${g.id}" data-slot="${g.slot}">${art[g.art]||""}</g>`).join("");
 }
@@ -2857,7 +3160,9 @@ function bindAudioToggles(){
 
 
 let save=loadSave();
-let scene="title", floorId=FLOORS[0].id, selectedGuestId=WEAK_POINTS[0].id;
+const FLOOR_KEY="ruina-last-floor";
+function loadLastFloor(){ try{ const v=localStorage.getItem(FLOOR_KEY); if(FLOORS.some(f=>f.id===v)) return v; }catch(e){} return FLOORS[0].id; }
+let scene="title", floorId=loadLastFloor(), selectedGuestId=WEAK_POINTS[0].id;
 let reception=null, collectTab="gacha", slotFilter="전체", reveals=null;
 let busy=false, sheetOpen=false;
 /* ---------- transitions / toast / shake ---------- */
@@ -2967,19 +3272,51 @@ function renderCredits(){
 function hudStats(){
   return `<span class="brand gold-title">개념의 서고</span>
     <span class="hudstat">Lv.${save.level}</span>
-    <span class="hudstat">${ico("hp",11)} ${save.hp}/${effectiveMaxHp(save)}</span>
-    <span class="hudstat">${ico("ticket",11)} ${ticketsHeld(save)}</span>
-    <span class="hudstat">${ico("gift",11)} ${save.ownedIds.length}/${COLLECTION_TOTAL}</span>
-    <span class="hudstat">${ico("book",11)} ${totalBooks(save)}권</span>
-    <span class="pill">예시</span>`;
+    <span class="hudstat">${ico("book",11)} ${totalBooks(save)}권</span>`;
 }
 function botNav(active){
   const items=[["lobby","접대"],["shelf","책장"],["collection","장서"]];
   return `<nav class="botnav">${items.map(([id,lb])=>`<button class="btn ${active===id?"primary":""}" data-go="${id}">${lb}</button>`).join("")}</nav>`;
 }
 
+function floorIndex(){ return Math.max(0,FLOORS.findIndex(f=>f.id===floorId)); }
+/* 점으로 층 수 표시 — 7개 초과면 현재 주변 7개만 보이고 가장자리는 작게 압축 */
+function floorDotsHtml(cur){
+  const n=FLOORS.length, MAXD=7;
+  let a=0,b=n-1;
+  if(n>MAXD){ a=Math.max(0,Math.min(n-MAXD,cur-Math.floor(MAXD/2))); b=a+MAXD-1; }
+  const dots=[];
+  for(let i=a;i<=b;i++){
+    const edge=n>MAXD&&((i===a&&a>0)||(i===b&&b<n-1));
+    dots.push(`<button class="fn-dot${i===cur?" on":""}${edge?" tiny":""}" type="button" data-fdot="${i}" role="tab" aria-selected="${i===cur}" aria-label="${FLOORS[i].name} (${i+1}/${n})"><i></i></button>`);
+  }
+  return `<div class="fn-dots" role="tablist" aria-label="층 선택" style="--fn-w:${(b-a)*13}px">${dots.join("")}</div>`;
+}
+let floorAnimDir=0;
+function goFloor(idx,dir){
+  const n=FLOORS.length; idx=((idx%n)+n)%n;
+  if(idx===floorIndex()) return;
+  if(dir==null) dir=idx>floorIndex()?1:-1;
+  SFX.click(); closeGuestSheet();
+  const finish=()=>{ floorId=FLOORS[idx].id; try{ localStorage.setItem(FLOOR_KEY,floorId); }catch(e){} floorAnimDir=dir; renderLobby(); };
+  const els=$$(".fn-title,.floor-swipe");
+  if(!els.length||matchMedia("(prefers-reduced-motion: reduce)").matches){ finish(); return; }
+  els.forEach(e=>{ e.classList.add(dir>0?"slide-out-l":"slide-out-r"); });
+  setTimeout(finish,150);
+}
+function bindFloorNav(){
+  $("#fn-prev")&&($("#fn-prev").onclick=()=>goFloor(floorIndex()-1,-1));
+  $("#fn-next")&&($("#fn-next").onclick=()=>goFloor(floorIndex()+1,1));
+  $$("[data-fdot]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.fdot; goFloor(i,i>floorIndex()?1:-1); });
+  const sw=$("#floor-swipe"), nav=$("#floor-nav"); let sx=0,sy=0,t0=0,track=false;
+  const start=e=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; t0=Date.now(); track=true; };
+  const end=e=>{ if(!track) return; track=false; const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
+    if(Math.abs(dx)>56&&Math.abs(dx)>Math.abs(dy)*1.6&&Date.now()-t0<700){ if(dx<0) goFloor(floorIndex()+1,1); else goFloor(floorIndex()-1,-1); } };
+  [sw,nav].forEach(el=>{ if(!el) return; el.addEventListener("touchstart",start,{passive:true}); el.addEventListener("touchend",end,{passive:true}); });
+}
 function renderLobby(){
-  const floor=FLOORS.find(f=>f.id===floorId)||FLOORS[0];
+  const fi=floorIndex();
+  const floor=FLOORS[fi]||FLOORS[0];
   const guests=WEAK_POINTS.filter(g=>g.floorId===floorId);
   if(!guests.some(g=>g.id===selectedGuestId)) selectedGuestId=guests[0]?.id;
   const g=GUEST_BY[selectedGuestId];
@@ -2994,10 +3331,16 @@ function renderLobby(){
         <div class="bonus-sum" style="margin-top:8px;width:100%">${bonusLabel(giftTotals(save))}</div>
       </div>
       <div class="col mid">
-        <div class="floors">${FLOORS.map(f=>`<button class="floor-btn ${f.id===floorId?"on":""}" data-floor="${f.id}">${ico("floor",13)} ${f.name}</button>`).join("")}</div>
+        <div class="floor-nav" id="floor-nav">
+          <button class="fn-arrow" id="fn-prev" type="button" aria-label="이전 층"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <div class="fn-title" aria-live="polite"><div class="fn-count">${fi+1} / ${FLOORS.length}</div><h2 class="gold-title fn-name">〈${floor.name}〉</h2></div>
+          <button class="fn-arrow" id="fn-next" type="button" aria-label="다음 층"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        ${floorDotsHtml(fi)}
+        <div class="floor-swipe" id="floor-swipe">
         <div class="floor-hero frame">${cornerHtml()}
           <canvas class="arena-bg" id="floor-thumb" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
-          <div class="cap"><h2 class="gold-title">${floor.name}</h2><div class="gmeta">${floor.subject} · ${floor.motto}</div></div>
+          <div class="cap"><h2 class="gold-title">${floor.subject}</h2><div class="gmeta">${floor.motto}</div></div>
         </div>
         <div class="guests">${guests.map(gs=>{
           const ok=save.conqueredIds.includes(gs.id);
@@ -3008,13 +3351,15 @@ function renderLobby(){
             <span class="chev">${ico("chev",16)}</span>
           </button>`;
         }).join("")}</div>
+        </div>
       </div>
     </div>
     ${botNav("lobby")}
     <div class="sheet-backdrop" id="sheet-backdrop"></div>
     <aside class="guest-sheet" id="guest-sheet" aria-hidden="true"></aside>`;
   bindNav();
-  $$("[data-floor]").forEach(b=>b.onclick=()=>{ floorId=b.dataset.floor; SFX.click(); closeGuestSheet(); renderLobby(); });
+  bindFloorNav();
+  if(floorAnimDir){ const cls=floorAnimDir>0?"slide-in-r":"slide-in-l"; floorAnimDir=0; $$(".fn-title,.floor-swipe").forEach(e=>{ e.classList.add(cls); setTimeout(()=>e.classList.remove(cls),380); }); }
   $$("[data-guest]").forEach(b=>b.onclick=()=>{ selectedGuestId=b.dataset.guest; SFX.hover(); openGuestSheet(selectedGuestId); });
   paintMiniFloor($("#floor-thumb"), floorId);
   if(sheetOpen && selectedGuestId) openGuestSheet(selectedGuestId, true);
@@ -3039,6 +3384,7 @@ function guestSheetHtml(g){
       <div style="flex:1;min-width:0">
         <h3 class="gold-title" style="font-size:22px">${g.concept}</h3>
         <div class="gmeta">${g.subject} · ${ARCH_LABEL[look.arch]||look.arch}</div>
+        <div class="gmeta">${g.sourceNote?"출처 · "+g.sourceNote:"예시 콘텐츠 (실제 강의 내용 아님)"}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0">
           <span class="pill">취약 ${weaknessLabel(g.weakness)}</span>
           <span class="pill">체력 ${COMBAT.guestHp[g.weakness]}</span>
@@ -3172,7 +3518,7 @@ function beginReception(guestId){
   SFX.click();
   sheetOpen=false;
   const isRecall=save.conqueredIds.includes(guest.id);
-  if(save.hp<=0 || save.hp>=save.maxHp) save.hp=effectiveMaxHp(save);
+  save.hp=effectiveMaxHp(save); /* HP는 전투마다 완전히 회복 — 이월하지 않는다 */
   if(!isDeckReady(save)){
     toast(`책장을 ${DECK_SIZE}장 장착해야 접대할 수 있습니다`);
     openDeckEditor({to:"lobby",guestId,startAfter:true});
@@ -3181,7 +3527,7 @@ function beginReception(guestId){
   const pile=shuffle(activeDeck(save).pageIds.slice());
   const hand=[];
   const kit=guestCombat(guest);
-  const pu=mkUnit(effectiveMaxHp(save), playerStaggerMax(save.level), FLAT_RESIST); pu.hp=clamp(save.hp,1,pu.hpMax);
+  const pu=mkUnit(effectiveMaxHp(save), playerStaggerMax(save.level), FLAT_RESIST); pu.hp=pu.hpMax;
   const keyQuiz=keyQsOf(guest).map(q=>{
     if(!isRecall||q.type!=="mc") return {...q,options:q.options?q.options.slice():undefined};
     const sh=shuffle(q.options.map((o,i)=>({o,i})));
@@ -3206,7 +3552,7 @@ function beginReception(guestId){
 let inspectState={timer:0,hoverTimer:0,press:false,suppressClick:false,pageId:null,reason:null};
 
 function cardInspectHtml(page){
-  const t=giftTotals(save);
+  const t=withKeyMods(giftTotals(save),save);
   const dieMin=t.dieMin||0;
   const dies=(page.dice||[]).map(d=>{
     const lo=d.min+dieMin, hi=Math.max(lo,d.max);
@@ -3349,6 +3695,36 @@ function openResistPop(){
   $("#rp-close")&&($("#rp-close").onclick=e=>{ e.stopPropagation(); el.classList.remove("on"); });
 }
 
+function emoChipHtml(rec){
+  const prev=rec._shE; rec._shE=rec.emotion;
+  return `<div class="emo-chip" id="emo-p" role="status" aria-label="감정 ${rec.emotion}단계">${Array.from({length:COMBAT.emotionMax},(_,i)=>`<span class="pip${i<rec.emotion?" on":""}${prev!=null&&i>=prev&&i<rec.emotion?" gain":""}"></span>`).join("")}<small>${rec.emotion}</small></div>`;
+}
+function lightChipHtml(rec){
+  const prev=rec._shL; rec._shL=rec.light;
+  const cls=prev!=null&&rec.light>prev?" gain":(prev!=null&&rec.light<prev?" spend":"");
+  return `<div class="lightchip${cls}" id="lightchip" role="status" aria-label="빛 ${rec.light}/${rec.maxLight}">${ico("light",14)}<b id="lc-n">×${rec.light}</b><small id="lc-max">/${rec.maxLight}</small></div>`;
+}
+/* 빛/감정 표시를 제자리에서 갱신 (조용하게, 단위별) */
+function syncResources(){
+  const rec=reception; if(!rec) return;
+  const lc=$("#lightchip");
+  if(lc){
+    const prev=rec._shL, n=rec.light;
+    $("#lc-n").textContent="×"+n; $("#lc-max").textContent="/"+rec.maxLight; lc.setAttribute("aria-label","빛 "+n+"/"+rec.maxLight);
+    if(prev!=null&&n!==prev){ const c=n>prev?"gain":"spend"; lc.classList.remove("gain","spend"); void lc.offsetWidth; lc.classList.add(c); setTimeout(()=>lc.classList.remove(c),900); }
+    rec._shL=n;
+  }
+  const ec=$("#emo-p");
+  if(ec){
+    const prev=rec._shE, e=rec.emotion;
+    ec.querySelectorAll(".pip").forEach((pp,i)=>{
+      const on=i<e; pp.classList.toggle("on",on);
+      if(on&&prev!=null&&i>=prev){ pp.classList.remove("gain"); void pp.offsetWidth; pp.classList.add("gain"); setTimeout(()=>pp.classList.remove("gain"),1000); }
+    });
+    ec.querySelector("small").textContent=e; ec.setAttribute("aria-label","감정 "+e+"단계");
+    rec._shE=e;
+  }
+}
 function renderBattle(){
   const rec=reception, guest=rec&&GUEST_BY[rec.guestId];
   if(!rec||!guest){ transit("lobby",()=>renderLobby()); return; }
@@ -3360,6 +3736,7 @@ function renderBattle(){
       <div class="arena" id="arena">
         <canvas class="arena-bg" id="arena-bg"></canvas>
         <div class="fighter librarian ${rec.p.stag>0?"staggered":""}" id="fig-lib">
+          ${emoChipHtml(rec)}
           <div class="stag-badge ${rec.p.stag>0?"on":""}" id="stag-p">흐트러짐 · 받는 피해 ×2</div>
           <div class="char">${librarianSvg(save,280,440)}</div>
           <div class="char-plate">사서 큐 양</div>
@@ -3387,22 +3764,21 @@ function renderBattle(){
         <div class="qpanel frame" id="qpanel">${cornerHtml()}<div id="qinner"></div></div>
       </div>
       <div class="hud-top">
-        <div class="bars frame ${rec.p.stag>0?"is-stag":""}" id="box-p">${cornerHtml()}
+        <div class="bars left frame ${rec.p.stag>0?"is-stag":""}" id="box-p">${cornerHtml()}
           <div class="bar-lab"><span>${ico("hp",12)} 사서 큐 양</span><span id="lab-php">${rec.p.hp}/${rec.p.hpMax}</span></div>
           ${barHtml("hp","bar-php",(rec.p.hp/rec.p.hpMax)*100)}
           <div class="bar-lab" style="margin-top:6px"><span>${ico("stag",12)} 흐트러짐 저항</span><span id="lab-pst">${rec.p.stag>0?"흐트러짐":rec.p.st+"/"+rec.p.stMax}</span></div>
           ${barHtml("stag","bar-pst",(rec.p.st/rec.p.stMax)*100)}
-          <div class="orbs">${ico("light",12)} 빛 ${Array.from({length:rec.maxLight},(_,i)=>`<span class="orb ${i<rec.light?"on":""}"></span>`).join("")}</div>
-          <div class="pips">${ico("emotion",12)} 감정 ${Array.from({length:COMBAT.emotionMax},(_,i)=>`<span class="pip ${i<rec.emotion?"on":""}"></span>`).join("")} Lv.${rec.emotion}</div>
         </div>
         <div class="turnchip">${rec.turn}막 · 연속 ${rec.combo}<br>${guest.concept}<br><span class="pilechip">${ico("deck",12)} 덱 ${rec.deckIds?rec.deckIds.length:0} · ${ico("grave",12)} 묘지 ${rec.discardIds?rec.discardIds.length:0}</span></div>
-        <div class="bars frame ${rec.g.stag>0?"is-stag":""}" id="box-g">${cornerHtml()}
+        <div class="bars right frame ${rec.g.stag>0?"is-stag":""}" id="box-g">${cornerHtml()}
           <div class="bar-lab"><span>${ico("hp",12)} ${guest.concept}</span><span id="lab-ghp">${rec.g.hp}/${rec.g.hpMax}</span></div>
           ${barHtml("hp","bar-ghp",(rec.g.hp/rec.g.hpMax)*100)}
           <div class="bar-lab" style="margin-top:6px"><span>${ico("stag",12)} 흐트러짐 저항</span><span id="lab-gst">${rec.g.stag>0?"흐트러짐":rec.g.st+"/"+rec.g.stMax}</span></div>
           ${barHtml("stag","bar-gst",(rec.g.st/rec.g.stMax)*100)}
         </div>
       </div>
+      ${lightChipHtml(rec)}
       <div class="logbox">${rec.log.slice(-8).map(t=>`<div>${t}</div>`).join("")}</div>
       ${pages.some(p=>rec.light>=p.cost&&rec.emotion>=p.emotion)?"":`<button class="btn pass-btn" id="btn-pass" type="button">이 막 넘기기</button>`}
       <div class="hand" id="hand">${pages.map((p,i)=>{
@@ -3575,6 +3951,7 @@ function choosePage(pageId){
   SFX.tak();
   reception.chosenPageId=pageId;
   reception.light-=page.cost;
+  syncResources();
   removeOne(reception.handIds,pageId);
   reception.discardIds=reception.discardIds||[];
   reception.discardIds.push(pageId);
@@ -3639,7 +4016,7 @@ function finishAnswer(correct,q,isKey,typed){
 function runScene(o){
   const rec=reception, guest=GUEST_BY[rec.guestId], page=o.page, asked=!!o.q, correct=!!o.correct;
   const ticketsBefore=ticketsHeld(save);
-  const gt=giftTotals(save);
+  const gt=withKeyMods(giftTotals(save),save);
   const gDice=rec.g.stag>0?null:(rec.intent?rec.intent.dice:null);
   const pDice=(page&&rec.p.stag===0)?page.dice:null;
   rec.lastCorrect=correct; rec.crit=asked&&o.isKey&&correct; rec.lastKey=!!o.isKey; rec.lastQ=o.q||null;
@@ -3675,7 +4052,6 @@ function runScene(o){
   });
   if(asked&&!correct) rec.log.push("해설 · "+guest.explanation);
   if(emoUp){
-    rec.log.push(`감정 단계가 ${emotion}으로 올랐다. 다음 막에 빛과 책장을 더 얻는다.`);
     rec.pendingDraw=(rec.pendingDraw||0)+1;
     rec.pendingLight=(rec.pendingLight||0)+1;
   }
@@ -3687,8 +4063,7 @@ function runScene(o){
     const prevStat=save.conceptStats[guest.id]||{correct:0,total:0};
     save.conceptStats={...save.conceptStats,[guest.id]:{correct:prevStat.correct+(correct?1:0),total:prevStat.total+1}};
   }
-  save.hp=defeated&&levelMsg?nextMax:rec.p.hp;
-  save.maxHp=nextMax; save.level=nextLevel; save.xp=nextXp;
+  save.maxHp=nextMax; save.level=nextLevel; save.xp=nextXp; save.hp=effectiveMaxHp(save);
   save.questionsAnswered=nextQ; save.receptionsWon=nextWins;
   let bookGain=0;
   if(defeated){ bookGain=firstClear?BOOK_RULES.firstClear:rollRecallBooks(); addBooks(save,guest.id,bookGain); }
@@ -3728,6 +4103,7 @@ function syncHud(snap){
   $("#box-p")?.classList.toggle("is-stag",p.stag>0); $("#box-g")?.classList.toggle("is-stag",g.stag>0);
   $("#fig-lib")?.classList.toggle("staggered",p.stag>0); $("#fig-gst")?.classList.toggle("staggered",g.stag>0);
   $("#stag-p")?.classList.toggle("on",p.stag>0); $("#stag-g")?.classList.toggle("on",g.stag>0);
+  syncResources();
 }
 function animateScene(steps,winAll,loseAll,miss){
   busy=true;
@@ -3740,7 +4116,6 @@ function animateScene(steps,winAll,loseAll,miss){
   let k=0;
   const finish=()=>{
     syncHud();
-    if(rec.emoUp){ SFX.emotion(); toast("감정 상승 · 다음 막에 빛과 책장을 더 얻습니다"); }
     if(miss){
       const q=miss.q;
       const ans=q.type==="short"?q.answer:(q.options||[])[q.correctIndex];
@@ -3875,7 +4250,9 @@ function showWin(){
     </div></div>`;
   $("#btn-toshelf").onclick=()=>{ reception=null; transit("shelf",()=>renderShelf()); };
   $("#btn-nextg").onclick=()=>{
-    const next=WEAK_POINTS.find(x=>!save.conqueredIds.includes(x.id));
+    const cur=GUEST_BY[reception&&reception.guestId];
+    const open=x=>!save.conqueredIds.includes(x.id);
+    const next=WEAK_POINTS.find(x=>open(x)&&cur&&x.floorId===cur.floorId)||WEAK_POINTS.find(open);
     if(next) beginReception(next.id);
     else { reception=null; transit("lobby",()=>renderLobby()); }
   };
@@ -3895,8 +4272,8 @@ function showLose(){
       <button class="btn primary" id="btn-retry">다시 접대</button>
       <button class="btn" id="btn-lobby">층으로</button>
     </div></div>`;
-  $("#btn-retry").onclick=()=>{ save.hp=save.maxHp; persist(); beginReception(guest.id); };
-  $("#btn-lobby").onclick=()=>{ save.hp=save.maxHp; persist(); reception=null; transit("lobby",()=>renderLobby()); };
+  $("#btn-retry").onclick=()=>{ save.hp=effectiveMaxHp(save); persist(); beginReception(guest.id); };
+  $("#btn-lobby").onclick=()=>{ save.hp=effectiveMaxHp(save); persist(); reception=null; transit("lobby",()=>renderLobby()); };
 }
 
 /* ---------- shelf / collection ---------- */
@@ -3962,7 +4339,9 @@ const KEY_ICON={
   novice:`<path d="M8 3 4 7v14h16V7l-4-4"/><path d="M8 3q4 5 8 0M12 8v13"/>`,
   "reading-room":`<path d="M3 5h7q2 0 2 2 0-2 2-2h7v14h-7q-2 0-2 2 0-2-2-2H3z"/><path d="M12 7v12"/>`,
   midnight:`<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/><path d="M18 3v4M16 5h4"/>`,
-  archivist:`<path d="M3 18 5 7l5 5 2-7 2 7 5-5 2 11z"/><path d="M4 21h16"/>`
+  archivist:`<path d="M3 18 5 7l5 5 2-7 2 7 5-5 2 11z"/><path d="M4 21h16"/>`,
+  "classical-robe":`<path d="M12 4v16M6 20h12M5 7h14"/><path d="M5 7l-3 7a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z"/>`,
+  "panopticon-coat":`<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v4M12 17v4"/>`
 };
 const GIFT_ICON={
   hourglass:`<path d="M6 3h12M6 21h12M7 3c0 6 5 6 5 9s-5 3-5 9M17 3c0 6-5 6-5 9s5 3 5 9"/>`,
@@ -3976,7 +4355,25 @@ const GIFT_ICON={
   clasp:`<rect x="3" y="9" width="18" height="7" rx="2"/><rect x="9" y="7" width="6" height="11" rx="1.5"/>`,
   orb:`<circle cx="12" cy="12" r="8"/><path d="M8 10q3-4 7-2"/>`,
   sigil:`<path d="M4 8l8 9 8-9"/><path d="M12 3v6"/>`,
-  pin:`<circle cx="12" cy="7" r="4"/><path d="M12 11v10M9 21h6"/>`
+  pin:`<circle cx="12" cy="7" r="4"/><path d="M12 11v10M9 21h6"/>`,
+  bookmark:`<path d="M7 3h10v18l-5-4-5 4z"/>`,
+  eye:`<path d="M2 12q10-9 20 0-10 9-20 0z"/><circle cx="12" cy="12" r="3"/>`,
+  knot:`<path d="M4 8c4-4 12-4 16 0M4 16c4 4 12 4 16 0M8 9l8 6M16 9l-8 6"/>`,
+  stamp:`<path d="M9 3h6v6l3 3v3H6v-3l3-3z"/><path d="M5 20h14"/>`,
+  wing:`<path d="M3 17c3-9 9-12 18-12-2 8-8 12-16 12z"/><path d="M8 14l6-6"/>`,
+  scale:`<path d="M12 4v16M6 20h12M5 7h14"/><path d="M5 7l-3 7a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z"/>`,
+  abacus:`<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 15h18"/><circle cx="8" cy="6.5" r="1"/><circle cx="14" cy="12" r="1"/><circle cx="10" cy="17.5" r="1"/>`,
+  badge:`<circle cx="12" cy="10" r="6"/><path d="M8 15l-2 6 6-3 6 3-2-6"/>`,
+  oculus:`<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v4M12 17v4"/>`,
+  scroll:`<path d="M6 4h12v14a3 3 0 0 1-6 0v-1H6z"/><path d="M9 8h6M9 12h6"/>`,
+  tablet:`<path d="M5 20V8a7 7 0 0 1 14 0v12z"/><path d="M9 10h6M9 14h6"/>`,
+  wig:`<path d="M12 3c-5 0-7 4-7 9 0 3 1 6 3 8h8c2-2 3-5 3-8 0-5-2-9-7-9z"/><path d="M8 12c1 2 2 3 4 3s3-1 4-3"/>`,
+  stairs:`<path d="M3 20h5v-4h5v-4h5V8h3"/>`,
+  chart:`<path d="M4 20V4M4 20h16"/><path d="M8 16l4-5 3 3 5-7"/>`,
+  vial:`<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/><path d="M8 15h8"/>`,
+  mask:`<path d="M4 6h16v6c0 5-4 8-8 8s-8-3-8-8z"/><path d="M8 11h2M14 11h2M9 15q3 2 6 0"/>`,
+  compass:`<circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-4 0 2-6z"/>`,
+  gavel:`<path d="M14 4l6 6-3 3-6-6z"/><path d="M12 9L4 17l3 3 8-8"/>`,
 };
 const lockSvg=`<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>`;
 function dTileHtml(id,iconPath,{locked,equipped,sel,label,sub}){
@@ -3991,8 +4388,8 @@ function shelfTabsHtml(){
 function bindShelfTabs(){
   $$("[data-stab]").forEach(b=>b.onclick=()=>{ if(shelfTab===b.dataset.stab) return; shelfTab=b.dataset.stab; SFX.click(); renderShelf(); const sc=$("#scene-shelf .page-scroll"); if(sc) sc.scrollTop=0; });
 }
-const KEY_PERK_TEXT={none:"특별한 효과 없음",light:"접대 시작 빛 +1",emotion:"감정 단계 1로 시작",recover:"매 턴 빛 회복 +1"};
-const KEY_LOOK={novice:"기본 · 남색 외투","reading-room":"청록 외투 · 책갈피 띠 · 독서등",midnight:"남보라 외투 · 초승달 · 별무리 망토",archivist:"진홍 외투 · 금 견장 · 열쇠 문장 · 깃털 모자"};
+const KEY_PERK_TEXT={none:"특별한 효과 없음",light:"접대 시작 빛 +1",emotion:"감정 단계 1로 시작",recover:"매 턴 빛 회복 +1",hp10:"최대 체력 +10",stagger10:"흐트러짐 피해 +10%"};
+const KEY_LOOK={novice:"기본 · 남색 외투","reading-room":"청록 외투 · 책갈피 띠 · 독서등",midnight:"남보라 외투 · 초승달 · 별무리 망토",archivist:"진홍 외투 · 금 견장 · 열쇠 문장 · 깃털 모자","classical-robe":"상아색 법복 · 흰 목장식 · 저울 문장 · 재판관 가발","panopticon-coat":"갈색 외투 · 높은 칼라 · 감시의 눈 문장 · 탐조등"};
 function giftPerkText(g){
   const u=EGO_GIFT_RULES.unit, t={};
   for(const [k,n] of Object.entries(g.perk||{})) t[k]=(u[k]||1)*n;
@@ -4195,7 +4592,8 @@ function renderCollection(){
         <div class="flare" id="flare"></div>
         <div id="greveal"></div>
       </div>
-      <div style="display:flex;gap:8px;justify-content:center;margin:14px 0">
+      <div class="ticket-chip" id="ticket-chip" role="status" aria-label="뽑기권 ${held}장">${ico("ticket",14)} 뽑기권 <b>×${held}</b></div>
+      <div style="display:flex;gap:8px;justify-content:center;margin:8px 0 14px">
         <button class="btn primary" id="pull1" ${held<1?"disabled":""}>1회 뽑기</button>
         <button class="btn" id="pull10" ${held<10?"disabled":""}>10회 뽑기</button>
       </div>
@@ -4351,10 +4749,10 @@ function boot(){
   window.__studyGame = {
     save, transit, showScene, renderLobby, renderBattle, renderCollection, renderShelf, renderTitle,
     beginReception, answer, answerShort, choosePage, SFX, takPunch, showWin, showLose, engine:{COMBAT,TIER,ATK_TYPES,mkUnit,resolveScene,guestCombat,planIntent,expectedDamage,checkShort,keyQsOf,WEAK_POINTS,COMBAT_PAGES,PAGE_BY,hitUnit,playerDieRange,guestDieRange,playerStaggerMax,FLAT_RESIST,getRec(){return reception;}}, pullGacha, giveTickets(n){ save.ticketsSpent=Math.max(0, save.ticketsSpent-n); persist(); },
-    data:{EGO_GIFTS,KEY_PAGES,COSMETIC_ITEMS,WEAK_POINTS},
+    data:{EGO_GIFTS,KEY_PAGES,COSMETIC_ITEMS,WEAK_POINTS,COMBAT_PAGES,FLOORS,KEY_QUESTIONS},
     acq:{BOOK_POOLS,BOOK_RULES,poolEntries,burnBookOnce,addBooks,bookCount,totalBooks,ownedCount,deckLimit,sourcesOf,acqAudit,migrateAcq,rollRecallBooks,loadSave,defaultSave,SAVE_KEY},
     setGifts(owned,equipped){ const L=libOf(save); L.gifts.owned=[...owned]; L.gifts.equipped={...emptyEgoEquip(),...(equipped||{})}; persist(); },
-    gifts:{libOf,giftTotals,giftMaxTotals,activeSets,rollEgoGift,migrateLibrarians,sanitizeLibrarians,equipGift,egoOwned,egoEquip,EGO_GIFT_RULES,loadSave,SAVE_KEY},
+    gifts:{withKeyMods,effectiveMaxHp,libOf,giftTotals,giftMaxTotals,activeSets,rollEgoGift,migrateLibrarians,sanitizeLibrarians,equipGift,egoOwned,egoEquip,EGO_GIFT_RULES,loadSave,SAVE_KEY},
     toggleDeckPage, currentQuestion, setShelfTab(t){ shelfTab=t; },
     setScene(n){ showScene(n); if(n==="lobby")renderLobby(); if(n==="battle")renderBattle(); if(n==="collection")renderCollection(); if(n==="shelf")renderShelf(); if(n==="title")renderTitle(); if(n==="deck")renderDeckEditor(); if(n==="credits")renderCredits(); },
     debugPhotos(){ return FX.debugPhotos(); },
