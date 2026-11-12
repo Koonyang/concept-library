@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="intent-lobby-20261113f">
+<meta name="build" content="hand-fan-20261113g">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -315,7 +315,9 @@ body.slowmo #shake{animation:slo .55s ease}
   pointer-events:none}
 .hand .cc{pointer-events:auto;position:relative;width:148px;height:210px;margin:0 -18px;transform-origin:50% 100%;
   transition:transform .25s ease,z-index 0s;cursor:pointer}
-.hand .cc:hover{transform:translateY(-28px) rotate(0deg) scale(1.06)!important;z-index:9!important}
+.hand:has(.cc.hot){z-index:40}
+.hand .cc.hot{transition:transform .14s ease;box-shadow:0 0 0 1px rgba(232,180,80,.8),0 0 22px rgba(255,176,70,.4),0 14px 26px rgba(0,0,0,.55);border-radius:10px}
+.hand .cc.hot.off{opacity:.92;filter:none}
 .hand .cc.off{opacity:.38;pointer-events:auto;filter:grayscale(.4)}
 .hand .cc,.hand .card{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none;-webkit-tap-highlight-color:transparent}
 
@@ -436,8 +438,7 @@ body.slowmo #shake{animation:slo .55s ease}
 .card .flavor{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
   margin-top:auto;padding-top:4px;border-top:1px solid rgba(60,35,15,.2)}
 .ci-flavor{margin:8px 0 12px;font-size:13px;line-height:1.7;color:#4a3218}
-.hand .cc:hover{transform:translateY(-22px) rotate(0deg) scale(1.04)!important;z-index:9!important}
-.hand .cc:hover .card.paper{
+.hand .cc.hot .card.paper{
   box-shadow:0 0 0 1px rgba(232,180,80,.75),0 0 16px rgba(255,176,70,.32),1px 10px 20px rgba(0,0,0,.42)}
 .hand .cc.off{opacity:.55;filter:grayscale(.15)}
 
@@ -1551,8 +1552,8 @@ const GACHA_RULES = {
 /* 예시: 에고 기프트 수치와 드롭 규칙은 이 상수만 바꿔 조정한다. 개별 기프트는 매우 약하고, 회상으로 쌓이면 의미가 생긴다. */
 const EGO_GIFT_RULES = {
   dropRateFirstClear: 1,
-  dropRateRecall: 0.4,
-  pityEvery: 4,
+  dropRateRecall: 0.3,
+  pityEvery: 10,                // 몬테카를로 20만 회: 한 손님의 기프트 3종을 모두 모으는 데 평균 약 10.2회(중앙값 9, 90%≤17회)
   newWeight: 3,                 // 미보유 기프트가 보유 기프트보다 3배 잘 나온다
   dupTickets: 1,                // 이미 가진 기프트가 나오면 능력은 쌓이지 않고 뽑기권 1장
   /* 몸의 부위. 기프트는 정확히 한 부위에 속하고, 부위당 하나만 착용한다. */
@@ -3848,7 +3849,7 @@ function guestSheetHtml(g){
     <div class="gmeta">보상 · 접대/회상 성공 시 이 손님의 책 (첫 접대 1권 · 회상 ${Math.round(BOOK_RULES.recallOne*100)}% 1권 / ${100-Math.round(BOOK_RULES.recallOne*100)}% 2권). 소각하면 ${poolEntries(save,g.id).map(e=>`「${entryName(e)}」${e.count>=e.cap?"✓":""}`).join(" · ")} 중 하나.</div>
     <div class="gmeta" style="margin-top:6px">${libOf(save).name}의 에고 기프트 ${gifts.filter(x=>owned.has(x.id)).length}/${gifts.length}
       · ${gifts.map(x=>owned.has(x.id)?x.name:"????").join(" · ")}
-      · 첫 접대 ${Math.round(EGO_GIFT_RULES.dropRateFirstClear*100)}% · 회상 ${Math.round(EGO_GIFT_RULES.dropRateRecall*100)}%</div>
+      · 첫 접대 ${Math.round(EGO_GIFT_RULES.dropRateFirstClear*100)}% · 회상 ${Math.round(EGO_GIFT_RULES.dropRateRecall*100)}% · 안 나와도 ${EGO_GIFT_RULES.pityEvery}회째 확정</div>
     ${done?`<div class="gmeta" style="margin-top:8px">회상 ${st.recalls}회 · 승리 ${st.wins}회 · 정답률 ${acc==null?"—":acc+"%"} · 추이 ${trend}</div>`:""}
     <div class="sheet-actions">
       <button class="btn" id="btn-deck" type="button">덱 편성</button>
@@ -4086,7 +4087,7 @@ function bindPageInspect(sel, onTap){
     c.addEventListener("pointerup",endHold);
     c.addEventListener("pointercancel",endHold);
     c.addEventListener("pointerenter",ev=>{
-      if(ev.pointerType!=="mouse") return;
+      if(ev.pointerType!=="mouse"||c.closest("#hand")) return;
       SFX.hover();
       if(inspectState.hoverTimer) clearTimeout(inspectState.hoverTimer);
       inspectState.hoverTimer=setTimeout(()=>{
@@ -4117,6 +4118,82 @@ function bindHandInteract(){
     if(c.classList.contains("off")) return;
     if(rec&&rec.phase==="select") choosePage(pageId);
   });
+  layoutHand();
+  bindHandScrub();
+}
+/* ---------- 루이나식 부채꼴 손패: 장수가 늘면 더 촘촘히 겹치고, 짚은 카드는 위로 떠올라 커진다 ---------- */
+function layoutHand(){
+  const hand=$("#hand"); if(!hand) return;
+  const cs=[...hand.children].filter(c=>c.classList.contains("cc")); const n=cs.length; if(!n) return;
+  cs.forEach(c=>{ c.style.margin="0"; c.style.transform="none"; });
+  const cw=cs[0].offsetWidth, ch=cs[0].offsetHeight, W=hand.clientWidth;
+  const rotStep=n<2?0:Math.min(7,44/(n-1));
+  const amax=(n-1)/2*rotStep*Math.PI/180;
+  const pad=Math.ceil(ch*Math.sin(amax)/2+cw*(1-Math.cos(amax))/2)+9;   // 기울어진 바깥 카드의 모서리까지 화면 안에
+  const avail=W-2*pad;
+  const step=n<2?0:Math.min(cw*0.67,(avail-cw)/(n-1));
+  const left0=(W-(cw+step*(n-1)))/2;
+  const s=Math.min(1.9,Math.max(1.12,Math.min(190,W*0.5)/cw));
+  hand._geo={n,cw,ch,step,left0,W,s};
+  cs.forEach((c,i)=>{
+    c.style.margin=`0 ${(step-cw)/2}px`;
+    const ang=(i-(n-1)/2)*rotStep;
+    c._base=`rotate(${ang}deg) translateY(${Math.abs(ang)*1.2}px)`;
+    c.style.transform=c._base; c.style.zIndex=i; c._z=i;
+    c.classList.remove("hot");
+  });
+  hand.classList.toggle("crowd",n>=6);
+}
+function handHot(hand,idx){
+  const g=hand._geo; if(!g) return;
+  const cs=[...hand.children].filter(c=>c.classList.contains("cc"));
+  cs.forEach((c,i)=>{
+    if(i===idx){
+      const cx=g.left0+i*g.step+g.cw/2, half=g.cw*g.s/2;
+      const dx=Math.max(6+half,Math.min(g.W-6-half,cx))-cx;
+      c.classList.add("hot"); c.style.zIndex=60;
+      c.style.transform=`translate(${dx}px,-${Math.round(g.ch*0.12)}px) scale(${g.s})`;
+    } else if(c.classList.contains("hot")){
+      c.classList.remove("hot"); c.style.zIndex=c._z; c.style.transform=c._base;
+    }
+  });
+  hand._hot=idx;
+}
+function bindHandScrub(){
+  const hand=$("#hand"); if(!hand) return;
+  let active=false, pid=null, last=-1;
+  const idxAt=x=>{ const g=hand._geo, r=hand.getBoundingClientRect(); return Math.max(0,Math.min(g.n-1,Math.floor((x-r.left-g.left0)/(g.step||g.cw)))); };
+  const cards=()=>[...hand.children].filter(c=>c.classList.contains("cc"));
+  const release=(select)=>{
+    if(!active) return; active=false;
+    const i=hand._hot, cs=cards(), c=cs[i];
+    handHot(hand,-1);
+    if(select&&c&&!c.classList.contains("off")&&reception&&reception.phase==="select"&&!busy) choosePage(c.dataset.page);
+    last=-1;
+  };
+  hand.addEventListener("pointerdown",ev=>{
+    if(ev.pointerType==="mouse") return;
+    const cc=ev.target.closest&&ev.target.closest(".cc"); if(!cc) return;
+    ev.stopPropagation(); ev.preventDefault();
+    active=true; pid=ev.pointerId; try{ cc.setPointerCapture(pid); }catch(e){}
+    last=idxAt(ev.clientX); handHot(hand,last); try{ SFX.hover(); }catch(e){}
+  },true);
+  hand.addEventListener("pointermove",ev=>{
+    if(!active||ev.pointerId!==pid) return;
+    ev.stopPropagation();
+    const i=idxAt(ev.clientX);
+    if(i!==last){ last=i; handHot(hand,i); try{ SFX.hover(); }catch(e){} if(navigator.vibrate) try{navigator.vibrate(4)}catch(e){} }
+  },true);
+  hand.addEventListener("pointerup",ev=>{ if(!active||ev.pointerId!==pid) return; ev.stopPropagation(); release(true); },true);
+  hand.addEventListener("pointercancel",ev=>{ if(!active||ev.pointerId!==pid) return; release(false); },true);
+  hand.addEventListener("click",ev=>{ if(ev.pointerType&&ev.pointerType!=="mouse"){ ev.stopPropagation(); ev.preventDefault(); } },true);
+  /* 마우스: 올려둔 카드가 떠오른다 */
+  hand.addEventListener("pointerover",ev=>{
+    if(ev.pointerType!=="mouse") return;
+    const cc=ev.target.closest&&ev.target.closest(".cc"); if(!cc) return;
+    handHot(hand,cards().indexOf(cc));
+  });
+  hand.addEventListener("pointerleave",ev=>{ if(ev.pointerType==="mouse") handHot(hand,-1); });
 }
 
 /* ---------- intent preview / resist table ---------- */
@@ -4838,28 +4915,12 @@ function renderShelfBooks(){
     <div class="page-scroll">
     ${shelfTabsHtml()}
     <h2 class="gold-title" style="font-size:22px;margin-bottom:8px">책장</h2>
-    <p class="gmeta" style="margin-bottom:10px">접대와 회상에 성공하면 그 손님의 책이 쌓입니다. 책을 소각하면 그 손님의 책장이 나옵니다. 책장 수집 현황은 손님 정보에서 볼 수 있어요.</p>
+    <p class="gmeta" style="margin-bottom:10px">접대와 회상에 성공하면 그 손님의 책이 쌓입니다. 책을 소각하면 그 손님의 책장이 나옵니다. 책장 수집 현황은 접대 목록에서 볼 수 있어요.</p>
     ${bookList}
-    <h3 class="gold-title sec-head">덱 편성</h3>
-    <div class="deck-summary frame">${cornerHtml()}
-      <div><div class="gold-title" style="font-size:15px">${activeDeck(save).name}</div>
-      <div class="gmeta">${activeDeck(save).pageIds.length}/${DECK_MAX}장 ${isDeckReady(save)?"· 접대 가능":"· 최소 "+DECK_MIN+"장을 장착해야 합니다"} · 프리셋 ${save.decks.length}개</div></div>
-      <button class="btn primary" id="btn-open-deck" type="button">덱 편성</button>
-    </div>
-    <h3 class="gold-title sec-head">전투 책장</h3>
-    <div class="item-grid">${COMBAT_PAGES.map(p=>{
-      const un=ownedCount(save,p.id)>0;
-      const dice=(p.dice||[]).map(d=>`${d.type} ✓${myDiePreview(d).ok.join("~")} / ✗${myDiePreview(d).ng.join("~")}`).join(" · ");
-      return `<div class="key-item frame">${cornerHtml()}<div style="min-width:0">
-        <div class="gold-title" style="font-size:15px">${un?p.name:"????"}</div>
-        <div class="gmeta">${un?`${p.cost}빛 · ${dice}<br>${p.text}<br><span class="src">보유 ${ownedCount(save,p.id)}/${DECK_MAX_COPIES}${p.starter?" · 기본 지급":" · 획득처 "+sourceLine("page",p.id)}</span>`:`아직 열리지 않았습니다.<br><span class="src">획득처 · ${sourceLine("page",p.id)}</span>`}</div>
-      </div></div>`;
-    }).join("")}</div>
     </div>
     ${botNav("shelf")}`;
   bindNav();
   bindShelfTabs();
-  const od=$("#btn-open-deck"); if(od) od.onclick=()=>openDeckEditor({to:"shelf"});
   $("#bk-prev")&&($("#bk-prev").onclick=()=>{ const l=heldBooks(); goBook(l.findIndex(g=>g.id===bookSel)-1,-1); });
   $("#bk-next")&&($("#bk-next").onclick=()=>{ const l=heldBooks(); goBook(l.findIndex(g=>g.id===bookSel)+1,1); });
   $$("[data-bdot]").forEach(b=>b.onclick=()=>{ const l=heldBooks(), cur=l.findIndex(g=>g.id===bookSel), i=+b.dataset.bdot; goBook(i,i>cur?1:-1); });
@@ -4971,7 +5032,7 @@ function dressDetailHtml(mode){
   const from=GUEST_BY[g.guestId]?.concept||g.guestId;
   return `<div class="dd-head"><div class="gold-title dd-name">${have?g.name:"????"}</div><span class="pill">${g.slot}</span></div>
     <div class="dd-lines"><div><b>효과</b> ${giftPerkText(g)} <span class="gmeta">· ${g.slot} 부위</span></div><div class="gmeta">${have?g.text:"아직 얻지 못한 기프트입니다."}</div>
-      ${have?"":`<div class="src">획득처 · 「${from}」 접대 (첫 접대 ${Math.round(EGO_GIFT_RULES.dropRateFirstClear*100)}% · 회상 ${Math.round(EGO_GIFT_RULES.dropRateRecall*100)}%)</div>`}
+      ${have?"":`<div class="src">획득처 · 「${from}」 접대 (첫 접대 ${Math.round(EGO_GIFT_RULES.dropRateFirstClear*100)}% · 회상 ${Math.round(EGO_GIFT_RULES.dropRateRecall*100)}% · ${EGO_GIFT_RULES.pityEvery}회째 확정)</div>`}
       ${have&&!eq&&occ?`<div class="gmeta">같은 부위의 「${occ.name}」과 교체됩니다.</div>`:""}</div>
     <div class="dd-actions"><button class="btn ${eq?"":"primary"}" id="dd-equip" type="button" ${have?"":"disabled"}>${!have?"미획득":eq?"해제":"착용"}</button>
       <button class="btn" id="dd-back" type="button">누적 효과 보기</button></div>`;
@@ -5180,6 +5241,12 @@ function renderCollection(){
     <div class="page-scroll">
     <h2 class="gold-title" style="font-size:22px">장서</h2>
     <p class="gmeta" style="margin:6px 0 10px">장신구는 외형 전용이며 전투 수치에 영향이 없습니다. 도감 ${save.ownedIds.length}/${COLLECTION_TOTAL} · 권 ${held}장 · SSR 천장 ${Math.max(0,GACHA_RULES.ssrPity-save.pullsSinceSsr)}회</p>
+    <h3 class="gold-title sec-head" style="margin-top:4px">덱 편성</h3>
+    <div class="deck-summary frame">${cornerHtml()}
+      <div><div class="gold-title" style="font-size:15px">${activeDeck(save).name}</div>
+      <div class="gmeta">${activeDeck(save).pageIds.length}/${DECK_MAX}장 ${isDeckReady(save)?"· 접대 가능":"· 최소 "+DECK_MIN+"장을 장착해야 합니다"} · 프리셋 ${save.decks.length}개</div></div>
+      <button class="btn primary" id="btn-open-deck" type="button">덱 편성</button>
+    </div>
     <div class="tabs">
       ${[["gacha","뽑기"],["album","도감"],["dress","코디"]].map(([id,lb])=>`<button class="btn ${collectTab===id?"primary":""}" data-ct="${id}">${lb}</button>`).join("")}
     </div>
@@ -5187,6 +5254,7 @@ function renderCollection(){
     </div>
     ${botNav("collection")}`;
   bindNav();
+  { const od=$("#btn-open-deck"); if(od) od.onclick=()=>openDeckEditor({to:"collection"}); }
   $$("[data-ct]").forEach(b=>b.onclick=()=>{ collectTab=b.dataset.ct; renderCollection(); });
   const body=$("#col-body");
   if(collectTab==="gacha"){
