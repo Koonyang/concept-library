@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="assets-pack-20261112f">
+<meta name="build" content="stage-cards-20261112g">
 <meta name="theme-color" content="#07080d">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect fill='%2307080d' width='64' height='64'/%3E%3Cpath fill='%23c4a35a' d='M18 50 V22 Q32 12 46 22 V50 L32 42 Z'/%3E%3C/svg%3E">
 <style>
@@ -218,24 +218,46 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .battle-stage{position:absolute;inset:0;display:flex;flex-direction:column}
 .arena{flex:1;position:relative;overflow:hidden}
 .arena-bg{position:absolute;inset:0;width:100%;height:100%}
-.fighter{position:absolute;bottom:7%;width:min(40vw,380px);transform-origin:50% 100%;
-  animation:breathe 3.8s ease-in-out infinite;filter:drop-shadow(0 18px 22px rgba(0,0,0,.75));
-  z-index:3}
-.fighter:after{content:"";position:absolute;left:50%;bottom:2%;width:70%;height:48px;transform:translateX(-50%);
-  background:radial-gradient(ellipse,rgba(230,211,163,.32),transparent 70%);pointer-events:none;z-index:-1}
-.fighter svg{width:100%;height:auto;display:block}
+.arena:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:
+    radial-gradient(ellipse at 22% 62%,rgba(230,211,163,.11),transparent 34%),
+    radial-gradient(ellipse at 78% 62%,rgba(170,160,210,.08),transparent 34%),
+    radial-gradient(ellipse at 50% 100%,transparent 20%,rgba(0,0,0,.5) 78%),
+    linear-gradient(180deg,rgba(0,0,0,.5) 0%,rgba(0,0,0,.18) 28%,rgba(0,0,0,.12) 58%,rgba(0,0,0,.55) 100%)}
+.fighter{position:absolute;top:var(--inspect-top,170px);bottom:calc(var(--inspect-bottom,256px) - 6px);
+  width:min(28vw,340px);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  transform-origin:50% 100%;animation:charBreath 4s ease-in-out infinite;z-index:3;pointer-events:none}
 .fighter.librarian{left:4%}
-.fighter.guest{right:4%;animation-delay:-1.4s}
-.fighter.guest.arch-knight{animation:idleKnight 3.2s ease-in-out infinite}
-.fighter.guest.arch-scholar{animation:idleScholar 3.6s ease-in-out infinite}
-.fighter.guest.arch-beast{animation:idleBeast 2.2s ease-in-out infinite}
-.fighter.guest.arch-puppet{animation:idlePuppet 2.8s ease-in-out infinite}
-.fighter.guest.arch-fixer{animation:idleFixer 3.4s ease-in-out infinite}
-.fighter.guest.arch-mage{animation:idleMage 4s ease-in-out infinite}
-.fighter.staggered{filter:grayscale(.3) brightness(1.15) drop-shadow(0 0 16px rgba(224,180,58,.7));
-  animation:staggerShake .18s linear infinite}
-.fighter.hit{animation:guestHit .28s ease}
-.fighter.defeated{animation:guestDown .55s ease forwards;filter:grayscale(.65) brightness(.7)}
+.fighter.guest{right:4%;animation-delay:-1.55s}
+.fighter .char{flex:1 1 auto;min-height:0;width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center;position:relative;z-index:1}
+.fighter .char svg{height:100%;width:auto;max-width:100%;display:block;overflow:visible}
+.fighter.librarian .char svg{filter:drop-shadow(4px 0 6px rgba(230,211,163,.42)) drop-shadow(-6px 10px 10px rgba(0,0,0,.55))}
+.fighter.guest .char svg{filter:drop-shadow(-4px 0 6px rgba(190,180,230,.35)) drop-shadow(6px 10px 10px rgba(0,0,0,.55))}
+.fighter:after{content:"";position:absolute;left:50%;bottom:26px;width:64%;height:32px;transform:translateX(-50%);
+  background:radial-gradient(ellipse,rgba(0,0,0,.7) 0%,rgba(230,211,163,.16) 46%,transparent 72%);pointer-events:none;z-index:0}
+.char-plate{flex:0 0 auto;position:relative;z-index:2;margin-top:2px;padding:4px 12px 5px;min-width:68%;max-width:100%;
+  text-align:center;font-size:11px;letter-spacing:.14em;color:var(--gold2);
+  background:linear-gradient(180deg,#2a2214,#120e0a);border:1px solid var(--gold3);
+  box-shadow:0 4px 10px rgba(0,0,0,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.char-book{position:absolute;left:50%;bottom:18%;transform:translateX(-50%) scale(.86);opacity:0;pointer-events:none;z-index:4;
+  filter:drop-shadow(0 8px 16px rgba(0,0,0,.6)) drop-shadow(0 0 12px rgba(196,163,90,.4))}
+.char-book svg{width:88px;height:110px}
+.fighter .char:after{content:"";position:absolute;inset:10% 14% 8%;opacity:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,244,220,.7),rgba(220,60,40,.35));mix-blend-mode:screen}
+.fighter.hit .char:after{animation:hitFlash .32s ease}
+.fighter.librarian.hit{animation:charHitL .32s ease}
+.fighter.guest.hit{animation:charHitR .32s ease}
+.fighter.staggered{animation:charStagger 1.15s ease-in-out infinite}
+.fighter.staggered .char svg{filter:grayscale(.2) brightness(1.12) drop-shadow(0 0 14px rgba(224,180,58,.75))}
+.fighter.defeated{animation:none}
+.fighter.defeated .char,.fighter.defeated .char-plate{animation:fadeToBook .7s ease forwards}
+.fighter.defeated .char-book{animation:bookIn .7s ease forwards}
+.clash-zone{position:absolute;left:50%;top:calc(var(--inspect-top,170px) + (100% - var(--inspect-top,170px) - var(--inspect-bottom,256px)) * .45);
+  transform:translate(-50%,-50%);width:min(26vw,200px);height:min(26vw,200px);z-index:4;pointer-events:none}
+.clash-ring{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(196,163,90,.32);
+  box-shadow:0 0 28px rgba(196,163,90,.16),inset 0 0 36px rgba(0,0,0,.35)}
+.clash-glow{position:absolute;left:12%;right:12%;bottom:10%;height:26%;
+  background:radial-gradient(ellipse,rgba(196,163,90,.28),transparent 70%)}
 @keyframes idleKnight{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 @keyframes idleScholar{0%,100%{transform:translateY(0) rotate(-.4deg)}50%{transform:translateY(-7px) rotate(.5deg)}}
 @keyframes idleBeast{0%,100%{transform:translateY(0) scale(1,1)}50%{transform:translateY(-5px) scale(1.03,.97)}}
@@ -263,7 +285,8 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .pip{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:11px solid #333}
 .pip.on{border-bottom-color:var(--gold);filter:drop-shadow(0 0 4px var(--gold))}
 .turnchip{align-self:center;color:var(--gold2);letter-spacing:.2em;font-size:12px;text-align:center}
-.clash{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:28px;
+.clash{position:absolute;left:50%;top:calc(var(--inspect-top,170px) + (100% - var(--inspect-top,170px) - var(--inspect-bottom,256px)) * .45);
+  transform:translate(-50%,-50%);display:flex;align-items:center;gap:28px;
   z-index:6;opacity:0;pointer-events:none;filter:drop-shadow(0 0 18px rgba(196,163,90,.45))}
 .clash.show{opacity:1}
 .clash .vs{font-family:Georgia,serif;letter-spacing:.45em;color:var(--gold4);font-size:28px;text-shadow:0 0 22px rgba(196,163,90,.9);z-index:2}
@@ -423,9 +446,28 @@ body.slowmo #shake{animation:slo .55s ease}
 .deck-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .deck-presets{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 12px}
 .deck-slots{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}
-.deck-slot{min-height:118px;padding:8px 8px 10px;cursor:pointer;display:flex;flex-direction:column;gap:4px;position:relative}
-.deck-slot.empty{opacity:.7;align-items:center;justify-content:center;color:#6a5030;font-size:11px;letter-spacing:.1em}
+.deck-slot{padding:0;cursor:pointer;position:relative;aspect-ratio:3/4.2;border:none;background:none;display:block;text-align:left}
+.deck-slot .card{width:100%;height:100%}
+.deck-slot.empty{opacity:.75;display:flex;align-items:center;justify-content:center;color:#6a5030;font-size:11px;letter-spacing:.1em;
+  border:1px dashed rgba(196,163,90,.4);background:rgba(30,22,14,.35);aspect-ratio:3/4.2}
 .deck-slot .nm{font-size:11px;line-height:1.3}
+#deck-pool.item-grid{grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px}
+.dpage{display:block;padding:0;cursor:pointer;position:relative;text-align:left;border:none;background:none;aspect-ratio:3/4.2}
+.dpage .card{width:100%;height:100%}
+.dpage.in .card,.deck-slot:not(.empty) .card{
+  box-shadow:0 0 0 2px #e6d3a3,0 0 16px rgba(196,163,90,.4),1px 3px 8px rgba(0,0,0,.38);
+  transform:translateY(-2px)}
+.dpage.in:after{content:"장착";position:absolute;top:8px;left:8px;z-index:6;font-size:8px;letter-spacing:.12em;
+  color:#1a120a;background:#e6d3a3;padding:2px 5px;pointer-events:none}
+.card.paper.mini{display:flex;flex-direction:column;height:100%;padding:8px 8px 7px;min-height:0}
+.card.paper.mini .illu{height:28px;margin:2px 0}
+.card.paper.mini .nm{font-size:11px;line-height:1.25;margin-top:2px}
+.card.paper.mini .tx{display:none}
+.card.paper.mini .dice{font-size:9px;gap:3px}
+.card.paper.mini .flavor{-webkit-line-clamp:2;font-size:9px;margin-top:4px;padding-top:3px}
+.card.paper.mini .gem{width:18px;height:18px;font-size:10px}
+.card.paper.mini .wax{width:18px;height:18px;top:6px;right:6px;font-size:6px}
+.card.paper.mini .emo{font-size:9px}
 .cost-curve{display:grid;gap:5px;margin:0 0 14px;padding:10px 12px}
 .cost-curve .cc-row{display:grid;grid-template-columns:42px 1fr 22px;gap:8px;align-items:center;font-size:11px;color:var(--parch2)}
 .cost-curve .cc-track{height:8px;background:rgba(0,0,0,.35);border:1px solid var(--gold3);overflow:hidden}
@@ -435,10 +477,7 @@ body.slowmo #shake{animation:slo .55s ease}
 .deck-filters{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
 .deck-filters select{flex:1 1 30%;min-width:0;background:rgba(0,0,0,.35);border:1px solid var(--gold3);
   color:var(--parch);padding:8px 8px;font:inherit;font-size:13px}
-.dpage{display:flex;gap:10px;align-items:flex-start;padding:12px 14px 12px 12px;cursor:pointer;position:relative;text-align:left}
-.dpage.in{outline:1px solid var(--gold);box-shadow:0 0 0 1px rgba(196,163,90,.45)}
-.dpage .body{flex:1;min-width:0}
-.dpage .gmeta{margin-top:2px}
+.dpage .body{display:none}
 .dpage .flavor{margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .deck-summary{padding:12px 14px;margin:0 0 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
 .pilechip{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -556,6 +595,7 @@ body.slowmo #shake{animation:slo .55s ease}
   #scene-lobby,.panel-scene{padding:6px 10px 0}
   #scene-lobby{padding-bottom:var(--panel-pad-bottom)}
   .item-grid,.scroll{grid-template-columns:1fr}
+  #deck-pool.item-grid{grid-template-columns:repeat(3,1fr);gap:8px}
   .gift-grid{grid-template-columns:1fr}
   .dress-grid{grid-template-columns:1fr}
   .gacha-stage{min-height:min(380px,52vh)}
@@ -584,9 +624,16 @@ body.slowmo #shake{animation:slo .55s ease}
   .botnav{bottom:0;left:0;right:0;gap:8px;padding:8px 8px calc(8px + var(--safe-bottom))}
   .botnav .btn{padding:10px 16px;font-size:13px}
   #audio-toggles{top:var(--audio-top);right:8px}
-  .fighter{width:30vw;max-height:46vh;bottom:22%}
-  .fighter.librarian{left:1%}
-  .fighter.guest{right:1%}
+  .fighter{width:76vw;max-height:none;top:var(--inspect-top,188px);bottom:calc(var(--inspect-bottom,168px) - 2px);left:auto}
+  .fighter.librarian{left:-12%}
+  .fighter.guest{right:-12%;left:auto}
+  .fighter .char svg{height:100%;width:auto;max-width:none}
+  .clash,.clash-zone{top:calc(var(--inspect-top,188px) + (100% - var(--inspect-top,188px) - var(--inspect-bottom,168px)) * .42);
+    width:min(34vw,140px);height:min(34vw,140px)}
+  .clash{width:auto;height:auto;gap:8px}
+  .die,.die svg{width:58px;height:58px}
+  .clash .vs{font-size:15px;letter-spacing:.2em}
+  .char-plate{font-size:10px;padding:3px 8px 4px}
   .hand{height:156px;bottom:2px}
   .hand .cc{width:86px;height:128px;margin:0 -14px}
   .card-inspect{padding:var(--inspect-top,188px) 8px var(--inspect-bottom,168px)}
@@ -1158,40 +1205,7 @@ function giftSpriteLayers(s){
   };
   return equippedGifts(s).map(g=>art[g.art]||"").join("");
 }
-const PORTRAIT={librarian:"p046",pomodoro:"p151","active-recall":"p015","spaced-repetition":"p192",metacognition:"p144"};
-const ARCH_PORTRAIT={fixer:"p114",scholar:"p003",puppet:"p080",mage:"p144",knight:"p120",beast:"p133",default:"p010"};
-const GUEST_ACC_ICON={hourglass:"hourglass",quill:"notepad_write",gear:"token",orb:"flask_full",crest:"award",lens:"token",mark:"suit_hearts",page:"book_open",charm:"token",lantern:"campfire",chain:"lock_closed",mirror:"token",watch:"hourglass_top",banner:"flag_triangle",cage:"lock_closed"};
-function portraitFile(kind,guest){
-  if(kind==="librarian") return "assets/portraits/"+PORTRAIT.librarian+".webp";
-  if(guest&&PORTRAIT[guest.id]) return "assets/portraits/"+PORTRAIT[guest.id]+".webp";
-  const arch=(guest&&guestLook(guest).arch)||"default";
-  return "assets/portraits/"+(ARCH_PORTRAIT[arch]||ARCH_PORTRAIT.default)+".webp";
-}
-function cosmeticIconLayers(save){
-  const map={책갈피:"book_closed",장식:"award",깃펜:"notepad_write",동반자:"pawn",서고:"book_open",호칭:"flag_triangle"};
-  const layers=[];
-  const eq=(save&&save.equipped)||{};
-  for(const [slot,icon] of Object.entries(map)){
-    if(eq[slot]) layers.push({cls:"acc-"+slot,icon});
-  }
-  for(const g of equippedGifts(save||{egoEquipped:{}})){
-    const icon=GUEST_ACC_ICON[g.art]||"token";
-    layers.push({cls:"acc-ego-"+g.slot,icon});
-  }
-  return layers;
-}
-function bustHtml(src,w,h,crop,layers,label,staggered){
-  const acc=(layers||[]).map(L=>`<img class="acc ${L.cls}" src="assets/icons/${L.icon}.webp" alt="">`).join("");
-  const st=staggered?`<div class="stag-tag">흐트러짐</div>`:"";
-  const style=`width:${w||320}px;${crop?`height:${h||120}px;`:""}max-width:100%`;
-  const accBar=acc?`<div class="bust-accs">${acc}</div>`:"";
-  return `<div class="bust-art ${crop?"crop":""}" style="${style}" role="img" aria-label="${label||""}">
-    <img class="bust-photo" src="${src}" alt="" draggable="false">${accBar}${st}</div>`;
-}
 function librarianSvg(save, w=320, h=480){
-  return bustHtml(portraitFile("librarian"), w, h, false, cosmeticIconLayers(save), "사서 큐 양");
-}
-function librarianSvgLegacy(save, w=320, h=480){
   const key=(KEY_BY[save.equippedKeyId]||KEY_PAGES[0]);
   const coatId=["coatg","coatg2","coatg3","coatg"][key.coat]||"coatg";
   const title=ITEM_BY[save.equipped["호칭"]||""];
@@ -1463,11 +1477,6 @@ function guestBodyMage(uid, pal, look, stag){
 }
 const GUEST_BODY = { knight:guestBodyKnight, scholar:guestBodyScholar, beast:guestBodyBeast, puppet:guestBodyPuppet, fixer:guestBodyFixer, mage:guestBodyMage };
 function guestSvg(guest, staggered=false, w=320, h=480, crop=false){
-  const look=guestLook(guest||{});
-  const acc=look.acc&&GUEST_ACC_ICON[look.acc]?[{cls:"acc-guest",icon:GUEST_ACC_ICON[look.acc]}]:[];
-  return bustHtml(portraitFile("guest",guest), w, h, crop, acc, ((guest&&guest.concept)||"손님")+" 손님", staggered);
-}
-function guestSvgLegacy(guest, staggered=false, w=320, h=480, crop=false){
   const look=guestLook(guest||{});
   const uid="gs-"+String((guest&&guest.id)||"x").replace(/[^a-z0-9_-]/gi,"");
   const vb=crop?look.crop:"0 0 280 440";
@@ -1811,6 +1820,20 @@ function costCurveHtml(ids){
 }
 function waxHtml(r){ r=r||"N"; return `<span class="wax rar-${r}" title="희귀도 ${r}">${r}</span>`; }
 function paperLayers(){ return `<div class="paper-fiber"></div><div class="paper-stain"></div>`; }
+function paperCardHtml(page, opts={}){
+  const mini=!!opts.mini;
+  const dice=(page.dice||[]).map(d=>`<span>${dieMark(d.type, mini?10:12)} ${mini?"":(d.type+" ")}${d.min}–${d.max}</span>`).join("");
+  const first=(page.dice&&page.dice[0]&&page.dice[0].type)||"참격";
+  const flavor=page.flavor?`<div class="flavor">${page.flavor}</div>`:"";
+  const tx=mini?"":`<div class="tx">${page.text||""}</div>`;
+  return `<div class="card paper ${mini?"mini":""} rar-${page.rarity||"N"}">${paperLayers()}${waxHtml(page.rarity)}
+    <div class="row"><span class="gem" title="빛">${page.cost}</span><span class="emo">${ico("emotion",12)} ${page.emotion}+</span></div>
+    <div class="illu">${dieMark(first, mini?28:34)}</div>
+    <div class="nm">${page.name}</div>
+    ${tx}
+    <div class="dice">${dice}</div>
+    ${flavor}</div>`;
+}
 
 let deckReturn=null;
 let deckFilter={q:"",floor:"전체",subject:"전체",cost:"전체",type:"전체",rarity:"전체",sort:"cost"};
@@ -1900,10 +1923,8 @@ function renderDeckEditor(){
       <div class="gmeta" style="margin-bottom:8px">${ready?"장착 완료 · 접대할 수 있습니다.":`${deck.pageIds.length}/${DECK_SIZE}장 · 6장을 채워야 접대할 수 있습니다.`}</div>
       <div class="deck-slots">${Array.from({length:DECK_SIZE},(_,i)=>{
         const id=deck.pageIds[i], p=id&&PAGE_BY[id];
-        if(!p) return `<div class="deck-slot empty paper frame">${cornerHtml()}${paperLayers()}빈 칸</div>`;
-        return `<button class="deck-slot paper" data-off="${p.id}" type="button">${paperLayers()}${waxHtml(p.rarity)}
-          <div class="nm">${p.name}</div>
-          <div class="gmeta">빛 ${p.cost} · ${pagePrimaryType(p)}</div></button>`;
+        if(!p) return `<div class="deck-slot empty">빈 칸</div>`;
+        return `<button class="deck-slot" data-off="${p.id}" type="button">${paperCardHtml(p,{mini:true})}</button>`;
       }).join("")}</div>
       ${costCurveHtml(deck.pageIds)}
       <input class="deck-search" id="deck-q" type="search" placeholder="이름, 효과, 플레이버, 층으로 검색" value="${f.q||""}">
@@ -1917,15 +1938,8 @@ function renderDeckEditor(){
       </div>
       <div class="item-grid" id="deck-pool">${list.map(p=>{
         const inD=deck.pageIds.includes(p.id);
-        const dice=(p.dice||[]).map(d=>`${d.type} ${d.min}–${d.max}`).join(" · ");
-        return `<button class="dpage paper ${inD?"in":""}" type="button" data-page="${p.id}">
-          ${paperLayers()}${waxHtml(p.rarity)}
-          <div class="body">
-            <div class="nm">${p.name}</div>
-            <div class="gmeta">빛 ${p.cost} · ${dice} · ${pageFloorName(p)} · ${p.subject||"기본"}${inD?" · 장착 중":""}</div>
-            <div class="gmeta">${p.text}</div>
-            ${p.flavor?`<div class="flavor">${p.flavor}</div>`:""}
-          </div>
+        return `<button class="dpage ${inD?"in":""}" type="button" data-page="${p.id}" aria-pressed="${inD?"true":"false"}" title="${p.name}${inD?" · 장착 중":""}">
+          ${paperCardHtml(p,{mini:true})}
         </button>`;
       }).join("")||`<div class="empty-state frame">${cornerHtml()}해당하는 책장이 없습니다.</div>`}</div>
     </div>
@@ -2096,10 +2110,9 @@ function renderCredits(){
       <h2 class="gold-title" style="font-size:22px;margin-bottom:8px">크레딧 · 라이선스</h2>
       <p class="gmeta" style="margin-bottom:16px">이 서고의 그림과 글꼴은 아래에 적힌 자유 라이선스 자료를 사용합니다. 라이브러리 오브 루이나 / 프로젝트문 자산은 포함되어 있지 않습니다.</p>
       <div class="credits-list">
-        <div class="frame" style="padding:14px 16px"><b>Hyptosis — 200 Free Lorestrome Portraits</b>CC0 1.0 · 사서와 손님 초상<br><a href="https://opengameart.org/content/200-free-lorestrome-portraits" target="_blank" rel="noopener">opengameart.org/content/200-free-lorestrome-portraits</a></div>
         <div class="frame" style="padding:14px 16px"><b>cron — Old Parchment Paper</b>CC0 1.0 · 전투 책장 양피지 질감<br><a href="https://opengameart.org/content/old-parchment-paper" target="_blank" rel="noopener">opengameart.org/content/old-parchment-paper</a></div>
         <div class="frame" style="padding:14px 16px"><b>Kenney.nl — Fantasy UI Borders</b>CC0 1.0 · 장식 프레임<br><a href="https://kenney.nl/assets/fantasy-ui-borders" target="_blank" rel="noopener">kenney.nl/assets/fantasy-ui-borders</a></div>
-        <div class="frame" style="padding:14px 16px"><b>Kenney.nl — Board Game Icons</b>CC0 1.0 · 아이콘 · 장신구/기프트 겹침<br><a href="https://kenney.nl/assets/board-game-icons" target="_blank" rel="noopener">kenney.nl/assets/board-game-icons</a></div>
+        <div class="frame" style="padding:14px 16px"><b>Kenney.nl — Board Game Icons</b>CC0 1.0 · UI 아이콘<br><a href="https://kenney.nl/assets/board-game-icons" target="_blank" rel="noopener">kenney.nl/assets/board-game-icons</a></div>
         <div class="frame" style="padding:14px 16px"><b>4theliberty — Abbey Library of Saint Gallen</b>CC0 1.0 · 서고 배경<br><a href="https://commons.wikimedia.org/wiki/File:AbbeyLibrary-SaintGallen.jpg" target="_blank" rel="noopener">commons.wikimedia.org — AbbeyLibrary-SaintGallen.jpg</a></div>
         <div class="frame" style="padding:14px 16px"><b>Sandoll — Nanum Myeongjo</b>SIL Open Font License 1.1 · 본문/제목 글꼴<br><a href="https://fonts.google.com/specimen/Nanum+Myeongjo" target="_blank" rel="noopener">fonts.google.com/specimen/Nanum+Myeongjo</a></div>
       </div>
@@ -2468,8 +2481,17 @@ function renderBattle(){
     <div class="battle-stage">
       <div class="arena" id="arena">
         <canvas class="arena-bg" id="arena-bg"></canvas>
-        <div class="fighter librarian" id="fig-lib">${librarianSvg(save)}</div>
-        <div class="fighter guest arch-${guestLook(guest).arch} ${rec.staggered?"staggered":""}" id="fig-gst">${guestSvg(guest,rec.staggered)}</div>
+        <div class="fighter librarian" id="fig-lib">
+          <div class="char">${librarianSvg(save,280,440)}</div>
+          <div class="char-plate">사서 큐 양</div>
+          <div class="char-book">${bookSvg("사서")}</div>
+        </div>
+        <div class="fighter guest ${rec.staggered?"staggered":""}" id="fig-gst">
+          <div class="char">${guestSvg(guest,rec.staggered,280,440,false)}</div>
+          <div class="char-plate">${guest.concept}</div>
+          <div class="char-book">${bookSvg(guest.concept)}</div>
+        </div>
+        <div class="clash-zone" aria-hidden="true"><div class="clash-ring"></div><div class="clash-glow"></div></div>
         <div class="clash" id="clash">
           <div class="impact-ring"></div>
           <div class="slash s1"></div>
@@ -2502,13 +2524,7 @@ function renderBattle(){
         const ang=(i-(n-1)/2)*7;
         const off=rec.light<p.cost||rec.emotion<p.emotion;
         return `<div class="cc ${off?"off":""}" data-page="${p.id}" style="transform:rotate(${ang}deg) translateY(${Math.abs(ang)*1.2}px);z-index:${i}">
-          <div class="card paper rar-${p.rarity||"N"}">${paperLayers()}${waxHtml(p.rarity)}
-            <div class="row"><span class="gem" title="빛">${p.cost}</span><span class="emo">${ico("emotion",12)} ${p.emotion}+</span></div>
-            <div class="illu">${dieMark(p.dice[0].type,34)}</div>
-            <div class="nm">${p.name}</div><div class="tx">${p.text}</div>
-            <div class="dice">${p.dice.map(d=>`<span>${dieMark(d.type,12)} ${d.type} ${d.min}–${d.max}</span>`).join("")}</div>
-            ${p.flavor?`<div class="flavor">${p.flavor}</div>`:""}</div>
-        </div>`;
+          ${paperCardHtml(p)}</div>`;
       }).join("")}</div>
     </div>`;
   paintBattleFloor($("#arena-bg"), guest.floorId);
@@ -2554,8 +2570,13 @@ function paintBattleFloor(cv, fid){
   } else {
     const iw=img.naturalWidth, ih=img.naturalHeight, sc=Math.max(W/iw,H/ih)*1.06;
     c.drawImage(img, (W-iw*sc)/2, (H-ih*sc)/2, iw*sc, ih*sc);
-    c.fillStyle=battle?"rgba(7,8,13,.52)":"rgba(7,8,13,.28)";
+    c.fillStyle=battle?"rgba(7,8,13,.7)":"rgba(7,8,13,.28)";
     c.fillRect(0,0,W,H);
+    if(battle){
+      const vig=c.createRadialGradient(W*.5,H*.62,H*.12,W*.5,H*.5,H*.85);
+      vig.addColorStop(0,"rgba(0,0,0,0)"); vig.addColorStop(1,"rgba(0,0,0,.45)");
+      c.fillStyle=vig; c.fillRect(0,0,W,H);
+    }
     if(battle){
       c.beginPath();
       c.moveTo(W*.08,H*.84); c.lineTo(W*.92,H*.84); c.lineTo(W,H); c.lineTo(0,H); c.closePath();
@@ -2731,8 +2752,8 @@ function playClashAnim(winAll, loseAll){
     flash(rec.crit?.45:.22);
     shake(rec.crit?12:8);
     const lib=$("#fig-lib").getBoundingClientRect(), gst=$("#fig-gst").getBoundingClientRect();
-    if(rec.dmgG){ floatDmg(gst.left+gst.width/2, gst.top+36, rec.dmgG, "hp"); $("#fig-gst").classList.add("hit"); }
-    if(rec.dmgP){ floatDmg(lib.left+lib.width/2, lib.top+36, rec.dmgP, "hurt"); $("#fig-lib").classList.add("hit"); }
+    if(rec.dmgG){ floatDmg(gst.left+gst.width/2, gst.top+36, rec.dmgG, "hp"); const g=$("#fig-gst"); g.classList.add("hit"); setTimeout(()=>g.classList.remove("hit"), 360); }
+    if(rec.dmgP){ floatDmg(lib.left+lib.width/2, lib.top+36, rec.dmgP, "hurt"); const l=$("#fig-lib"); l.classList.add("hit"); setTimeout(()=>l.classList.remove("hit"), 360); }
     if(rec.stagHit) floatDmg(gst.left+gst.width/2+30, gst.top+92, rec.stagHit, "stag");
     setBar("bar-php",(save.hp/effectiveMaxHp(save))*100);
     setBar("bar-ghp",(rec.guestHp/rec.guestMaxHp)*100);
@@ -2751,7 +2772,7 @@ function playClashAnim(winAll, loseAll){
     const after=rec.crit?300:200;
     setTimeout(()=>{
       busy=false;
-      if(winAll){ SFX.win(); SFX.book(); $("#fig-gst")?.classList.add("defeated"); setTimeout(()=>showWin(), 240); }
+      if(winAll){ SFX.win(); SFX.book(); $("#fig-gst")?.classList.add("defeated"); setTimeout(()=>showWin(), 820); }
       else if(loseAll){ SFX.lose(); showLose(); }
       else nextTurn();
     }, after);

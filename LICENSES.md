@@ -3,11 +3,6 @@
 개념의 서고 uses third-party game assets that are free to use under the licenses below.
 No Library of Ruina / Project Moon assets are included.
 
-## Hyptosis — 200 Free Lorestrome Portraits
-- License: CC0 1.0 Universal
-- URL: https://opengameart.org/content/200-free-lorestrome-portraits
-- Used for: librarian and guest portraits (`assets/portraits/`)
-
 ## cron — Old Parchment Paper
 - License: CC0 1.0 Universal
 - URL: https://opengameart.org/content/old-parchment-paper
@@ -23,7 +18,7 @@ No Library of Ruina / Project Moon assets are included.
 - License: CC0 1.0 Universal
 - URL: https://kenney.nl/assets/board-game-icons
 - Also: https://opengameart.org/content/board-game-icons
-- Used for: HUD / accessory / E.G.O gift overlay icons (`assets/icons/`)
+- Used for: UI icons (`assets/icons/`)
 
 ## 4theliberty — Abbey Library of Saint Gallen
 - License: CC0 1.0 Universal
