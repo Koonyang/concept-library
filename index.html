@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="trendy-ui-20261112h">
+<meta name="build" content="curator-tak-20261112i">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -883,6 +883,55 @@ b,strong{font-weight:700}
   .char-plate{font-size:10px}
 }
 @media (max-height:780px) and (max-width:860px){#scene-battle{--fig-h:clamp(180px,29vh,230px);--feet:clamp(200px,28vh,232px)}}
+
+/* curator stamp (TAK!) */
+.tak-stamp{position:absolute;z-index:18;pointer-events:none;width:112px;height:112px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:800;font-size:28px;letter-spacing:-.02em;color:#fff3d8;
+  border:3px solid rgba(255,236,200,.92);background:radial-gradient(circle,rgba(236,186,104,.28),rgba(236,186,104,.04) 70%);
+  box-shadow:0 0 28px rgba(236,186,104,.75),inset 0 0 20px rgba(236,186,104,.45);
+  text-shadow:0 0 14px rgba(236,186,104,.9);transform:translate(-50%,-50%);
+  animation:takStamp .46s cubic-bezier(.2,.9,.2,1) forwards}
+.tak-stamp:after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid rgba(255,236,200,.7);animation:takRing .46s ease-out forwards}
+@keyframes takStamp{0%{opacity:0;transform:translate(-50%,-50%) scale(2)}20%{opacity:1;transform:translate(-50%,-50%) scale(.92)}36%{transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.06)}}
+@keyframes takRing{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(1.9)}}
+
+/* ===== result screen: full-screen scrim + centered glass card ===== */
+.battle-stage.result-on .hud-top,.battle-stage.result-on .hand,.battle-stage.result-on .fighter,
+.battle-stage.result-on .clash,.battle-stage.result-on .clash-zone,.battle-stage.result-on .logbox,
+.battle-stage.result-on .pass-btn,.battle-stage.result-on .qpanel{opacity:0!important;visibility:hidden!important;pointer-events:none!important;transition:opacity .25s}
+.result-banner{position:absolute;inset:0;left:0;top:0;transform:none;z-index:30;display:none;text-align:center}
+.result-banner.on{display:flex;align-items:center;justify-content:center;padding:calc(var(--audio-top,10px) + var(--audio-btn,36px) + 8px) 14px 16px;
+  background:rgba(6,8,16,.8);-webkit-backdrop-filter:blur(16px) saturate(1.1);backdrop-filter:blur(16px) saturate(1.1);
+  animation:rbFade .3s ease both}
+@keyframes rbFade{from{opacity:0}to{opacity:1}}
+.rb-card{width:min(92vw,420px);max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:22px 20px 20px;border-radius:var(--r-lg);
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.015)),rgba(14,18,32,.86);
+  border:1px solid var(--line-hi);box-shadow:0 30px 80px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.1);
+  animation:rbPop .42s var(--ease) both}
+@keyframes rbPop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+.rb-eyebrow{display:inline-block;font-family:var(--display);font-weight:700;font-size:11px;letter-spacing:.16em;color:var(--accent);
+  padding:4px 12px;border-radius:999px;border:1px solid rgba(var(--accent-rgb),.35);background:rgba(var(--accent-rgb),.1)}
+.rb-book{display:flex;justify-content:center;margin:14px 0 4px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.55)) drop-shadow(0 0 16px rgba(var(--accent-rgb),.35))}
+.rb-book svg{width:76px;height:96px}
+.rb-title{font-size:26px;color:#fff;margin:6px 0 8px;letter-spacing:-.03em;line-height:1.2;word-break:keep-all}
+.rb-msg{font-size:14px;line-height:1.65;color:var(--parch2);margin:0 auto;max-width:34em;word-break:keep-all;overflow-wrap:break-word;text-wrap:balance}
+.rb-levelup{margin-top:10px;font-size:13px;font-weight:650;color:var(--hp)}
+.rb-gift{display:flex;gap:12px;align-items:center;text-align:left;margin-top:16px;padding:12px 14px;border-radius:var(--r-md);
+  background:rgba(var(--accent-rgb),.09);border:1px solid rgba(var(--accent-rgb),.32)}
+.rb-gift.none{background:rgba(255,255,255,.04);border-color:var(--line)}
+.rb-gift-ico{flex:0 0 auto;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  color:#1b1306;background:linear-gradient(180deg,#ffdca0,#ecba68);box-shadow:0 6px 16px rgba(var(--accent-rgb),.3)}
+.rb-gift.none .rb-gift-ico{color:var(--parch2);background:rgba(255,255,255,.08);box-shadow:none}
+.rb-gift-ico .ico{width:22px;height:22px}
+.rb-gift-tx{min-width:0;display:flex;flex-direction:column;gap:2px}
+.rb-gift-lab{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.02em}
+.rb-gift-tx b{font-size:15px;color:#fff;font-weight:750;letter-spacing:-.02em;word-break:keep-all}
+.rb-gift-tx small{font-size:12px;line-height:1.5;color:var(--parch2);word-break:keep-all}
+.rb-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}
+.rb-actions .btn{padding:13px 10px;font-size:14px;letter-spacing:-.01em}
+.rb-actions .btn.primary{grid-column:1/-1;padding:15px 10px;font-size:15px}
+.rb-actions.two .btn.primary{grid-column:auto}
+.rb-card .expl{margin-top:12px;text-align:left}
 </style>
 </head>
 <body>
@@ -1254,6 +1303,60 @@ const SFX = (() => {
     src.connect(f); f.connect(g); g.connect(c.destination); src.start(t);
     src.addEventListener("ended",()=>{ try{ src.disconnect(); f.disconnect(); g.disconnect(); }catch(e){} });
   }
+  /* ---------- curator "TAK!" — original synthesized wooden clack (no samples) ---------- */
+  let takBus=null, takCount=0;
+  function makeIR(c){
+    const n=Math.floor(c.sampleRate*.26), buf=c.createBuffer(2,n,c.sampleRate);
+    for(let ch=0;ch<2;ch++){ const d=buf.getChannelData(ch); for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3.2)*.5; }
+    return buf;
+  }
+  function getTakBus(c){
+    if(takBus && takBus.ctx===c) return takBus;
+    const comp=c.createDynamicsCompressor();
+    comp.threshold.value=-16; comp.knee.value=8; comp.ratio.value=8; comp.attack.value=.001; comp.release.value=.07;
+    const out=c.createGain(); out.gain.value=.62; out.connect(comp); comp.connect(c.destination);
+    const conv=c.createConvolver(); conv.buffer=makeIR(c);
+    const wet=c.createGain(); wet.gain.value=.2; conv.connect(wet); wet.connect(out);
+    takBus={ctx:c,out,conv}; return takBus;
+  }
+  // voice = crack (bandpassed noise ~2.6kHz) + grit + woodblock partials (~1.2k / ~1.9k, fast pitch drop) + short low thump, plus a tiny room tail
+  function buildTak(c,out,conv,t,vol,r){
+    const nb=c.createBuffer(1,Math.floor(c.sampleRate*.12),c.sampleRate), nd=nb.getChannelData(0);
+    for(let i=0;i<nd.length;i++) nd[i]=Math.random()*2-1;
+    const kill=(...nodes)=>nodes[0].addEventListener("ended",()=>{ try{ nodes.forEach(n=>n.disconnect()); }catch(e){} });
+    const shape=(g,peak,dur)=>{ g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(peak*vol,t+.0012); g.gain.exponentialRampToValueAtTime(.0001,t+dur); };
+    const send=(g)=>{ g.connect(out); const s=c.createGain(); s.gain.value=.9; g.connect(s); s.connect(conv); };
+    // crack
+    { const s=c.createBufferSource(); s.buffer=nb; const f=c.createBiquadFilter(); f.type="bandpass"; f.frequency.value=2300*r; f.Q.value=2.2;
+      const g=c.createGain(); shape(g,1.1,.026); s.connect(f); f.connect(g); send(g); s.start(t); s.stop(t+.05); kill(s,f,g); }
+    // grit / air
+    { const s=c.createBufferSource(); s.buffer=nb; const f=c.createBiquadFilter(); f.type="highpass"; f.frequency.value=4800;
+      const g=c.createGain(); shape(g,.07,.04); s.connect(f); f.connect(g); send(g); s.start(t); s.stop(t+.09); kill(s,f,g); }
+    // woodblock partials
+    [[1180,"sine",.62,.1,1000],[1900,"triangle",.18,.05,1640]].forEach(([fq,ty,pk,du,end])=>{
+      const o=c.createOscillator(); o.type=ty; o.frequency.setValueAtTime(fq*r,t); o.frequency.exponentialRampToValueAtTime(end*r,t+du*.7);
+      const g=c.createGain(); shape(g,pk,du); o.connect(g); send(g); o.start(t); o.stop(t+du+.03); kill(o,g); });
+    // weight thump (very short, no sustain)
+    { const o=c.createOscillator(); o.type="sine"; o.frequency.setValueAtTime(190,t); o.frequency.exponentialRampToValueAtTime(82,t+.07);
+      const g=c.createGain(); shape(g,.55,.11); o.connect(g); g.connect(out); o.start(t); o.stop(t+.14); kill(o,g); }
+  }
+  function tak(vol=1){
+    if(sfxMuted) return false;
+    const c=ensure();
+    const play=()=>{ const b=getTakBus(c); buildTak(c,b.out,b.conv,c.currentTime+.005,vol,1+(Math.random()*.06-.03)); takCount++; };
+    if(c.state==="running") play(); else c.resume().then(play).catch(()=>{});
+    return true;
+  }
+  function renderTakOffline(){
+    const sr=44100, oc=new OfflineAudioContext(1,Math.floor(sr*.6),sr);
+    const out=oc.createGain(); out.gain.value=.62; out.connect(oc.destination);
+    const conv=oc.createConvolver(); conv.buffer=makeIR(oc); const wet=oc.createGain(); wet.gain.value=.2; conv.connect(wet); wet.connect(out);
+    buildTak(oc,out,conv,.01,1,1);
+    return oc.startRendering().then(b=>b.getChannelData(0));
+  }
+  function prime(){ // resume/create the AudioContext inside a user gesture (mobile autoplay policy)
+    try{ const c=ensure(); const b=c.createBuffer(1,1,22050), s=c.createBufferSource(); s.buffer=b; s.connect(c.destination); s.start(0); }catch(e){}
+  }
   function stopBgm(){
     if(bgmTimer){ clearTimeout(bgmTimer); bgmTimer=null; }
     const t=ctx?ctx.currentTime:0;
@@ -1323,6 +1426,7 @@ const SFX = (() => {
     setSfxMuted(v){ sfxMuted=!!v; },
     setBgmMuted(v){ bgmMuted=!!v; if(bgmMuted) stopBgm(); else startBgm(); },
     unlock(){ ensure(); if(!bgmMuted&&!bgmPlaying) startBgm(); },
+    tak, prime, renderTakOffline, get takCount(){ return takCount; },
     startBgm, stopBgm,
     hover(){ tone(740,"sine",.08,.03); },
     click(){ tone(520,"triangle",.09,.05); tone(880,"sine",.06,.03); },
@@ -2279,6 +2383,15 @@ function shake(n=8){
   step();
 }
 function flash(a=.35){ const f=$("#flash"); f.style.opacity=a; f.style.transition="none"; requestAnimationFrame(()=>{ f.style.transition="opacity .35s ease"; f.style.opacity=0; }); }
+/* curator stamp punch synced with SFX.tak(): tiny shake + flash + seal ring (non-blocking) */
+function takPunch(turn){
+  shake(4); flash(.16);
+  const root=$("#shake"); if(!root) return;
+  const z=document.querySelector(".clash-zone"); let x=innerWidth/2, y=innerHeight*.45;
+  if(z){ const r=z.getBoundingClientRect(); if(r.width){ x=r.left+r.width/2; y=r.top+r.height/2; } }
+  const d=document.createElement("div"); d.className="tak-stamp"; d.style.left=x+"px"; d.style.top=y+"px"; d.textContent=turn+"막";
+  root.appendChild(d); setTimeout(()=>d.remove(),520);
+}
 function floatDmg(x,y,n,kind){
   const d=document.createElement("div");
   d.className="dmg"+(kind==="hurt"?" hurt":kind==="stag"?" stag":"");
@@ -2753,7 +2866,7 @@ function renderBattle(){
   if(rec.phase==="select"){
     bindHandInteract();
     const pass=$("#btn-pass");
-    if(pass) pass.onclick=()=>{ if(!reception||reception.phase!=="select"||busy) return; reception.log.push("이 막은 책장을 쓰지 않고 흘렸다."); nextTurn(); };
+    if(pass) pass.onclick=()=>{ if(!reception||reception.phase!=="select"||busy) return; SFX.tak(); reception.log.push("이 막은 책장을 쓰지 않고 흘렸다."); nextTurn(); takPunch(reception.turn); };
   } else {
     $("#hand").style.opacity=".2";
     $("#hand").style.pointerEvents="none";
@@ -2908,7 +3021,7 @@ function choosePage(pageId){
   if(!reception||reception.phase!=="select"||busy) return;
   const page=PAGE_BY[pageId]; if(!page) return;
   if(reception.light<page.cost||reception.emotion<page.emotion) return;
-  SFX.card();
+  SFX.tak();
   reception.chosenPageId=pageId;
   reception.light-=page.cost;
   removeOne(reception.handIds,pageId);
@@ -2916,6 +3029,7 @@ function choosePage(pageId){
   reception.discardIds.push(pageId);
   reception.phase="question";
   renderBattle();
+  takPunch(reception.turn);
 }
 
 function showQuestion(){
@@ -3091,23 +3205,37 @@ function finishReceptionStats(guest, won){
   if(tot){ st.history=[...(st.history||[]), ok/tot].slice(-5); }
   save.recallStats={...save.recallStats, [guest.id]:st};
 }
+function openResult(){
+  const b=$("#rbanner");
+  $("#learn-toast")?.classList.remove("on");
+  document.querySelector(".battle-stage")?.classList.add("result-on");
+  $("#qpanel")?.classList.remove("on");
+  b.classList.add("on");
+  return b;
+}
 function showWin(){
   const rec=reception, guest=GUEST_BY[rec.guestId];
   finishReceptionStats(guest, true);
   const gift=rollEgoGift(guest, !!rec.isRecall);
   rec.droppedGift=gift;
   persist();
-  const b=$("#rbanner"); b.classList.add("on");
-  const giftMsg=gift?`에고 기프트 「${gift.name}」을 손에 넣었다. (${gift.slot})`:(rec.isRecall?"이번 회상에서는 기프트가 떨어지지 않았다.":"");
-  b.innerHTML=`<div style="animation:bookIn .55s ease">${bookSvg(guest.concept)}</div>
-    <div class="big" style="margin-top:8px">${guest.concept}</div>
-    <div class="msg">${rec.isRecall?"회상을 마쳤다.":(rec.levelUpMessage||"손님이 서고의 책이 되었다. 열람하거나 소각해 새 책장을 얻을 수 있다.")}</div>
-    ${giftMsg?`<div class="msg" style="margin-top:8px;color:var(--gold2)">${giftMsg}</div>`:""}
-    <div style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap">
+  const b=openResult();
+  const msg=rec.isRecall?"회상을 마쳤다.":"손님이 서고의 책이 되었다. 열람하거나 소각해 새 책장을 얻을 수 있다.";
+  const giftRow=gift?`<div class="rb-gift"><span class="rb-gift-ico">${ico("gift",22)}</span>
+      <div class="rb-gift-tx"><span class="rb-gift-lab">에고 기프트 획득</span><b>${gift.name}</b><small>${gift.slot} · ${gift.text}</small></div></div>`
+    :(rec.isRecall?`<div class="rb-gift none"><span class="rb-gift-ico">${ico("gift",22)}</span><div class="rb-gift-tx"><b>이번 회상에서는 기프트가 떨어지지 않았다</b><small>다시 회상하면 다시 기회가 있다.</small></div></div>`:"");
+  b.innerHTML=`<div class="rb-card frame">
+    <div class="rb-eyebrow">${rec.isRecall?"회상 완료":"접대 완료"}</div>
+    <div class="rb-book">${bookSvg(guest.concept)}</div>
+    <h2 class="rb-title">${guest.concept}</h2>
+    <p class="rb-msg">${msg}</p>
+    ${rec.levelUpMessage?`<div class="rb-levelup">${rec.levelUpMessage}</div>`:""}
+    ${giftRow}
+    <div class="rb-actions">
       <button class="btn primary" id="btn-toshelf">책장으로</button>
       <button class="btn" id="btn-nextg">다음 손님</button>
       <button class="btn" id="btn-lobby">층으로</button>
-    </div>`;
+    </div></div>`;
   $("#btn-toshelf").onclick=()=>{ reception=null; transit("shelf",()=>renderShelf()); };
   $("#btn-nextg").onclick=()=>{
     const next=WEAK_POINTS.find(x=>!save.conqueredIds.includes(x.id));
@@ -3120,14 +3248,16 @@ function showWin(){
 function showLose(){
   const rec=reception, guest=GUEST_BY[rec.guestId];
   finishReceptionStats(guest, false); persist();
-  const b=$("#rbanner"); b.classList.add("on");
-  b.innerHTML=`<div class="big">접대가 꺾였다</div>
-    <div class="msg">괜찮아. 설명을 다시 읽고 책장을 바꾸면 된다. 모은 장서와 책은 그대로다.</div>
+  const b=openResult();
+  b.innerHTML=`<div class="rb-card frame lose">
+    <div class="rb-eyebrow">접대 실패</div>
+    <h2 class="rb-title">접대가 꺾였다</h2>
+    <p class="rb-msg">괜찮아. 설명을 다시 읽고 책장을 바꾸면 된다. 모은 장서와 책은 그대로다.</p>
     <div class="expl">${guest.explanation}</div>
-    <div style="display:flex;gap:8px;justify-content:center;margin-top:16px">
+    <div class="rb-actions two">
       <button class="btn primary" id="btn-retry">다시 접대</button>
       <button class="btn" id="btn-lobby">층으로</button>
-    </div>`;
+    </div></div>`;
   $("#btn-retry").onclick=()=>{ save.hp=save.maxHp; persist(); beginReception(guest.id); };
   $("#btn-lobby").onclick=()=>{ save.hp=save.maxHp; persist(); reception=null; transit("lobby",()=>renderLobby()); };
 }
@@ -3383,11 +3513,12 @@ function boot(){
   SFX.setSfxMuted(!!save.sfxMuted);
   SFX.setBgmMuted(save.bgmMuted!==false); // default off
   bindAudioToggles();
+  ["pointerdown","touchend","click","keydown"].forEach(ev=>document.addEventListener(ev,()=>SFX.prime(),{capture:true,passive:true}));
   renderTitle();
   // debug for screenshots / tests
   window.__studyGame = {
     save, transit, showScene, renderLobby, renderBattle, renderCollection, renderShelf, renderTitle,
-    beginReception, answer, choosePage, pullGacha, giveTickets(n){ save.ticketsSpent=Math.max(0, save.ticketsSpent-n); persist(); },
+    beginReception, answer, choosePage, SFX, takPunch, showWin, showLose, pullGacha, giveTickets(n){ save.ticketsSpent=Math.max(0, save.ticketsSpent-n); persist(); },
     setScene(n){ showScene(n); if(n==="lobby")renderLobby(); if(n==="battle")renderBattle(); if(n==="collection")renderCollection(); if(n==="shelf")renderShelf(); if(n==="title")renderTitle(); if(n==="deck")renderDeckEditor(); if(n==="credits")renderCredits(); },
     debugPhotos(){ return FX.debugPhotos(); },
     openDeckEditor, renderDeckEditor, isDeckReady, activeDeck, ownedPageIds,
