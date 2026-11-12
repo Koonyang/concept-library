@@ -1,0 +1,2305 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>개념의 서고</title>
+<meta name="theme-color" content="#07080d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect fill='%2307080d' width='64' height='64'/%3E%3Cpath fill='%23c4a35a' d='M18 50 V22 Q32 12 46 22 V50 L32 42 Z'/%3E%3C/svg%3E">
+<style>
+:root{
+  --n0:#07080d;--n1:#0b0e16;--n2:#121722;--n3:#1a2130;--n4:#232b3d;
+  --gold:#c4a35a;--gold2:#e6d3a3;--gold3:#8f6b2a;--gold4:#f3e6c0;
+  --parch:#e8d5b0;--parch2:#cbb992;--ink:#1a140c;--blood:#c45c4a;
+  --hp:#6ebd96;--stag:#e0b43a;--mute:#7aa0c4;--shadow:rgba(0,0,0,.62);
+  --ui:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--n0);color:var(--parch);
+  font-family:"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic","Pretendard",sans-serif;
+  user-select:none}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+#game{position:fixed;inset:0;overflow:hidden;background:var(--n0)}
+#fx,#bg{position:absolute;inset:0;width:100%;height:100%;display:block}
+#bg{z-index:0}#fx{z-index:8;pointer-events:none}
+#vignette{position:absolute;inset:0;z-index:9;pointer-events:none;
+  background:radial-gradient(ellipse at center,transparent 42%,rgba(0,0,0,.55) 100%)}
+#grain{position:absolute;inset:0;z-index:10;pointer-events:none;opacity:.07;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+.scene{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;opacity:0;pointer-events:none;
+  visibility:hidden;transition:opacity .45s ease;background:transparent}
+.scene.on{opacity:1;pointer-events:auto;visibility:visible}
+#transition{position:absolute;inset:0;z-index:40;background:var(--n0);opacity:0;pointer-events:none;
+  transition:opacity .45s ease}
+#transition.go{opacity:1}
+#mute{position:absolute;top:10px;right:10px;z-index:30;width:46px;height:36px;letter-spacing:.08em;font-size:11px}
+
+/* ornaments */
+.gold-title{font-family:Georgia,"Iowan Old Style","Apple SD Gothic Neo",serif;font-weight:600;
+  letter-spacing:.22em;color:var(--gold2);
+  background:linear-gradient(180deg,#f8efd4 0%,#e6d3a3 38%,#c4a35a 62%,#8f6b2a 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 2px 0 rgba(0,0,0,.85)) drop-shadow(0 0 14px rgba(196,163,90,.35))}
+.filigree{display:flex;align-items:center;gap:10px;color:var(--gold);opacity:.85}
+.filigree:before,.filigree:after{content:"";flex:1;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.ico{display:inline-block;vertical-align:-3px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.frame{position:relative;background:
+    linear-gradient(180deg,rgba(48,40,28,.18),transparent 28%),
+    linear-gradient(180deg,rgba(22,26,38,.94),rgba(9,11,18,.96));
+  border:1px solid var(--gold);
+  box-shadow:inset 0 0 0 1px rgba(14,12,10,.9),inset 0 0 0 2px rgba(196,163,90,.35),
+    inset 0 1px 0 rgba(243,230,192,.28),0 14px 36px var(--shadow)}
+.frame:before,.frame:after{content:"";position:absolute;width:16px;height:16px;pointer-events:none;z-index:2;
+  border:2px solid var(--gold4);opacity:.9}
+.frame:before{top:6px;left:6px;border-right:none;border-bottom:none;box-shadow:-3px -3px 0 rgba(143,107,42,.55)}
+.frame:after{top:6px;right:6px;border-left:none;border-bottom:none;box-shadow:3px -3px 0 rgba(143,107,42,.55)}
+.frame .cbl,.frame .cbr{position:absolute;width:16px;height:16px;border:2px solid var(--gold4);pointer-events:none;z-index:2;opacity:.9}
+.frame .cbl{bottom:6px;left:6px;border-right:none;border-top:none;box-shadow:-3px 3px 0 rgba(143,107,42,.55)}
+.frame .cbr{bottom:6px;right:6px;border-left:none;border-top:none;box-shadow:3px 3px 0 rgba(143,107,42,.55)}
+.btn{position:relative;overflow:hidden;padding:12px 28px;border:1px solid var(--gold);color:var(--gold4);
+  letter-spacing:.18em;
+  background:linear-gradient(180deg,rgba(196,163,90,.28),rgba(18,14,10,.55) 48%,rgba(7,8,13,.7));
+  text-shadow:0 1px 0 rgba(0,0,0,.6),0 0 10px rgba(196,163,90,.35);
+  box-shadow:inset 0 1px 0 rgba(243,230,192,.4),inset 0 -1px 0 rgba(0,0,0,.45),0 6px 16px rgba(0,0,0,.4);
+  transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}
+.btn:after{content:"";position:absolute;top:-30%;bottom:-30%;left:0;width:40%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.38),transparent);
+  transform:translateX(-180%) skewX(-22deg);pointer-events:none}
+.btn:hover{filter:brightness(1.12);box-shadow:inset 0 1px 0 rgba(243,230,192,.55),0 0 20px rgba(196,163,90,.4);
+  transform:translateY(-2px)}
+.btn:hover:after{animation:btnshine .7s ease}
+.btn:active{transform:translateY(1px) scale(.98);filter:brightness(.96)}
+.btn.primary{background:linear-gradient(180deg,#e6d3a3 0%,#c4a35a 38%,#8f6b2a 70%,#5c4316 100%);
+  color:#1a140c;text-shadow:0 1px 0 rgba(243,230,192,.45);border-color:#f3e6c0}
+.btn[disabled]{opacity:.4;pointer-events:none;filter:none}
+@keyframes btnshine{from{transform:translateX(-180%) skewX(-22deg)}to{transform:translateX(280%) skewX(-22deg)}}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;
+  border:1px solid var(--gold3);color:var(--gold2);font-size:11px;letter-spacing:.08em;
+  background:linear-gradient(180deg,rgba(196,163,90,.12),rgba(0,0,0,.25));
+  box-shadow:inset 0 1px 0 rgba(243,230,192,.15)}
+
+/* title */
+#scene-title{align-items:center;justify-content:center;text-align:center}
+#scene-title .emblem{width:88px;height:88px;margin-bottom:18px;filter:drop-shadow(0 0 16px rgba(196,163,90,.4));
+  animation:floaty 4.5s ease-in-out infinite}
+#scene-title h1{font-size:clamp(36px,6vw,72px);margin:8px 0 6px}
+#scene-title .sub{color:var(--parch2);letter-spacing:.28em;font-size:12px;margin-bottom:8px}
+#scene-title .tag{color:var(--gold2);font-size:13px;letter-spacing:.16em;margin:14px 0 28px;opacity:.85;text-shadow:0 0 12px rgba(0,0,0,.8)}
+#scene-title .enter{font-size:15px;padding:14px 48px}
+.candles{position:absolute;bottom:8%;width:70px;height:160px;pointer-events:none;z-index:3}
+.candles.l{left:6%}.candles.r{right:6%}
+.flame{position:absolute;bottom:92px;left:50%;width:14px;height:24px;margin-left:-7px;border-radius:50% 50% 50% 50%;
+  background:radial-gradient(circle at 50% 30%,#fff6c8,#ffb347 40%,transparent 70%);
+  animation:flicker .18s infinite alternate;filter:blur(.3px)}
+.glow{position:absolute;bottom:60px;left:50%;width:140px;height:140px;margin-left:-70px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,180,70,.5),rgba(255,160,40,.12) 45%,transparent 70%);animation:glow 1.6s ease-in-out infinite}
+
+/* lobby */
+#scene-lobby,.panel-scene{padding:8px 24px 78px;
+  display:flex;flex-direction:column;min-height:0;overflow:hidden;
+  background:linear-gradient(180deg,rgba(7,8,13,.55) 0%,rgba(7,8,13,.78) 40%,rgba(7,8,13,.88) 100%)}
+.topbar{position:relative;top:auto;left:auto;right:auto;display:flex;gap:6px 10px;align-items:center;flex-wrap:wrap;
+  z-index:5;flex:0 0 auto;width:100%;padding:2px 52px 10px 0}
+.topbar .brand{letter-spacing:.2em;color:var(--gold);font-size:13px;margin-right:8px}
+.hudstat{font-size:12px;color:var(--parch2);letter-spacing:.04em;display:inline-flex;align-items:center;gap:4px}
+.hudstat .ico,.topbar .ico{width:13px;height:13px}
+.ico.filled{stroke:none}
+.lobby-grid{flex:1;display:grid;grid-template-columns:220px 1fr 280px;gap:18px;min-height:0;height:auto}
+.col{display:flex;flex-direction:column;gap:12px;min-height:0}
+.portrait-box{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:stretch;padding:16px 14px;min-height:0}
+.portrait-box,.portrait-frame{min-height:0;height:100%}
+.portrait-frame{position:relative;width:100%;flex:1 1 auto;display:flex;align-items:stretch;justify-content:center}
+.pf-ring{position:relative;width:100%;flex:1;height:100%;display:flex;align-items:flex-end;min-height:0;
+  background:radial-gradient(ellipse at 50% 16%,rgba(196,163,90,.18),#0b0e16 62%);
+  box-shadow:inset 0 0 0 2px var(--gold),inset 0 0 0 6px #0c0a08,inset 0 0 0 7px rgba(196,163,90,.45),
+    0 0 28px rgba(196,163,90,.18);
+  clip-path:polygon(10% 0,90% 0,100% 8%,100% 92%,90% 100%,10% 100%,0 92%,0 8%);
+  overflow:hidden;padding:8px 6px 0}
+.portrait-box svg{width:100%;height:auto;max-height:100%;filter:drop-shadow(0 10px 16px rgba(0,0,0,.55));display:block}
+.pf-plate{margin-top:10px;padding:6px 16px 8px;text-align:center;width:100%;
+  background:linear-gradient(180deg,rgba(196,163,90,.16),rgba(7,8,13,.5));
+  border-top:1px solid rgba(196,163,90,.35);border-bottom:1px solid rgba(196,163,90,.2)}
+.pname{margin-top:0;letter-spacing:.18em;font-size:13px}
+.floors{display:flex;gap:8px;flex-wrap:wrap}
+.floor-btn{padding:8px 16px;border:1px solid var(--gold3);color:var(--parch2);letter-spacing:.12em;font-size:13px;
+  background:linear-gradient(180deg,rgba(196,163,90,.1),rgba(7,8,13,.45));
+  box-shadow:inset 0 1px 0 rgba(243,230,192,.12);transition:transform .18s,box-shadow .18s,border-color .18s,color .18s}
+.floor-btn:hover{color:var(--gold2);border-color:var(--gold);transform:translateY(-1px)}
+.floor-btn.on{border-color:var(--gold4);color:var(--gold4);
+  background:linear-gradient(180deg,rgba(196,163,90,.32),rgba(18,14,10,.55));
+  box-shadow:0 0 16px rgba(196,163,90,.35),inset 0 1px 0 rgba(243,230,192,.4)}
+.floor-hero{position:relative;height:168px;overflow:hidden;flex:0 0 auto}
+.floor-hero .cap{position:absolute;left:0;top:0;bottom:0;right:38%;z-index:1;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:16px 22px 16px 20px;
+  background:linear-gradient(90deg,rgba(7,8,13,.92) 0%,rgba(7,8,13,.72) 62%,rgba(7,8,13,0) 100%)}
+.floor-hero h2{letter-spacing:.2em;font-size:22px;margin-bottom:4px}
+.guests{flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding-right:4px}
+.guest-card{display:flex;gap:14px;padding:10px 14px 10px 10px;cursor:pointer;text-align:left;width:100%;
+  align-items:center;transition:border-color .22s,box-shadow .22s,transform .22s,background .22s}
+.guest-card:hover,.guest-card.on{border-color:var(--gold4);box-shadow:0 0 20px rgba(196,163,90,.28),inset 0 0 24px rgba(196,163,90,.06);
+  transform:translateX(4px) translateY(-1px);background:linear-gradient(90deg,rgba(196,163,90,.1),rgba(11,14,22,.92))}
+.guest-card .bust{flex:0 0 auto;width:92px;height:114px;padding:4px;
+  background:radial-gradient(ellipse at 50% 20%,rgba(196,163,90,.16),#0b0e16 70%);
+  box-shadow:inset 0 0 0 1px var(--gold),inset 0 0 0 3px rgba(14,12,10,.9),inset 0 0 0 4px rgba(196,163,90,.35);
+  overflow:hidden}
+.guest-card svg{width:100%;height:100%;display:block;object-fit:contain}
+.guest-card .ginfo{flex:1;min-width:0}
+.guest-card .chev{color:var(--gold);opacity:.5;font-size:18px;padding-right:4px}
+.gmeta{font-size:11px;color:var(--parch2);margin:4px 0}
+.detail{display:none}
+.detail h3{letter-spacing:.12em;color:var(--gold2);font-size:20px}
+.detail p{font-size:13px;line-height:1.7;color:var(--parch);opacity:.9}
+.botnav{position:absolute;bottom:14px;left:0;right:0;display:flex;justify-content:center;gap:10px;z-index:6;
+  transition:transform .38s cubic-bezier(.2,.8,.2,1),opacity .3s ease}
+.botnav.away{transform:translateY(130%);opacity:0;pointer-events:none}
+
+.botnav{transition:transform .38s cubic-bezier(.2,.8,.2,1),opacity .3s ease}
+.botnav.away{transform:translateY(130%);opacity:0;pointer-events:none}
+.sheet-backdrop{position:absolute;inset:0;z-index:16;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .3s ease}
+.sheet-backdrop.on{opacity:1;pointer-events:auto}
+.guest-sheet{position:absolute;left:0;right:0;bottom:0;z-index:18;max-height:78%;overflow:auto;
+  transform:translateY(110%);transition:transform .42s cubic-bezier(.2,.8,.2,1);
+  padding:8px 16px 22px;
+  background:linear-gradient(180deg,rgba(48,40,28,.2),transparent 18%),linear-gradient(180deg,rgba(22,26,38,.98),rgba(7,8,13,.98));
+  border-top:1px solid var(--gold4);
+  box-shadow:inset 0 1px 0 rgba(243,230,192,.25),0 -18px 40px rgba(0,0,0,.55);-webkit-overflow-scrolling:touch}
+.guest-sheet.on{transform:translateY(0)}
+.sheet-handle{width:48px;height:4px;border-radius:2px;background:var(--gold3);margin:4px auto 10px}
+.sheet-top{display:flex;gap:14px;align-items:flex-start}
+.sheet-top svg{width:110px;height:150px;flex:0 0 auto;filter:drop-shadow(0 8px 12px rgba(0,0,0,.5))}
+.sheet-actions{display:flex;gap:8px;margin-top:14px}
+.sheet-actions .btn.primary{flex:1;padding:16px 18px;font-size:16px;letter-spacing:.16em}
+.sheet-close{position:absolute;top:12px;right:12px;width:36px;height:36px;border:1px solid var(--gold3);color:var(--gold2)}
+.bonus-sum{padding:10px 12px;border:1px solid var(--gold3);background:rgba(0,0,0,.28);color:var(--gold2);font-size:12px;letter-spacing:.04em;line-height:1.6}
+.gift-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.gift-cell{padding:10px;display:flex;flex-direction:column;gap:4px}
+.gift-cell .on{border-color:var(--gold)}
+@media (min-width:861px){
+  .guest-sheet{left:auto;right:20px;bottom:24px;top:auto;width:min(460px,40vw);max-height:calc(100% - 110px);
+    transform:translateX(120%);border:1px solid var(--gold3);border-top:1px solid var(--gold)}
+  .guest-sheet.on{transform:translateX(0)}
+  .sheet-handle{display:none}
+}
+
+/* battle */
+#scene-battle{background:transparent}
+.battle-stage{position:absolute;inset:0;display:flex;flex-direction:column}
+.arena{flex:1;position:relative;overflow:hidden}
+.arena-bg{position:absolute;inset:0;width:100%;height:100%}
+.fighter{position:absolute;bottom:7%;width:min(40vw,380px);transform-origin:50% 100%;
+  animation:breathe 3.8s ease-in-out infinite;filter:drop-shadow(0 18px 22px rgba(0,0,0,.75));
+  z-index:3}
+.fighter:after{content:"";position:absolute;left:50%;bottom:2%;width:70%;height:48px;transform:translateX(-50%);
+  background:radial-gradient(ellipse,rgba(230,211,163,.32),transparent 70%);pointer-events:none;z-index:-1}
+.fighter svg{width:100%;height:auto;display:block}
+.fighter.librarian{left:4%}
+.fighter.guest{right:4%;animation-delay:-1.4s}
+.fighter.guest.arch-knight{animation:idleKnight 3.2s ease-in-out infinite}
+.fighter.guest.arch-scholar{animation:idleScholar 3.6s ease-in-out infinite}
+.fighter.guest.arch-beast{animation:idleBeast 2.2s ease-in-out infinite}
+.fighter.guest.arch-puppet{animation:idlePuppet 2.8s ease-in-out infinite}
+.fighter.guest.arch-fixer{animation:idleFixer 3.4s ease-in-out infinite}
+.fighter.guest.arch-mage{animation:idleMage 4s ease-in-out infinite}
+.fighter.staggered{filter:grayscale(.3) brightness(1.15) drop-shadow(0 0 16px rgba(224,180,58,.7));
+  animation:staggerShake .18s linear infinite}
+.fighter.hit{animation:guestHit .28s ease}
+.fighter.defeated{animation:guestDown .55s ease forwards;filter:grayscale(.65) brightness(.7)}
+@keyframes idleKnight{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes idleScholar{0%,100%{transform:translateY(0) rotate(-.4deg)}50%{transform:translateY(-7px) rotate(.5deg)}}
+@keyframes idleBeast{0%,100%{transform:translateY(0) scale(1,1)}50%{transform:translateY(-5px) scale(1.03,.97)}}
+@keyframes idlePuppet{0%,100%{transform:rotate(-1.4deg) translateY(0)}40%{transform:rotate(1.8deg) translateY(-4px)}75%{transform:rotate(-.6deg) translateY(-1px)}}
+@keyframes idleFixer{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(-5px) translateX(1px)}}
+@keyframes idleMage{0%,100%{transform:translateY(0)}50%{transform:translateY(-11px)}}
+@keyframes guestHit{0%{transform:translateX(0)}35%{transform:translateX(16px) rotate(3deg)}100%{transform:translateX(0)}}
+@keyframes guestDown{to{transform:translateY(36px) rotate(10deg);opacity:.25}}
+.hud-top{position:absolute;top:10px;left:16px;right:60px;display:grid;grid-template-columns:1fr auto 1fr;gap:16px;z-index:5;align-items:start}
+.bars{padding:12px 14px 12px}
+.bar-lab{display:flex;justify-content:space-between;font-size:11px;color:var(--parch2);letter-spacing:.08em;margin-bottom:5px}
+.bar{height:14px;background:linear-gradient(180deg,#05060a,#12141c);border:1px solid var(--gold3);
+  overflow:hidden;position:relative;box-shadow:inset 0 1px 2px rgba(0,0,0,.7)}
+.bar .ghost,.bar .fill{position:absolute;left:0;top:0;bottom:0;width:0;display:block}
+.bar .ghost{background:rgba(243,230,192,.55);transition:width .85s .12s ease-out}
+.bar .fill{box-shadow:0 0 10px currentColor;transition:width .28s ease-out}
+.bar.hp .fill{background:linear-gradient(180deg,#d5ffe8 0%,#6ebd96 42%,#2d6b52 100%)}
+.bar.stag .fill{background:linear-gradient(180deg,#fff3b0 0%,#e0b43a 45%,#8a6a10 100%)}
+.bar .segs{position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:repeating-linear-gradient(90deg,transparent 0 9px,rgba(0,0,0,.55) 9px 10px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.15),inset 0 -1px 0 rgba(0,0,0,.4)}
+.orbs,.pips{display:flex;gap:6px;align-items:center;margin-top:7px;font-size:11px;color:var(--parch2);letter-spacing:.08em}
+.orb{width:12px;height:12px;border-radius:50%;border:1px solid var(--gold);background:#222;box-shadow:none;transition:.3s}
+.orb.on{background:radial-gradient(circle at 35% 35%,#fff6c8,var(--gold));box-shadow:0 0 8px var(--gold)}
+.pip{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:11px solid #333}
+.pip.on{border-bottom-color:var(--gold);filter:drop-shadow(0 0 4px var(--gold))}
+.turnchip{align-self:center;color:var(--gold2);letter-spacing:.2em;font-size:12px;text-align:center}
+.clash{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:28px;
+  z-index:6;opacity:0;pointer-events:none;filter:drop-shadow(0 0 18px rgba(196,163,90,.45))}
+.clash.show{opacity:1}
+.clash .vs{font-family:Georgia,serif;letter-spacing:.45em;color:var(--gold4);font-size:28px;text-shadow:0 0 22px rgba(196,163,90,.9);z-index:2}
+.die{width:110px;height:110px;transform-style:preserve-3d;position:relative;z-index:2}
+.die svg{width:110px;height:110px;filter:drop-shadow(0 8px 12px rgba(0,0,0,.6))}
+.die.roll{animation:dieroll .36s ease-in}
+.impact-ring,.slash{position:absolute;left:50%;top:50%;pointer-events:none;opacity:0;z-index:1}
+.impact-ring{width:24px;height:24px;border:2px solid #f3e6c0;border-radius:50%;transform:translate(-50%,-50%)}
+.slash{width:420px;height:5px;background:linear-gradient(90deg,transparent,#fff, #f3e6c0,transparent);
+  box-shadow:0 0 18px #fff,0 0 28px #e6d3a3;transform:translate(-50%,-50%) rotate(-28deg) scaleX(0)}
+.slash.s2{transform:translate(-50%,-50%) rotate(18deg) scaleX(0);width:300px;height:4px}
+.clash.hit .impact-ring{animation:ring .5s ease-out}
+.clash.hit .slash.s1{animation:slash .28s ease-out}
+.clash.hit .slash.s2{animation:slash2 .32s ease-out .04s}
+.clash.crit .vs{animation:critpulse .5s ease}
+@keyframes ring{0%{width:20px;height:20px;opacity:1}100%{width:360px;height:360px;opacity:0}}
+@keyframes slash{0%{transform:translate(-50%,-50%) rotate(-28deg) scaleX(0);opacity:0}
+  20%{opacity:1;transform:translate(-50%,-50%) rotate(-28deg) scaleX(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) rotate(-28deg) scaleX(1.2)}}
+@keyframes slash2{0%{transform:translate(-50%,-50%) rotate(18deg) scaleX(0);opacity:0}
+  22%{opacity:1;transform:translate(-50%,-50%) rotate(18deg) scaleX(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) rotate(18deg) scaleX(1.15)}}
+@keyframes critpulse{0%,100%{transform:scale(1)}40%{transform:scale(1.35);color:#fff;text-shadow:0 0 28px #fff}}
+body.slowmo #shake{animation:slo .55s ease}
+@keyframes slo{0%{transform:scale(1.045)}100%{transform:none}}
+.hand{position:absolute;bottom:10px;left:0;right:0;height:240px;display:flex;justify-content:center;align-items:flex-end;z-index:7;
+  pointer-events:none}
+.hand .cc{pointer-events:auto;position:relative;width:148px;height:210px;margin:0 -18px;transform-origin:50% 100%;
+  transition:transform .25s ease,z-index 0s;cursor:pointer}
+.hand .cc:hover{transform:translateY(-28px) rotate(0deg) scale(1.06)!important;z-index:9!important}
+.hand .cc.off{opacity:.38;pointer-events:none;filter:grayscale(.4)}
+.card{position:relative;width:100%;height:100%;padding:12px 11px 10px;overflow:hidden;
+  background:
+    radial-gradient(ellipse at 50% 0%,rgba(196,163,90,.16),transparent 46%),
+    linear-gradient(180deg,#3a2c18 0%,#1c1610 40%,#0c0a08 100%);
+  border:1px solid var(--gold4);
+  box-shadow:inset 0 0 0 1px rgba(14,10,6,.85),inset 0 0 0 2px rgba(196,163,90,.4),0 12px 24px rgba(0,0,0,.55);
+  color:var(--parch);display:flex;flex-direction:column;border-radius:3px}
+.card:before{content:"";position:absolute;inset:5px;border:1px solid rgba(196,163,90,.28);pointer-events:none;z-index:1}
+.card .foil{position:absolute;inset:-10% -40%;pointer-events:none;z-index:2;
+  background:linear-gradient(115deg,transparent 35%,rgba(243,230,192,.0) 42%,rgba(243,230,192,.28) 50%,rgba(243,230,192,0) 58%,transparent 65%);
+  mix-blend-mode:screen;animation:foil 5.5s linear infinite}
+@keyframes foil{from{transform:translateX(-30%)}to{transform:translateX(30%)}}
+.card .row{display:flex;justify-content:space-between;align-items:center;z-index:3;position:relative}
+.card .gem{width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#1a140c;letter-spacing:0;
+  background:radial-gradient(circle at 32% 28%,#fff6c8,#e6d3a3 36%,#c4a35a 58%,#5c4316);
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);
+  box-shadow:0 0 10px rgba(196,163,90,.55);text-shadow:0 1px 0 rgba(255,255,255,.35)}
+.card .emo{display:flex;align-items:center;gap:3px;color:var(--gold2);font-size:10px;letter-spacing:.06em}
+.card .illu{display:flex;align-items:center;justify-content:center;height:44px;margin:4px 0 2px;z-index:3;position:relative;
+  filter:drop-shadow(0 0 8px rgba(196,163,90,.45))}
+.card .nm{margin-top:2px;letter-spacing:.08em;font-size:14px;z-index:3;position:relative}
+.card .tx{margin-top:4px;font-size:10px;line-height:1.45;color:var(--parch2);flex:1;z-index:3;position:relative}
+.card .dice{font-size:10px;color:var(--gold2);letter-spacing:.04em;z-index:3;position:relative;display:flex;gap:6px;flex-wrap:wrap}
+.card .dice span{display:inline-flex;align-items:center;gap:3px}
+.qpanel{position:absolute;left:50%;bottom:18%;transform:translateX(-50%);width:min(640px,92vw);z-index:12;
+  padding:20px 22px;display:none}
+.qpanel.on{display:block;animation:rise .16s ease}
+.qpanel h4{color:var(--gold);letter-spacing:.16em;margin-bottom:10px;font-size:12px}
+.qpanel .prompt{font-size:16px;line-height:1.65;margin-bottom:14px}
+.qopts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qopts button{text-align:left;padding:10px 12px;border:1px solid var(--gold3);color:var(--parch);
+  background:rgba(0,0,0,.25);letter-spacing:.02em}
+.qopts button:hover{border-color:var(--gold);background:rgba(196,163,90,.12)}
+.result-banner{position:absolute;left:50%;top:18%;transform:translateX(-50%);z-index:12;text-align:center;display:none}
+.result-banner.on{display:block;animation:rise .4s ease}
+.result-banner .big{font-size:32px;letter-spacing:.28em;color:var(--gold4);text-shadow:0 0 22px rgba(196,163,90,.5)}
+.result-banner .msg{margin-top:8px;max-width:520px;color:var(--parch);line-height:1.6}
+.expl{margin-top:12px;padding:12px 14px;border:1px solid var(--gold3);background:rgba(0,0,0,.35);
+  color:var(--parch2);font-size:13px;line-height:1.7;text-align:left}
+.dmg{position:absolute;z-index:16;font-family:Georgia,serif;font-size:38px;font-weight:700;color:#ffe7b0;
+  text-shadow:0 0 8px #000,0 0 16px var(--gold),0 0 24px var(--blood);animation:floatDmg .75s ease forwards;pointer-events:none}
+.dmg.hurt{color:#ff8b7a}
+.dmg.stag{color:#e0b43a;font-size:26px;letter-spacing:.08em;text-shadow:0 0 8px #000,0 0 16px #e0b43a}
+.flash{position:absolute;inset:0;z-index:8;pointer-events:none;background:#fff;opacity:0}
+.logbox{position:absolute;left:16px;top:118px;width:min(260px,24vw);max-height:16vh;overflow:auto;
+  font-size:11px;line-height:1.55;color:var(--parch2);padding:8px 10px;background:rgba(0,0,0,.4);
+  border-left:2px solid var(--gold3);z-index:4}
+#shake{position:absolute;inset:0}
+
+/* shelf & collection */
+.panel-scene{padding:56px 24px 86px;overflow:hidden}
+.scroll{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;padding-bottom:12px}
+.book-item,.key-item{padding:14px;display:flex;gap:12px;align-items:center}
+.album{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;padding-bottom:88px}
+.al-cell{padding:10px;text-align:center;min-height:128px;border:1px solid var(--n4);background:rgba(0,0,0,.25)}
+.al-cell.own{border-color:var(--gold3);background:rgba(26,33,48,.7)}
+.al-cell.eq{border-color:var(--gold);box-shadow:0 0 12px rgba(196,163,90,.35)}
+.al-cell .nm{font-size:11px;margin-top:6px;color:var(--parch2)}
+.tabs{display:flex;gap:8px;margin:8px 0 14px;flex-wrap:wrap}
+
+/* gacha stage */
+.gacha-stage{position:relative;min-height:420px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  overflow:hidden;background:radial-gradient(ellipse at 50% 80%,rgba(196,163,90,.16),transparent 55%),#07080d}
+.pillar{position:absolute;bottom:0;left:50%;width:90px;height:0;transform:translateX(-50%);
+  background:linear-gradient(180deg,transparent 0%,currentColor 55%,#fff6c8 100%);opacity:0;filter:blur(10px);pointer-events:none}
+.pillar.p-wide{width:220px;filter:blur(22px);opacity:0}
+.pillar.p-mid{width:70px;filter:blur(8px)}
+.pillar.p-core{width:14px;filter:blur(2px);background:linear-gradient(180deg,transparent,#fff)}
+.pillar.on{height:100%;opacity:.7;animation:pillar .85s ease forwards}
+.flare{position:absolute;left:50%;bottom:8%;width:20px;height:20px;border-radius:50%;transform:translate(-50%,0) scale(0);
+  background:radial-gradient(circle,#fff,#e6d3a3 40%,transparent 70%);pointer-events:none;opacity:0}
+.flare.on{animation:flare .9s ease forwards}
+@keyframes flare{0%{transform:translate(-50%,0) scale(.2);opacity:0}30%{opacity:1;transform:translate(-50%,-20px) scale(6)}100%{opacity:0;transform:translate(-50%,-40px) scale(10)}}
+.gcard{width:210px;height:300px;transform-style:preserve-3d;transition:transform 1s cubic-bezier(.2,.8,.2,1);z-index:2}
+.gcard.flip{transform:rotateY(180deg)}
+.gface{position:absolute;inset:0;backface-visibility:hidden;border:1px solid var(--gold);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;
+  background:linear-gradient(180deg,#1a140c,#0b0e16)}
+.gface.back{background:
+  repeating-linear-gradient(45deg,rgba(196,163,90,.08) 0 8px,transparent 8px 16px),
+  radial-gradient(circle at 50% 40%,#2a2214,#0b0e16)}
+.gface.front{transform:rotateY(180deg);text-align:center}
+.gface .rar{letter-spacing:.3em;color:var(--gold);margin-top:8px}
+
+/* toast / fx */
+#toast{position:absolute;top:20%;left:50%;transform:translateX(-50%);z-index:35;color:var(--gold4);
+  letter-spacing:.18em;font-size:20px;text-shadow:0 0 18px rgba(196,163,90,.6);opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.on{opacity:1}
+.learn-toast{position:absolute;left:16px;bottom:26%;width:min(380px,86vw);z-index:20;pointer-events:none;opacity:0;
+  transition:opacity .3s ease;padding:10px 12px;border-left:2px solid var(--gold);
+  background:rgba(10,10,16,.88);color:var(--parch);font-size:12px;line-height:1.6;
+  box-shadow:0 10px 28px rgba(0,0,0,.45)}
+.learn-toast.on{opacity:1}
+.learn-toast b{color:var(--gold2);letter-spacing:.1em;font-weight:600;display:block;margin-bottom:4px;font-size:11px}
+#lineup{position:absolute;inset:0;z-index:25;display:none;align-items:flex-end;justify-content:center;gap:1.5vw;
+  padding:6% 3% 8%;background:radial-gradient(ellipse at 50% 30%,rgba(30,34,48,.2),rgba(7,8,13,.94));pointer-events:none}
+#lineup.on{display:flex}
+#lineup .lu-item{flex:1;max-width:280px;text-align:center}
+#lineup .lu-item svg{width:100%;height:auto;max-height:72vh;filter:drop-shadow(0 16px 18px rgba(0,0,0,.6))}
+#lineup .lu-name{color:var(--gold2);letter-spacing:.12em;margin-top:10px;font-size:14px;text-shadow:0 2px 8px #000}
+#lineup .lu-sub{color:var(--parch2);font-size:11px;letter-spacing:.16em;margin-top:2px}
+.burst{position:absolute;inset:0;pointer-events:none;z-index:11}
+
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes flicker{from{transform:scaleY(.9) scaleX(1.05);opacity:.8}to{transform:scaleY(1.1) scaleX(.95);opacity:1}}
+@keyframes glow{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:.8;transform:scale(1.08)}}
+@keyframes breathe{0%,100%{transform:translateY(0) scale(1,1)}50%{transform:translateY(-5px) scale(1.01,1.015)}}
+@keyframes staggerShake{0%,100%{transform:translateX(0) rotate(0)}25%{transform:translateX(-3px) rotate(-1deg)}75%{transform:translateX(3px) rotate(1deg)}}
+@keyframes dieroll{0%{transform:rotateX(0) rotateY(0) scale(.4)}70%{transform:rotateX(420deg) rotateY(300deg) scale(1.1)}100%{transform:rotateX(360deg) rotateY(360deg) scale(1)}}
+@keyframes rise{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes floatDmg{0%{opacity:0;transform:translate(-50%,8px) scale(.8)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-48px) scale(1.1)}}
+@keyframes pillar{from{opacity:0;height:0}to{opacity:.55;height:100%}}
+@keyframes bookIn{0%{transform:scale(1.3) rotate(-8deg);filter:blur(6px);opacity:.2}100%{transform:none;filter:none;opacity:1}}
+
+@media (max-width:860px){
+  #scene-lobby,.panel-scene{padding:6px 10px 70px}
+  .topbar{padding:0 48px 8px 0;gap:4px 8px}
+  .topbar .brand{font-size:11px;letter-spacing:.14em;margin-right:4px;width:100%}
+  .hudstat,.pill{font-size:10px}
+  .lobby-grid{display:flex;flex-direction:column;grid-template-columns:none;grid-template-rows:none;gap:8px;min-height:0;overflow:hidden}
+  .portrait-box{display:none}
+  .lobby-grid>.col.mid{flex:1 1 auto;min-height:0;overflow:hidden}
+  .floor-hero{height:86px}
+  .floor-hero h2{font-size:15px}
+  .floor-hero .cap{padding:8px 12px;right:28%}
+  .guests{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;gap:8px}
+  .guest-card{flex:0 0 auto;padding:8px}
+  .guest-card svg{width:64px;height:80px}
+  .detail{flex:0 1 auto;max-height:30%;min-height:0;overflow:auto;padding:10px 12px}
+  .detail h3{font-size:16px}
+  .detail p{font-size:12px;line-height:1.5;max-height:4.6em;overflow:auto}
+  .botnav{bottom:8px;left:8px;right:8px;gap:8px}
+  .botnav .btn{padding:10px 16px;font-size:13px}
+  #mute{top:8px;right:8px;bottom:auto;width:42px;height:32px}
+  .fighter{width:30vw;max-height:46vh;bottom:22%}
+  .fighter.librarian{left:1%}
+  .fighter.guest{right:1%}
+  .hand{height:156px;bottom:2px}
+  .hand .cc{width:86px;height:128px;margin:0 -14px}
+  .card{padding:8px 6px 6px}
+  .card .illu{height:20px;margin:0}
+  .card .illu .ico{width:18px;height:18px}
+  .card .nm{font-size:11px;margin-top:2px}
+  .card .tx{display:none}
+  .card .dice{font-size:9px}
+  .logbox{display:none}
+  .bars{padding:8px 8px}
+  .bar-lab,.orbs,.pips{white-space:nowrap;font-size:10px}
+  .candles{display:none}
+  .qopts{grid-template-columns:1fr}
+  .qpanel{bottom:20%;padding:12px}
+  .hud-top{top:8px;left:8px;right:52px;gap:6px;grid-template-columns:1fr 1fr}
+  .turnchip{grid-column:1/-1;order:-1;font-size:11px}
+  .learn-toast{left:8px;right:8px;width:auto;bottom:178px;font-size:11px}
+  #lineup{gap:1vw;padding:8% 2% 10%;align-items:flex-end}
+  #lineup .lu-name{font-size:11px}
+}
+#mute{white-space:nowrap;word-break:keep-all;min-width:3.4em}
+</style>
+</head>
+<body>
+<div id="game">
+  <canvas id="bg"></canvas>
+  <div id="shake">
+    <div id="scenes"></div>
+    <canvas id="fx"></canvas>
+    <div class="flash" id="flash"></div>
+  </div>
+  <div id="vignette"></div>
+  <div id="grain"></div>
+  <button id="mute" class="btn" type="button" aria-label="음소거">소리</button>
+  <div id="toast"></div>
+  <div id="learn-toast" class="learn-toast" aria-live="polite"></div>
+  <div id="lineup"></div>
+  <div id="transition"></div>
+</div>
+<svg width="0" height="0" style="position:absolute">
+  <defs id="svgdefs">
+    <linearGradient id="goldg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f3e6c0"/><stop offset="45%" stop-color="#c4a35a"/><stop offset="100%" stop-color="#8f6b2a"/>
+    </linearGradient>
+    <linearGradient id="coatg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2a3144"/><stop offset="50%" stop-color="#161b27"/><stop offset="100%" stop-color="#0a0c12"/>
+    </linearGradient>
+    <linearGradient id="coatg2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3a2a18"/><stop offset="100%" stop-color="#120e0a"/>
+    </linearGradient>
+    <linearGradient id="coatg3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1c2438"/><stop offset="100%" stop-color="#07080d"/>
+    </linearGradient>
+    <radialGradient id="winlight" cx="50%" cy="20%" r="60%">
+      <stop offset="0%" stop-color="#e6d3a3" stop-opacity=".55"/><stop offset="100%" stop-color="#07080d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>
+<script>
+/* ============================================================
+ * 개념의 서고 — 데이터 (나중에 FLOORS / WEAK_POINTS / TICKET_RULES / GACHA_RULES 만 교체)
+ * ============================================================ */
+const FLOORS = [
+  { id:"memory", name:"기억의 층", subject:"학습법 (예시)", motto:"잊힐 때까지 기다리는 책장." },
+  { id:"cognition", name:"인지의 층", subject:"학습법 (예시)", motto:"알고 있는지, 아직 모르는지를 보는 창." }
+];
+
+const WEAK_POINTS = [
+  {
+    id:"pomodoro", floorId:"memory", concept:"포모도로 기법", subject:"학습법 (예시)", weakness:1, archetype:"fixer", palette:"teal", accessory:"hourglass",
+    explanation:"포모도로는 25분 집중과 5분 휴식을 한 세트로 반복하며, 집중 중에는 다른 일을 끼워 넣지 않는 기법입니다. 목적은 무작정 긴 공부가 아니라, 집중과 휴식의 리듬을 만드는 것입니다.",
+    questions:[
+      { type:"mc", prompt:"포모도로 기법의 기본 집중 시간으로 가장 잘 쓰이는 것은?", options:["25분","10분","60분","5분"], correctIndex:0 },
+      { type:"mc", prompt:"한 포모도로 세션이 끝나면 보통 좋은 짧은 휴식은?", options:["5분","30분","휴식 없이 바로 다음","2시간"], correctIndex:0 },
+      { type:"ox", prompt:"포모도로 집중 시간 동안에는 다른 일을 끼워 넣는 것이 좋다.", options:["O","X"], correctIndex:1 },
+      { type:"mc", prompt:"포모도로를 쓰는 가장 큰 목적은?", options:["집중과 휴식의 리듬을 만드는 것","하루 전체를 한 과목에만 쓰는 것","시험 범위를 줄이는 것","암기 횟수를 기록하는 것"], correctIndex:0 }
+    ]
+  },
+  {
+    id:"active-recall", floorId:"memory", concept:"능동적 회상", subject:"학습법 (예시)", weakness:2, archetype:"scholar", palette:"amber", accessory:"quill",
+    explanation:"능동적 회상은 자료를 닫고 기억에서 꺼내 보는 연습입니다. 다시 읽기나 하이라이트만으로는 '알게 된 느낌'만 부풀리기 쉽습니다. 백지에 써 보거나 문제로 점검하는 쪽이 기억을 더 강하게 만듭니다.",
+    questions:[
+      { type:"mc", prompt:"능동적 회상에 가장 가까운 설명은?", options:["책을 닫고 기억에서 꺼내 보기","중요한 문장에 밑줄만 긋기","교과서를 여러 번 다시 읽기","형광펜으로 색만 칠하기"], correctIndex:0 },
+      { type:"ox", prompt:"교과서를 여러 번 읽기만 하는 것이 능동적 회상이다.", options:["O","X"], correctIndex:1 },
+      { type:"mc", prompt:"다음 중 능동적 회상에 가장 가까운 활동은?", options:["백지에 기억나는 대로 써 보기","색연필로 필기를 꾸미기","강의를 다시 틀어만 보기","요약본을 그대로 베껴 쓰기"], correctIndex:0 },
+      { type:"mc", prompt:"능동적 회상이 효과적인 이유는?", options:["기억에서 꺼내는 연습이 기억을 강화하기 때문","글씨를 예쁘게 쓰게 되기 때문","공부 시간이 길어지기 때문","같은 문장을 반복 필사하기 때문"], correctIndex:0 }
+    ]
+  },
+  {
+    id:"spaced-repetition", floorId:"memory", concept:"간격 반복", subject:"학습법 (예시)", weakness:2, archetype:"puppet", palette:"rust", accessory:"gear",
+    explanation:"간격 반복은 한 번에 몰아서 외우는 대신, 시간을 두고 다시 복습하는 방법입니다. 기억이 약간 희미해질 때 다시 꺼내 보면 학습 효과가 커집니다. 예: 1일 후, 3일 후, 1주일 후.",
+    questions:[
+      { type:"mc", prompt:"간격 반복의 핵심은?", options:["시간을 두고 다시 복습하기","하루 만에 몰아서 외우기","처음만 열심히 보고 끝내기","매일 새 내용만 공부하기"], correctIndex:0 },
+      { type:"ox", prompt:"한 번에 몰아서 외운 뒤, 다시 보지 않아도 오래 기억된다.", options:["O","X"], correctIndex:1 },
+      { type:"mc", prompt:"기억이 약간 희미해질 때쯤 다시 보는 이유는?", options:["조금 어려울 때 인출하는 쪽이 학습 효과가 커서","완전히 잊은 뒤에 보는 것이 항상 최고여서","같은 날 10번 반복하는 것이 가장 좋아서","복습은 적을수록 좋아서"], correctIndex:0 },
+      { type:"mc", prompt:"간격 반복에 가장 가까운 계획은?", options:["1일 후, 3일 후, 1주일 후 다시 보기","오늘 밤 10번 반복하고 끝내기","시험 전날에만 모아서 보기","매주 새 단원만 공부하기"], correctIndex:0 }
+    ]
+  },
+  {
+    id:"metacognition", floorId:"cognition", concept:"메타인지", subject:"학습법 (예시)", weakness:3, archetype:"mage", palette:"violet", accessory:"orb",
+    explanation:"메타인지는 '내가 이것을 얼마나 이해하는지'를 알아차리는 능력입니다. 대충 읽었는데도 이미 안다고 느끼면 약점을 놓칩니다. 설명해 보거나 문제로 점검하고, 아직 모르는 것을 적어 두면 다음 공부를 잡기 쉬워집니다.",
+    questions:[
+      { type:"mc", prompt:"메타인지를 가장 잘 설명한 말은?", options:["자신의 이해 상태를 알아차리는 것","암기가 빨라지는 속도","글씨를 예쁘게 쓰는 실력","수업 출석률"], correctIndex:0 },
+      { type:"ox", prompt:"대충 읽었는데도 '나는 이미 안다'고 느끼는 것은 메타인지가 정확한 상태다.", options:["O","X"], correctIndex:1 },
+      { type:"mc", prompt:"메타인지를 높이는 방법으로 가장 적절한 것은?", options:["내 말로 설명해 보거나 문제로 점검하기","같은 문장만 반복 필사하기","형광펜 색을 더 늘리기","강의 배속만 높이기"], correctIndex:0 },
+      { type:"mc", prompt:"공부 후 '아직 무엇을 모르는지' 적는 습관의 효과는?", options:["약점이 드러나 다음 공부를 잡기 쉬워서","시간만 버리는 일이라서","이미 아는 것만 적게 되도록 하려고","성적과는 관계가 없어서"], correctIndex:0 }
+    ]
+  }
+];
+
+const TICKET_RULES = {
+  questionsPerLecture: 4,
+  ticketsPerLecture: 1,
+  bonusTicketEveryNLectures: 5,
+  ticketsPerMonsterDefeat: 0
+};
+
+const GACHA_RULES = {
+  rates:{ N:55, R:30, SR:12, SSR:3 },
+  srPity:10, ssrPity:25, preferUnowned:true
+};
+
+/* 예시: 에고 기프트 수치와 드롭 규칙은 이 상수만 바꿔 조정한다. 개별 기프트는 매우 약하고, 회상으로 쌓이면 의미가 생긴다. */
+const EGO_GIFT_RULES = {
+  dropRateFirstClear: 1,
+  dropRateRecall: 0.4,
+  pityEvery: 4,
+  slots: ["머리","눈","뺨","입","목","손","팔","몸","등","허리","발","아우라"],
+  unit: { hp:2, dieMin:1, staggerPct:0.03, dmgPct:0.02 },
+  setBonus: { hp:4, staggerPct:0.03 }
+};
+const EGO_GIFTS = [
+  { id:"sand-heart", guestId:"pomodoro", name:"모래시계의 심장", slot:"손", art:"hourglass",
+    text:"시간의 결을 쥐지만, 겨우 숨 한 줌이다.", perk:{ hp:1 } },
+  { id:"cycle-crest", guestId:"pomodoro", name:"적색 주기의 문장", slot:"몸", art:"crest",
+    text:"리듬이 가슴에 붙는다. 아주 얕게.", perk:{ staggerPct:1 } },
+  { id:"short-rest-charm", guestId:"pomodoro", name:"짧은 휴식의 부적", slot:"목", art:"charm",
+    text:"5분의 온기가 목덜미에 남는다.", perk:{ hp:1 } },
+  { id:"blank-afterimage", guestId:"active-recall", name:"백지의 잔상", slot:"팔", art:"page",
+    text:"빈 페이지가 손목을 스친다.", perk:{ dieMin:1 } },
+  { id:"recall-lens", guestId:"active-recall", name:"회상의 렌즈", slot:"눈", art:"lens",
+    text:"꺼낸 기억이 조금 더 또렷하다.", perk:{ staggerPct:1 } },
+  { id:"underlined-mark", guestId:"active-recall", name:"밑줄의 홍조", slot:"뺨", art:"mark",
+    text:"중요한 문장이 볼에 스며 있다.", perk:{ dmgPct:1 } },
+  { id:"interval-gear", guestId:"spaced-repetition", name:"간격의 톱니", slot:"아우라", art:"gear",
+    text:"되돌아올 때가 희미하게 빛난다.", perk:{ staggerPct:1 } },
+  { id:"fading-ribbon", guestId:"spaced-repetition", name:"희미한 리본", slot:"머리", art:"ribbon",
+    text:"잊히기 직전을 한번 붙잡는다.", perk:{ hp:1 } },
+  { id:"review-clasp", guestId:"spaced-repetition", name:"복습의 걸쇠", slot:"등", art:"clasp",
+    text:"다시 펼 때의 손맛이 남는다.", perk:{ dmgPct:1 } },
+  { id:"seer-orb", guestId:"metacognition", name:"알아차림의 구슬", slot:"허리", art:"orb",
+    text:"자신이 조금 더 보인다.", perk:{ staggerPct:1 } },
+  { id:"unknown-sigil", guestId:"metacognition", name:"아직 모름의 인", slot:"입", art:"sigil",
+    text:"모르는 것을 입가에 적어두었다.", perk:{ hp:1 } },
+  { id:"blind-spot-pin", guestId:"metacognition", name:"사각의 핀", slot:"발", art:"pin",
+    text:"놓친 부분을 발끝에 새긴다.", perk:{ dmgPct:1 } }
+];
+const EGO_BY = Object.fromEntries(EGO_GIFTS.map(g=>[g.id,g]));
+
+
+const COMBAT = {
+  playerStartHp:100, hpPerLevel:8, baseLight:3, maxLightCap:6, lightPerTurn:1,
+  emotionMax:5, chargesPerEmotion:2, weakAccuracyThreshold:0.7,
+  xpByWeakness:{1:40,2:65,3:100},
+  guestHp:{1:28,2:44,3:64},
+  guestStagger:{1:12,2:16,3:22},
+  guestDie:{
+    1:{type:"참격",min:2,max:5},
+    2:{type:"참격",min:3,max:7},
+    3:{type:"관통",min:4,max:8}
+  }
+};
+
+const COMBAT_PAGES = [
+  {id:"turn-page",name:"첫 장 넘기기",cost:1,emotion:0,dice:[{type:"참격",min:2,max:5}],text:"서고의 기본 공격 책장.",starter:true},
+  {id:"margin-guard",name:"여백의 방어",cost:1,emotion:0,dice:[{type:"방어",min:2,max:6}],text:"손님의 일격을 여백으로 받아낸다.",starter:true},
+  {id:"silence",name:"서고의 침묵",cost:1,emotion:0,dice:[{type:"회피",min:3,max:6}],text:"공격을 흐름에 흘린다.",starter:true},
+  {id:"breathe",name:"숨 고르기",cost:0,emotion:0,dice:[{type:"방어",min:1,max:3}],text:"이 순간은 빛 1을 더 회복한다.",starter:true},
+  {id:"underline",name:"밑줄 긋기",cost:2,emotion:1,dice:[{type:"참격",min:4,max:7}],text:"핵심 문장에 선을 긋는 책장."},
+  {id:"repeat-line",name:"되뇌는 문장",cost:2,emotion:2,dice:[{type:"참격",min:3,max:5},{type:"참격",min:3,max:5}],text:"같은 개념을 두 번 꺼낸다."},
+  {id:"blank-fill",name:"빈칸 채우기",cost:2,emotion:2,dice:[{type:"관통",min:5,max:8}],text:"빈자리를 정확히 꿰뚫는다."},
+  {id:"night-study",name:"심야 열람",cost:3,emotion:3,dice:[{type:"관통",min:6,max:9}],text:"밤이 깊을수록 필촉이 밝아진다."},
+  {id:"apex",name:"개념의 정점",cost:3,emotion:4,dice:[{type:"참격",min:8,max:12}],text:"감정을 담아 한 줄에 마침표를 찍는다."}
+];
+
+const KEY_PAGES = [
+  {id:"novice",name:"초보 사서의 장서복",text:"기본 착장. 특별한 효과는 없다.",perk:"none",coat:0},
+  {id:"reading-room",name:"열람실의 장서복",text:"열람의 기율을 입는다. 접대 시작 빛 +1.",perk:"light",coat:1},
+  {id:"midnight",name:"심야 사서",text:"밤을 허비하지 않는 자세. 감정 단계 1로 시작.",perk:"emotion",coat:2},
+  {id:"archivist",name:"소장관의 망토",text:"서고를 지키는 자의 옷. 매 턴 빛 회복 +1.",perk:"recover",coat:3}
+];
+
+const BOOK_REWARDS = {
+  pomodoro:{readPage:"underline",burnKey:"reading-room"},
+  "active-recall":{readPage:"repeat-line",burnKey:"reading-room"},
+  "spaced-repetition":{readPage:"blank-fill",burnKey:"midnight"},
+  metacognition:{readPage:"night-study",burnKey:"archivist"}
+};
+
+const SLOTS = ["책갈피","장식","깃펜","동반자","서고","호칭"];
+const RARITY_ORDER = ["N","R","SR","SSR"];
+const THEMES = [
+  ...["잉크","양피지","양초","먼지","창가","인덱스","제본","쪽수"].map(theme=>({theme,rarity:"N"})),
+  ...["금박","심야","먹물","단풍","바다","서리"].map(theme=>({theme,rarity:"R"})),
+  ...["달빛","벚꽃","석양","별빛"].map(theme=>({theme,rarity:"SR"})),
+  ...["은하","황금"].map(theme=>({theme,rarity:"SSR"}))
+];
+const SLOT_NOUN = {
+  N:{책갈피:"책갈피",장식:"단추",깃펜:"연필",동반자:"참새",서고:"열람실",호칭:"수강생"},
+  R:{책갈피:"장식띠",장식:"견장",깃펜:"만년필",동반자:"고양이",서고:"창가 서고",호칭:"탐구가"},
+  SR:{책갈피:"봉랍",장식:"장서복",깃펜:"장서 깃펜",동반자:"부엉이",서고:"옥상 서고",호칭:"정복자"},
+  SSR:{책갈피:"금빛 책갈피",장식:"망토",깃펜:"성검필",동반자:"서고의 용",서고:"성역",호칭:"전설"}
+};
+const COSMETIC_ITEMS = [];
+for (const slot of SLOTS) {
+  THEMES.forEach((entry, index) => {
+    const noun = SLOT_NOUN[entry.rarity][slot];
+    const name = slot==="호칭" ? `「${entry.theme} ${noun}」` : `${entry.theme} ${noun}`;
+    COSMETIC_ITEMS.push({ id:`${slot}-${entry.theme}`, name, slot, rarity:entry.rarity, seed:index + SLOTS.indexOf(slot)*20 });
+  });
+}
+const COLLECTION_TOTAL = COSMETIC_ITEMS.length;
+const STARTER_PAGES = COMBAT_PAGES.filter(p=>p.starter).map(p=>p.id);
+const PAGE_BY = Object.fromEntries(COMBAT_PAGES.map(p=>[p.id,p]));
+const KEY_BY = Object.fromEntries(KEY_PAGES.map(p=>[p.id,p]));
+const ITEM_BY = Object.fromEntries(COSMETIC_ITEMS.map(p=>[p.id,p]));
+const GUEST_BY = Object.fromEntries(WEAK_POINTS.map(p=>[p.id,p]));
+
+const REVEAL_TEXT = {
+  N:["서가 사이에서 책갈피 하나가 빠졌다.","검소하지만, 매일 손에 담을 만한 장서다."],
+  R:["금박이 약간 반짝인다.","이 정도면 열람실에서도 눈이 머무른다."],
+  SR:["서고 창으로 달빛이 들었다. 희귀한 장서다!","장서의 봉랍이 딱 식는다."],
+  SSR:["서고 전체가 잠시 숨을 죽였다. 전설이다!","SSR! 이 책갈피는, 오늘의 접대를 기록할 만하다."]
+};
+const LEVEL_UP_MESSAGES = [
+  "등급이 올랐다. 내일 인강도 이 기세로, 큐 양.",
+  "사서의 손끝이 한결 더 굳었다.",
+  "성장의 느낌, 좋지? 이 기세를 기억해 두자."
+];
+const SAVE_KEY = "concept-library-game-v1";
+/* ---------- helpers ---------- */
+const $ = (s, el=document) => el.querySelector(s);
+const $$ = (s, el=document) => [...el.querySelectorAll(s)];
+const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const xpNeeded = lv => 60+(lv-1)*30;
+function ticketsGranted(q, wins){
+  const lectures = Math.floor(q / TICKET_RULES.questionsPerLecture);
+  const bonus = TICKET_RULES.bonusTicketEveryNLectures>0 ? Math.floor(lectures/TICKET_RULES.bonusTicketEveryNLectures) : 0;
+  return lectures*TICKET_RULES.ticketsPerLecture + bonus + wins*TICKET_RULES.ticketsPerMonsterDefeat;
+}
+const ticketsHeld = s => Math.max(0, ticketsGranted(s.questionsAnswered,s.receptionsWon)-s.ticketsSpent);
+function keyPerk(s){ return KEY_BY[s.equippedKeyId]||KEY_PAGES[0]; }
+function emptyEgoEquip(){ return Object.fromEntries(EGO_GIFT_RULES.slots.map(s=>[s,null])); }
+function equippedGifts(s){
+  return EGO_GIFT_RULES.slots.map(slot=>EGO_BY[(s.egoEquipped||{})[slot]||""]).filter(Boolean);
+}
+function completeSets(s){
+  const owned=new Set(s.egoOwned||[]);
+  const ids=[...new Set(EGO_GIFTS.map(g=>g.guestId))];
+  return ids.filter(gid=>EGO_GIFTS.filter(g=>g.guestId===gid).every(g=>owned.has(g.id)));
+}
+function giftTotals(s){
+  const u=EGO_GIFT_RULES.unit, t={hp:0,dieMin:0,staggerPct:0,dmgPct:0,startLight:0,startEmotion:0,lightRegen:0,sets:0};
+  for(const g of equippedGifts(s)){
+    if(!g.perk) continue;
+    for(const [k,n] of Object.entries(g.perk)) t[k]=(t[k]||0)+(u[k]||1)*n;
+  }
+  t.sets=0;
+  for(const gid of completeSets(s)){
+    t.sets++;
+    for(const [k,v] of Object.entries(EGO_GIFT_RULES.setBonus)) t[k]=(t[k]||0)+v;
+  }
+  return t;
+}
+function bonusLabel(t){
+  const parts=[];
+  if(t.hp) parts.push("체력 +"+t.hp);
+  if(t.dieMin) parts.push("주사위 최솟값 +"+t.dieMin);
+  if(t.staggerPct) parts.push("흐트러짐 피해 +"+Math.round(t.staggerPct*100)+"%");
+  if(t.dmgPct) parts.push("피해 +"+Math.round(t.dmgPct*100)+"%");
+  if(t.startLight) parts.push("시작 빛 +"+t.startLight);
+  if(t.startEmotion) parts.push("시작 감정 +"+t.startEmotion);
+  if(t.lightRegen) parts.push("빛 회복 +"+t.lightRegen);
+  if(t.sets) parts.push("세트 "+t.sets+"개");
+  return parts.length?parts.join(" · "):"아직 누적된 효과가 없습니다.";
+}
+function effectiveMaxHp(s){ return s.maxHp+giftTotals(s).hp; }
+function startLight(s){ return Math.min(COMBAT.maxLightCap, COMBAT.baseLight+(keyPerk(s).perk==="light"?1:0)+giftTotals(s).startLight); }
+function startEmotion(s){ return (keyPerk(s).perk==="emotion"?1:0)+giftTotals(s).startEmotion; }
+function lightRegen(s){ return COMBAT.lightPerTurn+(keyPerk(s).perk==="recover"?1:0)+giftTotals(s).lightRegen; }
+function weaknessLabel(w){ return w===1?"낮음":w===2?"보통":"높음"; }
+function isAttack(t){ return t==="참격"||t==="관통"; }
+function rollDie(die, mode, minBonus=0){
+  if(mode==="break") return 0;
+  const lo=die.min+(minBonus||0);
+  const hi=Math.max(lo, die.max);
+  if(mode==="boost") return hi+2;
+  if(mode==="weak") return lo;
+  return lo + Math.floor(Math.random()*(hi-lo+1));
+}
+function resolveClash(page, guestDie, correct, staggered, emotion){
+  const pd = page.dice[0];
+  const playerRoll = rollDie(pd, correct?"boost":"weak", giftTotals(save).dieMin) + (correct?emotion:0);
+  const guestRoll = rollDie(guestDie, (staggered||correct)?"break":"normal");
+  let damageToGuest=0, damageToPlayer=0, flavor="", crit=false;
+  if(correct){
+    crit = playerRoll >= pd.max+2+emotion-1;
+    if(isAttack(pd.type)){ damageToGuest=playerRoll; flavor=`합 승리! 손님의 주사위가 깨졌고, ${pd.type} ${playerRoll}로 꿰뚫었다.`; }
+    else if(pd.type==="방어"){ damageToGuest=Math.max(1,Math.floor(playerRoll/2)); flavor=`합 승리! 여백의 방어가 손님을 밀어냈다. ${damageToGuest} 피해.`; }
+    else { damageToGuest=Math.max(1,Math.floor(playerRoll/3)); flavor=`합 승리! 회피가 흐름을 갈라 연타를 남긴다.`; }
+  } else if(pd.type==="방어"){
+    damageToPlayer=Math.max(0,guestRoll-playerRoll);
+    flavor=`합 패배. 방어 ${playerRoll}으로 ${guestRoll}을 받아, ${damageToPlayer} 피해. 설명을 기억해 두자.`;
+  } else if(pd.type==="회피"){
+    if(playerRoll>=guestRoll) flavor=`합은 졌지만, 회피 ${playerRoll}이 일격을 흘렸다. 그래도 설명은 읽어 두자.`;
+    else { damageToPlayer=guestRoll-playerRoll; flavor=`합 패배. 회피가 못 따라 ${damageToPlayer} 피해. 설명을 읽어 두자.`; }
+  } else {
+    damageToPlayer=guestRoll;
+    flavor=`합 패배. 손님의 ${guestDie.type} ${guestRoll}에 당하고 말았다. 설명을 읽어 두자.`;
+  }
+  const tot=giftTotals(save);
+  if(damageToGuest) damageToGuest=Math.max(1, Math.floor(damageToGuest*(1+tot.dmgPct)));
+  if(damageToPlayer) damageToPlayer=Math.max(0, Math.floor(damageToPlayer));
+  const staggerHit=correct?Math.max(0, Math.floor((playerRoll+2)*(1+tot.staggerPct))):0;
+  return {playerRoll,guestRoll,damageToGuest,damageToPlayer,staggerHit,flavor,crit};
+}
+function rollRarity(pitySr,pitySsr){
+  if(pitySsr+1>=GACHA_RULES.ssrPity) return "SSR";
+  if(pitySr+1>=GACHA_RULES.srPity) return Math.random()<0.2?"SSR":"SR";
+  const roll=Math.random()*100;
+  const n=GACHA_RULES.rates.N, r=n+GACHA_RULES.rates.R, sr=r+GACHA_RULES.rates.SR;
+  return roll<n?"N":roll<r?"R":roll<sr?"SR":"SSR";
+}
+function pickGachaItem(rarity, ownedIds){
+  const owned=new Set(ownedIds);
+  const unowned=COSMETIC_ITEMS.filter(i=>!owned.has(i.id));
+  const of=(rar,only)=>COSMETIC_ITEMS.filter(i=>i.rarity===rar&&(!only||!owned.has(i.id)));
+  if(!GACHA_RULES.preferUnowned||!unowned.length){ const p=of(rarity,false); return pick(p.length?p:COSMETIC_ITEMS); }
+  let pool=of(rarity,true);
+  if(!pool.length){
+    const start=RARITY_ORDER.indexOf(rarity);
+    for(let i=start+1;i<RARITY_ORDER.length;i++){ pool=of(RARITY_ORDER[i],true); if(pool.length) break; }
+    if(!pool.length) for(let i=start-1;i>=0;i--){ pool=of(RARITY_ORDER[i],true); if(pool.length) break; }
+    if(!pool.length) pool=unowned;
+  }
+  return pick(pool);
+}
+
+/* ---------- Web Audio ---------- */
+const SFX = (() => {
+  let ctx=null, muted=false, amb=null, ambNodes=[];
+  const ensure=()=>{ if(!ctx) ctx=new (window.AudioContext||window.webkitAudioContext)(); if(ctx.state==="suspended") ctx.resume(); return ctx; };
+  const env=(g,t,a=.01,h=.06,d=.2,vol=.08)=>{ g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+a); g.gain.exponentialRampToValueAtTime(.0001,t+a+h+d); };
+  function tone(freq,type,dur,vol=.08,det=0){
+    if(muted) return; const c=ensure(), t=c.currentTime;
+    const o=c.createOscillator(), g=c.createGain();
+    o.type=type; o.frequency.setValueAtTime(freq+det,t);
+    o.connect(g); g.connect(c.destination);
+    env(g,t,.01,.04,dur,vol); o.start(t); o.stop(t+dur+.05);
+  }
+  function noise(dur,vol=.05,hp=800){
+    if(muted) return; const c=ensure(), t=c.currentTime;
+    const buf=c.createBuffer(1,c.sampleRate*dur,c.sampleRate);
+    const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    const src=c.createBufferSource(); src.buffer=buf;
+    const f=c.createBiquadFilter(); f.type="highpass"; f.frequency.value=hp;
+    const g=c.createGain(); env(g,t,.005,.02,dur,vol);
+    src.connect(f); f.connect(g); g.connect(c.destination); src.start(t);
+  }
+  return {
+    get muted(){ return muted; },
+    setMuted(v){ muted=v; if(v) this.stopAmb(); else if(ctx) this.ambience(); },
+    unlock(){ ensure(); },
+    hover(){ tone(740,"sine",.08,.03); },
+    click(){ tone(520,"triangle",.09,.05); tone(880,"sine",.06,.03); },
+    card(){ tone(390,"triangle",.12,.05); tone(220,"sine",.16,.03); },
+    dice(){ noise(.18,.06,1200); tone(180,"square",.1,.03); },
+    clash(win){
+      noise(.22,.1,400);
+      if(win){ tone(220,"sawtooth",.2,.07); tone(440,"triangle",.25,.05); tone(880,"sine",.4,.04); }
+      else { tone(110,"sawtooth",.3,.08); tone(90,"square",.25,.04); }
+    },
+    crit(){ tone(523,"sine",.3,.06); tone(784,"sine",.35,.05); tone(1046,"triangle",.5,.04); },
+    stagger(){ tone(140,"sawtooth",.4,.07); noise(.3,.08,300); },
+    emotion(){ [392,523,659,784].forEach((f,i)=>setTimeout(()=>tone(f,"sine",.25,.05), i*80)); },
+    win(){ [392,494,587,784].forEach((f,i)=>setTimeout(()=>tone(f,"triangle",.28,.06), i*110)); },
+    lose(){ tone(196,"sine",.4,.06); setTimeout(()=>tone(147,"triangle",.5,.05),200); },
+    gacha(r){
+      noise(.15,.05,900);
+      if(r==="SSR"){ [261,329,392,523,784].forEach((f,i)=>setTimeout(()=>tone(f,"sine",.4,.07),i*90)); }
+      else if(r==="SR"){ [329,415,523].forEach((f,i)=>setTimeout(()=>tone(f,"triangle",.28,.06),i*100)); }
+      else tone(330,"sine",.2,.05);
+    },
+    book(){ tone(196,"triangle",.3,.05); tone(392,"sine",.4,.04); },
+    ambuence(){},
+    ambience(){
+      if(muted) return; const c=ensure(); this.stopAmb();
+      const make=(freq,type,vol)=>{
+        const o=c.createOscillator(), g=c.createGain(), lfo=c.createOscillator(), lg=c.createGain();
+        o.type=type; o.frequency.value=freq;
+        lfo.frequency.value=.06+Math.random()*.04; lg.gain.value=freq*.03;
+        lfo.connect(lg); lg.connect(o.frequency);
+        g.gain.value=vol; o.connect(g); g.connect(c.destination);
+        o.start(); lfo.start(); ambNodes.push(o,lfo,g);
+      };
+      make(55,"sine",.03); make(82,"sine",.018); make(164,"triangle",.01);
+      amb=true;
+    },
+    stopAmb(){ ambNodes.forEach(n=>{ try{ n.stop?n.stop():n.gain&&(n.gain.value=0);}catch(e){} }); ambNodes=[]; amb=null; }
+  };
+})();
+
+/* ---------- SVG art ---------- */
+
+function ico(name,s=16){
+  const filled=name==="hp"||name==="emotion";
+  const p={
+    light:`<circle cx="12" cy="14" r="4"/><path d="M12 3v3M6.2 6.2 8.3 8.3M17.8 6.2 15.7 8.3"/>`,
+    emotion:`<path d="M12 3.5 14.7 9.2 21 9.8 16.4 14.2 17.7 20.5 12 17.4 6.3 20.5 7.6 14.2 3 9.8 9.3 9.2 Z" fill="currentColor" stroke="none"/>`,
+    book:`<path d="M6 5h9a3 3 0 0 1 3 3v12H9a3 3 0 0 0-3 3Z"/><path d="M6 5v15a3 3 0 0 1 3-3h12"/>`,
+    slash:`<path d="M5 19 19 4"/><path d="M8 20 20 8"/>`,
+    pierce:`<path d="M12 2 14.2 10 22 11.2 12 22 2 11.2 9.8 10 Z"/>`,
+    guard:`<path d="M12 2.5 20 6.2v6.2c0 5.2-3.6 8.4-8 9.6-4.4-1.2-8-4.4-8-9.6V6.2Z"/>`,
+    evade:`<path d="M4 16 Q12 3 20 10 Q13 12 16 20"/>`,
+    gift:`<rect x="4.5" y="9" width="15" height="11.5" rx="1"/><path d="M4.5 13.5h15M12 9v11.5M8 4.5q4 0 4 4.5Q12 4.5 16 4.5"/>`,
+    ticket:`<rect x="3.5" y="7" width="17" height="10" rx="1.5"/><path d="M8 7v10M11.5 10h6M11.5 14h4"/>`,
+    hp:`<path d="M12 20.5 S3.5 13.5 3.5 8.8 A4.3 4.3 0 0 1 12 8.8 A4.3 4.3 0 0 1 20.5 8.8 C20.5 13.5 12 20.5 12 20.5 Z" fill="currentColor" stroke="none"/>`,
+    stag:`<path d="M4 19 12 4 20 19 Z"/>`,
+    floor:`<path d="M4.5 20 V9.5 L12 3.5 19.5 9.5 V20"/><path d="M9.5 20v-7h5v7"/>`,
+    chev:`<path d="M9 5 L16 12 L9 19"/>`
+  }[name]||"";
+  return `<svg class="ico ${filled?"filled":""}" viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">${p}</svg>`;
+}
+function dieMark(type,s=36){
+  const map={ "참격":"slash","관통":"pierce","방어":"guard","회피":"evade" };
+  return ico(map[type]||"slash",s);
+}
+function barHtml(kind,id,pct){
+  pct=Math.max(0,Math.min(100,pct||0));
+  return `<div class="bar ${kind}"><i class="ghost" id="${id}-g" style="width:${pct}%"></i><i class="fill" id="${id}" style="width:${pct}%"></i><span class="segs" aria-hidden="true"></span></div>`;
+}
+function setBar(id,pct){
+  pct=Math.max(0,Math.min(100,pct||0));
+  const fill=$("#"+id), ghost=$("#"+id+"-g");
+  const prev=fill?parseFloat(fill.style.width)||0:pct;
+  if(fill) fill.style.width=pct+"%";
+  if(ghost){
+    if(pct>=prev-0.05){ ghost.style.transition="none"; ghost.style.width=pct+"%"; void ghost.offsetWidth; ghost.style.transition=""; }
+    else ghost.style.width=pct+"%";
+  }
+}
+function cornerHtml(){ return `<i class="cbl"></i><i class="cbr"></i>`; }
+function emblemSvg(){
+  return `<svg class="emblem" viewBox="0 0 88 88" aria-hidden="true">
+    <circle cx="44" cy="44" r="40" fill="none" stroke="url(#goldg)" stroke-width="1.4"/>
+    <circle cx="44" cy="44" r="34" fill="none" stroke="#c4a35a" stroke-width=".6" opacity=".5"/>
+    <path d="M28 58 L28 30 Q44 18 60 30 L60 58 L44 50 Z" fill="#121722" stroke="url(#goldg)" stroke-width="1.6"/>
+    <path d="M32 36 H56 M32 42 H56 M32 48 H48" stroke="#e6d3a3" stroke-width="1"/>
+    <path d="M44 14 L46 22 L44 20 L42 22 Z" fill="#e6d3a3"/>
+  </svg>`;
+}
+function candleSvg(){
+  return `<svg viewBox="0 0 70 160" width="70" height="160">
+    <defs><radialGradient id="fg" cx="50%" cy="40%" r="50%"><stop offset="0%" stop-color="#fff6c8"/><stop offset="100%" stop-color="#ff8a00" stop-opacity="0"/></radialGradient></defs>
+    <ellipse cx="35" cy="150" rx="18" ry="6" fill="#000" opacity=".45"/>
+    <rect x="28" y="70" width="14" height="80" rx="2" fill="#e8d5b0"/>
+    <rect x="28" y="70" width="14" height="80" rx="2" fill="#8f6b2a" opacity=".25"/>
+    <rect x="31" y="64" width="2" height="8" fill="#c4a35a"/>
+  </svg><div class="flame"></div><div class="glow"></div>`;
+}
+function giftSpriteLayers(s){
+  const a="#c4a35a", l="#e6d3a3";
+  const art={
+    hourglass:`<g transform="translate(196 250)"><path d="M0 0 H12 L6 12 L12 24 H0 L6 12 Z" fill="#1a140c" stroke="${a}" stroke-width=".9"/></g>`,
+    crest:`<g transform="translate(140 214)"><path d="M0 -8 L8 0 L0 10 L-8 0 Z" fill="${a}" stroke="${l}" stroke-width=".6"/></g>`,
+    charm:`<g transform="translate(140 156)"><circle cx="0" cy="10" r="5" fill="${a}"/><circle cx="0" cy="10" r="2" fill="#1a140c"/></g>`,
+    page:`<g transform="translate(198 248)"><rect x="0" y="0" width="16" height="22" fill="#e8d5b0" stroke="${a}" stroke-width=".8"/></g>`,
+    lens:`<g transform="translate(140 112)"><ellipse cx="-10" cy="0" rx="6" ry="4" fill="none" stroke="${l}" stroke-width="1.1"/><ellipse cx="10" cy="0" rx="6" ry="4" fill="none" stroke="${l}" stroke-width="1.1"/><path d="M-4 0 H4" stroke="${a}" stroke-width="1"/></g>`,
+    mark:`<g transform="translate(156 120)"><circle cx="0" cy="0" r="3" fill="${a}" opacity=".8"/></g>`,
+    gear:`<g transform="translate(140 200)" opacity=".7"><circle cx="0" cy="0" r="34" fill="none" stroke="${a}" stroke-width=".7" stroke-dasharray="3 5"/></g>`,
+    ribbon:`<g transform="translate(140 70)"><path d="M-16 8 Q0 -6 16 8 L10 16 Q0 4 -10 16 Z" fill="${a}" stroke="${l}" stroke-width=".6"/></g>`,
+    clasp:`<g transform="translate(140 230)"><rect x="-7" y="0" width="14" height="6" fill="${a}"/></g>`,
+    orb:`<g transform="translate(86 250)"><circle cx="0" cy="0" r="7" fill="#1a140c" stroke="${a}"/><circle cx="0" cy="0" r="3.5" fill="${l}" opacity=".7"/></g>`,
+    sigil:`<g transform="translate(140 124)"><path d="M-5 0 L0 5 L5 0" fill="none" stroke="${a}" stroke-width="1.1"/></g>`,
+    pin:`<g transform="translate(124 400)"><circle cx="0" cy="0" r="3" fill="${a}"/></g>`
+  };
+  return equippedGifts(s).map(g=>art[g.art]||"").join("");
+}
+function librarianSvg(save, w=320, h=480){
+  const key=(KEY_BY[save.equippedKeyId]||KEY_PAGES[0]);
+  const coatId=["coatg","coatg2","coatg3","coatg"][key.coat]||"coatg";
+  const title=ITEM_BY[save.equipped["호칭"]||""];
+  const bird=ITEM_BY[save.equipped["동반자"]||""];
+  const pen=ITEM_BY[save.equipped["깃펜"]||""];
+  const mark=ITEM_BY[save.equipped["책갈피"]||""];
+  const deco=ITEM_BY[save.equipped["장식"]||""];
+  return `<svg viewBox="0 0 280 440" width="${w}" height="${h}" role="img" aria-label="사서 큐 양">
+    <defs>
+      <linearGradient id="lib-robe" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3a445c"/><stop offset="45%" stop-color="#1a2130"/><stop offset="100%" stop-color="#0a0c12"/>
+      </linearGradient>
+      <linearGradient id="lib-cape" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#2a3148"/><stop offset="100%" stop-color="#0d1018"/>
+      </linearGradient>
+      <linearGradient id="lib-gold" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#f3e6c0"/><stop offset="50%" stop-color="#c4a35a"/><stop offset="100%" stop-color="#8f6b2a"/>
+      </linearGradient>
+      <linearGradient id="lib-lining" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#c4a35a"/><stop offset="100%" stop-color="#3a2a10"/>
+      </linearGradient>
+      <radialGradient id="lib-face" cx="50%" cy="40%" r="60%">
+        <stop offset="0%" stop-color="#3a3644"/><stop offset="100%" stop-color="#16141c"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="140" cy="424" rx="92" ry="12" fill="#000" opacity=".55"/>
+    <path d="M78 178 Q42 270 62 408 Q140 430 218 408 Q236 270 202 178 Z" fill="url(#lib-cape)" stroke="#c4a35a" stroke-width="1.1" opacity=".95"/>
+    <path d="M86 200 Q70 300 84 400" fill="none" stroke="#8f6b2a" stroke-width="1" opacity=".35"/>
+    <path d="M194 200 Q210 300 196 400" fill="none" stroke="#8f6b2a" stroke-width="1" opacity=".35"/>
+    <path d="M118 348 L110 416 L132 418 L136 350 Z" fill="#121018" stroke="#8f6b2a" stroke-width=".9"/>
+    <path d="M162 348 L170 416 L148 418 L144 350 Z" fill="#121018" stroke="#8f6b2a" stroke-width=".9"/>
+    <path d="M108 408 L132 410 L134 418 L106 416 Z" fill="#1a140c" stroke="#c4a35a" stroke-width=".8"/>
+    <path d="M172 408 L148 410 L146 418 L174 416 Z" fill="#1a140c" stroke="#c4a35a" stroke-width=".8"/>
+    <path d="M94 168 Q140 146 186 168 L204 348 Q140 386 76 348 Z" fill="url(#${coatId})" stroke="#c4a35a" stroke-width="1.6"/>
+    <path d="M76 348 Q140 386 204 348" fill="none" stroke="url(#lib-gold)" stroke-width="2.4"/>
+    <path d="M118 172 L140 312 L162 172" fill="url(#lib-lining)" opacity=".55"/>
+    <path d="M140 172 L140 348" stroke="#c4a35a" stroke-width=".5" opacity=".4"/>
+    <path d="M104 246 H176" stroke="#8f6b2a" stroke-width="8" opacity=".95"/>
+    <rect x="128" y="240" width="24" height="16" rx="2" fill="url(#lib-gold)" stroke="#f3e6c0" stroke-width=".6"/>
+    <circle cx="140" cy="198" r="2.6" fill="#e6d3a3"/><circle cx="140" cy="218" r="2.6" fill="#e6d3a3"/>
+    ${mark?`<path d="M126 252 L140 300 L154 252 Z" fill="#e6d3a3" stroke="#8f6b2a" stroke-width=".6"/>`:""}
+    ${deco?`<circle cx="140" cy="268" r="7" fill="none" stroke="#e6d3a3" stroke-width="1.4"/>`:""}
+    <path d="M96 176 Q68 250 86 330" fill="none" stroke="#1a2130" stroke-width="16" stroke-linecap="round"/>
+    <path d="M96 176 Q68 250 86 330" fill="none" stroke="#c4a35a" stroke-width="1.2" opacity=".7"/>
+    <path d="M184 176 Q212 250 194 330" fill="none" stroke="#1a2130" stroke-width="16" stroke-linecap="round"/>
+    <path d="M184 176 Q212 250 194 330" fill="none" stroke="#c4a35a" stroke-width="1.2" opacity=".7"/>
+    <ellipse cx="84" cy="336" rx="9" ry="7" fill="#1c2230" stroke="#c4a35a" stroke-width=".9"/>
+    <ellipse cx="196" cy="336" rx="9" ry="7" fill="#1c2230" stroke="#c4a35a" stroke-width=".9"/>
+    ${pen?`<g transform="translate(200 248) rotate(16)"><rect x="0" y="0" width="5" height="62" rx="1.5" fill="url(#lib-gold)"/><path d="M0 62 L2.5 78 L5 62 Z" fill="#e6d3a3"/><path d="M1 8 Q8 20 2 36" fill="none" stroke="#8f6b2a" stroke-width="1"/></g>`:
+      `<g transform="translate(186 250)"><rect x="0" y="0" width="38" height="48" fill="#1a140c" stroke="#c4a35a" stroke-width="1.2"/>
+       <rect x="0" y="0" width="7" height="48" fill="#8f6b2a"/>
+       <path d="M12 12 H32 M12 20 H32 M12 28 H26" stroke="#e6d3a3" stroke-width="1.1"/></g>`}
+    <path d="M108 166 Q140 192 172 166 Q176 148 140 142 Q104 148 108 166 Z" fill="#161b27" stroke="#e6d3a3" stroke-width="1.3"/>
+    <rect x="128" y="128" width="24" height="22" rx="7" fill="#2a2432"/>
+    <ellipse cx="140" cy="108" rx="30" ry="34" fill="url(#lib-face)" stroke="#c4a35a" stroke-width="1.15"/>
+    <path d="M112 96 Q140 128 168 96 Q168 118 140 132 Q112 118 112 96 Z" fill="#0e1016" opacity=".55"/>
+    <path d="M104 98 Q140 62 176 98 L172 112 Q140 90 108 112 Z" fill="#121722" stroke="url(#lib-gold)" stroke-width="1.4"/>
+    <ellipse cx="140" cy="98" rx="40" ry="6" fill="#1a2130" stroke="#e6d3a3" stroke-width="1.15"/>
+    <path d="M100 98 Q140 86 180 98" fill="none" stroke="#8f6b2a" stroke-width=".7" opacity=".7"/>
+    <ellipse cx="127" cy="112" rx="3.4" ry="2.2" fill="#f3e6c0"><animate attributeName="opacity" values="1;.55;1" dur="2.8s" repeatCount="indefinite"/></ellipse>
+    <ellipse cx="153" cy="112" rx="3.4" ry="2.2" fill="#f3e6c0"><animate attributeName="opacity" values="1;.55;1" dur="2.8s" begin="0.4s" repeatCount="indefinite"/></ellipse>
+    <path d="M134 122 Q140 127 146 122" fill="none" stroke="#8f6b2a" stroke-width="1"/>
+    <path d="M110 92 Q120 78 130 90" fill="none" stroke="#c4a35a" stroke-width="1" opacity=".5"/>
+    ${bird?`<g transform="translate(52 348)">
+      <ellipse cx="22" cy="14" rx="20" ry="10" fill="#1a140c" stroke="#c4a35a" stroke-width="1"/>
+      <circle cx="34" cy="10" r="8" fill="#c4a35a"/>
+      <circle cx="36" cy="8" r="1.6" fill="#1a140c"/>
+      <path d="M40 10 L50 6" stroke="#e6d3a3" stroke-width="1.6"/>
+      <path d="M6 16 Q0 8 10 4" fill="none" stroke="#8f6b2a" stroke-width="1.2"/>
+    </g>`:""}
+    ${giftSpriteLayers(save)}
+    <text x="140" y="28" text-anchor="middle" fill="#e6d3a3" font-size="13" letter-spacing="2.5" font-family="Georgia, serif">${title?title.name:"「초보 사서」"}</text>
+  </svg>`;
+}
+const GUEST_ARCHETYPES = ["knight","scholar","beast","puppet","fixer","mage"];
+const ARCH_LABEL = {knight:"기사",scholar:"학자",beast:"이형",puppet:"인형",fixer:"해결사",mage:"술사"};
+const GUEST_PALETTES = {
+  amber:  { cloth:"#2a2214", deep:"#0e0b08", accent:"#c4a35a", light:"#e6d3a3", metal:"#8f6b2a", glow:"#fff0c0" },
+  steel:  { cloth:"#1a2230", deep:"#0a0c12", accent:"#8aa0b8", light:"#d5e2ee", metal:"#6a7a8a", glow:"#cfe3ff" },
+  violet: { cloth:"#241830", deep:"#0c0812", accent:"#a888c4", light:"#e6d3f0", metal:"#6a4a8a", glow:"#e0c4ff" },
+  rust:   { cloth:"#2a1810", deep:"#100806", accent:"#c47048", light:"#e8b898", metal:"#8a4a28", glow:"#ffc8a0" },
+  verdant:{ cloth:"#14241c", deep:"#08100c", accent:"#6ebd96", light:"#c8ead8", metal:"#3a6a50", glow:"#d5ffe8" },
+  bone:   { cloth:"#2a2824", deep:"#12110f", accent:"#d8c8a8", light:"#f3e6c0", metal:"#8a8070", glow:"#fff6e0" },
+  crimson:{ cloth:"#2a1216", deep:"#12080a", accent:"#c45c4a", light:"#f0b0a4", metal:"#8a3028", glow:"#ffc0b0" },
+  teal:   { cloth:"#102028", deep:"#070c10", accent:"#5aa0a8", light:"#b8e0e4", metal:"#2a6068", glow:"#c8f0f4" }
+};
+const GUEST_ACCESSORIES = ["lantern","chain","hourglass","quill","mirror","watch","banner","gear","cage","orb"];
+const ARCH_CROP = { knight:"60 16 160 230", scholar:"78 4 124 230", beast:"50 30 180 240", puppet:"70 0 140 236", fixer:"70 24 140 230", mage:"52 0 176 236" };
+function hashStr(s){ let h=2166136261; for(let i=0;i<(s||"").length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
+function guestLook(g){
+  const h=hashStr((g&&g.id)||(g&&g.concept)||"guest");
+  const keys=Object.keys(GUEST_PALETTES);
+  const arch=g&&GUEST_ARCHETYPES.includes(g.archetype)?g.archetype:GUEST_ARCHETYPES[h%GUEST_ARCHETYPES.length];
+  const palKey=g&&GUEST_PALETTES[g.palette]?g.palette:keys[(h>>>4)%keys.length];
+  const acc=g&&GUEST_ACCESSORIES.includes(g.accessory)?g.accessory:GUEST_ACCESSORIES[(h>>>8)%GUEST_ACCESSORIES.length];
+  return { arch, palKey, pal:GUEST_PALETTES[palKey], acc, variant:(g&&g.variant!=null)?g.variant:((h>>>12)%3), crop:ARCH_CROP[arch] };
+}
+function accSvg(acc, pal, x, y){
+  const a=pal.accent, l=pal.light;
+  const body={
+    lantern:`<g transform="translate(${x} ${y})"><rect x="-7" y="8" width="14" height="16" fill="#1a140c" stroke="${a}" stroke-width="1"/><rect x="-5" y="10" width="10" height="10" fill="${l}" opacity=".7"/><path d="M0 0 V8 M-7 8 H7" stroke="${a}" stroke-width="1.2"/></g>`,
+    chain:`<g transform="translate(${x} ${y})" fill="none" stroke="${a}" stroke-width="1.3"><ellipse cx="0" cy="0" rx="4" ry="6"/><ellipse cx="0" cy="10" rx="4" ry="6"/><ellipse cx="0" cy="20" rx="4" ry="6"/></g>`,
+    hourglass:`<g transform="translate(${x} ${y})"><path d="M-8 0 H8 L0 14 L8 28 H-8 L0 14 Z" fill="${pal.deep}" stroke="${a}" stroke-width="1.2"/><path d="M-5 3 H5 L0 12 L5 25 H-5 L0 16 Z" fill="${l}" opacity=".55"/></g>`,
+    quill:`<g transform="translate(${x} ${y})"><path d="M0 0 L4 4 L-2 36 L-6 32 Z" fill="${a}"/><path d="M0 0 Q12 10 4 22" fill="none" stroke="${l}" stroke-width="1"/></g>`,
+    mirror:`<g transform="translate(${x} ${y})"><ellipse cx="0" cy="10" rx="10" ry="14" fill="${pal.deep}" stroke="${a}" stroke-width="1.4"/><ellipse cx="-2" cy="8" rx="5" ry="8" fill="${l}" opacity=".35"/></g>`,
+    watch:`<g transform="translate(${x} ${y})"><circle cx="0" cy="8" r="9" fill="${pal.deep}" stroke="${a}" stroke-width="1.3"/><circle cx="0" cy="8" r="6" fill="none" stroke="${l}" stroke-width=".8"/><path d="M0 8 L0 4 M0 8 L4 8" stroke="${l}" stroke-width="1.1"/></g>`,
+    banner:`<g transform="translate(${x} ${y})"><path d="M0 0 V40" stroke="${a}" stroke-width="1.5"/><path d="M0 2 H16 L12 12 L16 22 H0 Z" fill="${pal.cloth}" stroke="${a}" stroke-width="1"/></g>`,
+    gear:`<g transform="translate(${x} ${y})"><circle cx="0" cy="10" r="8" fill="${pal.deep}" stroke="${a}" stroke-width="1.4"/><circle cx="0" cy="10" r="3" fill="none" stroke="${l}" stroke-width="1"/>${[0,60,120,180,240,300].map(d=>`<rect x="-1.5" y="-2" width="3" height="6" fill="${a}" transform="translate(0 10) rotate(${d}) translate(0 -9)"/>`).join("")}</g>`,
+    cage:`<g transform="translate(${x} ${y})" fill="none" stroke="${a}" stroke-width="1.1"><rect x="-8" y="2" width="16" height="20"/><path d="M-8 2 Q0 -6 8 2 M-4 2 V22 M0 2 V22 M4 2 V22"/></g>`,
+    orb:`<g transform="translate(${x} ${y})"><circle cx="0" cy="10" r="9" fill="${pal.deep}" stroke="${a}" stroke-width="1.2"/><circle cx="0" cy="10" r="5" fill="${l}" opacity=".7"/><circle cx="-2" cy="7" r="2" fill="#fff" opacity=".8"/></g>`
+  };
+  return body[acc]||"";
+}
+function guestDefs(uid, pal){
+  return `<defs>
+    <linearGradient id="${uid}-cloth" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${pal.cloth}"/><stop offset="100%" stop-color="${pal.deep}"/></linearGradient>
+    <linearGradient id="${uid}-metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${pal.light}"/><stop offset="100%" stop-color="${pal.metal}"/></linearGradient>
+    <radialGradient id="${uid}-glow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${pal.glow}"/><stop offset="70%" stop-color="${pal.accent}"/><stop offset="100%" stop-color="transparent"/></radialGradient>
+  </defs>`;
+}
+function guestBodyKnight(uid, pal, look, stag){
+  const a=pal.accent, d=pal.deep, l=pal.light;
+  const crest=look.variant===0?`<path d="M140 36 L148 86 L132 86 Z" fill="${a}"/>`:look.variant===1?`<path d="M122 70 Q140 28 158 70" fill="none" stroke="${a}" stroke-width="2"/>`:`<path d="M140 40 V70" stroke="${a}" stroke-width="2"/>`;
+  return `
+    <path d="M70 200 Q40 300 78 414 Q140 430 202 414 Q240 300 210 200 Z" fill="${d}" opacity=".85"/>
+    <path d="M108 348 L96 418 L124 420 L128 350 Z" fill="${d}" stroke="${a}" stroke-width="1.1"/>
+    <path d="M172 348 L184 418 L156 420 L152 350 Z" fill="${d}" stroke="${a}" stroke-width="1.1"/>
+    <path d="M88 250 L80 348 Q140 372 200 348 L192 250 Z" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.4"/>
+    <path d="M96 168 L76 250 H204 L184 168 Z" fill="url(#${uid}-cloth)" stroke="url(#${uid}-metal)" stroke-width="1.6"/>
+    <path d="M112 176 L140 250 L168 176" fill="${d}" opacity=".45"/>
+    <rect x="100" y="248" width="80" height="12" fill="${d}" stroke="${a}" stroke-width="1"/>
+    <path d="M64 168 L96 176 L100 250 L58 236 Z" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.5"/>
+    <path d="M216 168 L184 176 L180 250 L222 236 Z" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.5"/>
+    <path d="M48 228 L36 300 L58 304 L70 232 Z" fill="${d}" stroke="${a}" stroke-width="1"/>
+    ${accSvg(look.acc, pal, 230, 210)}
+    <path d="M200 160 L250 40 L256 48 L214 168 Z" fill="url(#${uid}-metal)" stroke="${l}" stroke-width=".8"/>
+    <path d="M108 132 H172 L180 176 H100 Z" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.3"/>
+    <path d="M112 78 Q140 58 168 78 L176 132 H104 Z" fill="${d}" stroke="url(#${uid}-metal)" stroke-width="1.6"/>
+    ${crest}
+    <rect x="118" y="100" width="44" height="8" fill="${d}" stroke="${a}" stroke-width="1"/>
+    <rect x="122" y="102" width="14" height="3.5" fill="url(#${uid}-glow)"/>
+    <rect x="144" y="102" width="14" height="3.5" fill="url(#${uid}-glow)"/>
+    ${stag?`<path d="M90 90 L190 300 M190 90 L90 300" stroke="#e0b43a" stroke-width="1.3" opacity=".5"/>`:""}`;
+}
+function guestBodyScholar(uid, pal, look, stag){
+  const a=pal.accent, d=pal.deep, l=pal.light;
+  return `
+    <path d="M108 200 L96 414 Q140 432 184 414 L172 200 Z" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.4"/>
+    <path d="M118 200 L140 360 L162 200" fill="${d}" opacity=".35"/>
+    <path d="M106 168 H174 L180 210 H100 Z" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.2"/>
+    <path d="M100 168 Q140 196 180 168" fill="none" stroke="${a}" stroke-width="1.2"/>
+    <g transform="translate(186 250)">
+      <rect x="0" y="8" width="22" height="30" fill="${d}" stroke="${a}" stroke-width="1"/><rect x="4" y="0" width="22" height="30" fill="${pal.cloth}" stroke="${a}" stroke-width="1"/>
+      <rect x="8" y="-8" width="22" height="30" fill="${d}" stroke="${l}" stroke-width="1"/>
+    </g>
+    ${accSvg(look.acc, pal, 68, 220)}
+    <rect x="128" y="132" width="24" height="36" rx="8" fill="#2a2430" stroke="${a}" stroke-width=".8"/>
+    <ellipse cx="140" cy="114" rx="22" ry="26" fill="#2c2834" stroke="${a}" stroke-width="1.1"/>
+    <path d="M126 110 H118 M154 110 H162" stroke="${a}" stroke-width="1.2"/>
+    <ellipse cx="132" cy="112" rx="5" ry="3.4" fill="none" stroke="${l}" stroke-width="1.1"/>
+    <ellipse cx="148" cy="112" rx="5" ry="3.4" fill="none" stroke="${l}" stroke-width="1.1"/>
+    <path d="M137 112 H143" stroke="${a}" stroke-width="1"/>
+    <circle cx="132" cy="112" r="1.4" fill="${l}"/><circle cx="148" cy="112" r="1.4" fill="${l}"/>
+    <path d="M134 124 Q140 128 146 124" fill="none" stroke="${a}" stroke-width=".9"/>
+    <path d="M112 96 Q140 40 168 96 L164 112 Q140 86 116 112 Z" fill="${d}" stroke="${a}" stroke-width="1.3"/>
+    <path d="M140 40 L140 22 M132 28 H148" stroke="${a}" stroke-width="1.4"/>
+    ${stag?`<path d="M100 80 L180 300 M180 80 L100 300" stroke="#e0b43a" stroke-width="1.2" opacity=".5"/>`:""}`;
+}
+function guestBodyBeast(uid, pal, look, stag){
+  const a=pal.accent, d=pal.deep, l=pal.light;
+  const horns=look.variant===0
+    ?`<path d="M108 120 L86 48 L120 110" fill="${d}" stroke="${a}" stroke-width="1.3"/><path d="M172 120 L194 48 L160 110" fill="${d}" stroke="${a}" stroke-width="1.3"/>`
+    :look.variant===1?`<path d="M140 90 L140 36 M128 54 L140 36 L152 54" fill="none" stroke="${a}" stroke-width="2"/>`
+    :`<path d="M116 100 Q96 40 80 56 Q110 70 120 110" fill="${d}" stroke="${a}" stroke-width="1.2"/><path d="M164 100 Q184 40 200 56 Q170 70 160 110" fill="${d}" stroke="${a}" stroke-width="1.2"/>`;
+  return `
+    <path d="M206 300 Q250 330 236 400" fill="none" stroke="${a}" stroke-width="6" stroke-linecap="round" opacity=".8"/>
+    <path d="M70 260 Q40 360 90 420 L130 400 Q96 340 110 250 Z" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.3"/>
+    <path d="M210 260 Q244 360 196 420 L160 400 Q188 340 174 250 Z" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.3"/>
+    <path d="M78 200 Q50 250 86 310 L140 300 L200 310 Q230 250 202 200 Q140 240 78 200 Z" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.5"/>
+    <path d="M90 160 Q140 210 190 160 Q210 200 140 236 Q70 200 90 160 Z" fill="${d}" stroke="${a}" stroke-width="1.2"/>
+    <path d="M100 120 Q140 80 180 120 L188 168 Q140 150 92 168 Z" fill="${d}" stroke="${a}" stroke-width="1.3"/>
+    ${horns}
+    <path d="M124 150 L140 178 L156 150" fill="${d}" stroke="${a}" stroke-width="1"/>
+    <ellipse cx="126" cy="136" rx="8" ry="4" fill="url(#${uid}-glow)"/>
+    <ellipse cx="154" cy="136" rx="8" ry="4" fill="url(#${uid}-glow)"/>
+    <path d="M70 170 Q40 150 48 200 Q70 210 90 190" fill="${d}" stroke="${a}" stroke-width="1.1"/>
+    <path d="M210 170 Q240 150 232 200 Q210 210 190 190" fill="${d}" stroke="${a}" stroke-width="1.1"/>
+    ${accSvg(look.acc, pal, 54, 210)}
+    ${stag?`<path d="M80 80 L200 320 M200 80 L80 320" stroke="#e0b43a" stroke-width="1.3" opacity=".5"/>`:""}`;
+}
+function guestBodyPuppet(uid, pal, look, stag){
+  const a=pal.accent, d=pal.deep, l=pal.light;
+  return `
+    <path d="M140 0 V70" stroke="${a}" stroke-width="1" opacity=".7"/>
+    <path d="M80 8 L118 90" stroke="${a}" stroke-width=".9" opacity=".65"/>
+    <path d="M200 8 L162 90" stroke="${a}" stroke-width=".9" opacity=".65"/>
+    <path d="M40 20 L96 200" stroke="${a}" stroke-width=".7" opacity=".45"/>
+    <path d="M240 20 L184 200" stroke="${a}" stroke-width=".7" opacity=".45"/>
+    <rect x="118" y="200" width="16" height="96" rx="3" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1" transform="rotate(-6 126 248)"/>
+    <rect x="146" y="200" width="16" height="96" rx="3" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1" transform="rotate(8 154 248)"/>
+    <rect x="112  " y="148" width="56" height="70" rx="4" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.3"/>
+    <path d="M120 160 H160 M120 176 H160 M120 192 H152" stroke="${a}" stroke-width=".6" opacity=".5"/>
+    <circle cx="118" cy="150" r="7" fill="${d}" stroke="${a}" stroke-width="1.1"/>
+    <circle cx="162" cy="150" r="7" fill="${d}" stroke="${a}" stroke-width="1.1"/>
+    <circle cx="126" cy="222" r="6" fill="${d}" stroke="${a}" stroke-width="1"/>
+    <circle cx="154" cy="222" r="6" fill="${d}" stroke="${a}" stroke-width="1"/>
+    <path d="M96 150 Q70 200 78 280" fill="none" stroke="url(#${uid}-cloth)" stroke-width="10" stroke-linecap="round"/>
+    <path d="M184 150 Q214 190 206 270" fill="none" stroke="url(#${uid}-cloth)" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="78" cy="280" r="7" fill="${d}" stroke="${a}"/>
+    <circle cx="206" cy="270" r="7" fill="${d}" stroke="${a}"/>
+    ${accSvg(look.acc, pal, 58, 160)}
+    <path d="M172 168 L196 180 L172 186 Z" fill="url(#${uid}-metal)"/>
+    <ellipse cx="140" cy="108" rx="26" ry="32" fill="#d8c8b0" stroke="${a}" stroke-width="1.2"/>
+    <path d="M128 100 L150 128" stroke="${pal.metal}" stroke-width="1.1" opacity=".8"/>
+    <circle cx="130" cy="108" r="3" fill="#1a140c"/><circle cx="150" cy="108" r="3" fill="#1a140c"/>
+    <circle cx="130.8" cy="107.2" r="1" fill="${l}"/><circle cx="150.8" cy="107.2" r="1" fill="${l}"/>
+    <path d="M132 126 Q140 130 148 126" fill="none" stroke="${pal.metal}" stroke-width="1"/>
+    <path d="M116 86 Q140 54 164 86 L158 96 Q140 76 122 96 Z" fill="${d}" stroke="${a}" stroke-width="1.2"/>
+    ${stag?`<path d="M100 70 L180 300 M180 70 L100 300" stroke="#e0b43a" stroke-width="1.2" opacity=".5"/>`:""}`;
+}
+function guestBodyFixer(uid, pal, look, stag){
+  const a=pal.accent, d=pal.deep, l=pal.light;
+  return `
+    <path d="M92 250 L78 418 L116 420 L124 300 Z" fill="${d}" stroke="${a}" stroke-width="1"/>
+    <path d="M188 250 L202 418 L164 420 L156 300 Z" fill="${d}" stroke="${a}" stroke-width="1"/>
+    <path d="M86 168 L70 250 L86 300 L70 410" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.2"/>
+    <path d="M194 168 L210 250 L194 300 L210 410" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.2"/>
+    <path d="M96 168 L86 250 H194 L184 168 Z" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.5"/>
+    <path d="M114 176 L140 248 L166 176" fill="${d}" opacity=".4"/>
+    <rect x="104" y="236" width="72" height="10" fill="${d}" stroke="${a}" stroke-width="1"/>
+    <path d="M96 176 Q70 230 86 310" fill="none" stroke="${d}" stroke-width="12" stroke-linecap="round"/>
+    <path d="M184 176 Q210 230 194 300" fill="none" stroke="${d}" stroke-width="12" stroke-linecap="round"/>
+    <path d="M186 250 L250 210 L254 218 L198 264 Z" fill="url(#${uid}-metal)"/>
+    ${accSvg(look.acc, pal, 64, 236)}
+    <path d="M112 150 H168 L172 176 H108 Z" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.2"/>
+    <rect x="128" y="132" width="24" height="22" rx="6" fill="#2a2430"/>
+    <ellipse cx="140" cy="114" rx="22" ry="24" fill="#2a2832" stroke="${a}" stroke-width="1.1"/>
+    <path d="M122 98 Q140 88 158 98 L160 108 Q140 100 120 108 Z" fill="${d}"/>
+    <path d="M118 92 Q140 70 166 96" fill="none" stroke="${a}" stroke-width="1.5"/>
+    <rect x="118" y="108" width="44" height="5" fill="${d}" opacity=".75"/>
+    <ellipse cx="130" cy="114" rx="2.6" ry="1.8" fill="${l}"/>
+    <ellipse cx="150" cy="114" rx="2.6" ry="1.8" fill="${l}"/>
+    <path d="M134 124 L140 126 L146 124" fill="none" stroke="${a}" stroke-width=".9"/>
+    ${stag?`<path d="M90 80 L190 300 M190 80 L90 300" stroke="#e0b43a" stroke-width="1.2" opacity=".5"/>`:""}`;
+}
+function guestBodyMage(uid, pal, look, stag){
+  const a=pal.accent, d=pal.deep, l=pal.light;
+  return `
+    <ellipse cx="140" cy="200" rx="70" ry="20" fill="none" stroke="${a}" stroke-width="1" opacity=".35"/>
+    <path d="M70 200 Q40 300 88 420 Q140 438 192 420 Q240 300 210 200 Q140 250 70 200 Z" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.4"/>
+    <path d="M100 200 Q140 280 180 200" fill="none" stroke="${a}" stroke-width="1.1" opacity=".6"/>
+    <path d="M64 168 Q40 220 70 280" fill="none" stroke="url(#${uid}-cloth)" stroke-width="22" stroke-linecap="round"/>
+    <path d="M216 168 Q240 220 210 280" fill="none" stroke="url(#${uid}-cloth)" stroke-width="22" stroke-linecap="round"/>
+    <path d="M48 270 L40 390 L58 392 L66 280 Z" fill="url(#${uid}-metal)" stroke="${l}" stroke-width=".8"/>
+    <circle cx="48" cy="250" r="12" fill="${d}" stroke="${a}" stroke-width="1.3"/>
+    <circle cx="48" cy="250" r="6" fill="url(#${uid}-glow)"/>
+    <g opacity=".8">${[0,1,2].map(i=>`<rect x="${200+i*10}" y="${120-i*16}" width="14" height="18" fill="${d}" stroke="${a}" stroke-width=".8" transform="rotate(${-12+i*8} ${207+i*10} ${129-i*16})"/>`).join("")}</g>
+    ${accSvg(look.acc, pal, 232, 210)}
+    <path d="M110 150 H170 L176 200 H104 Z" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.2"/>
+    <ellipse cx="140" cy="124" rx="22" ry="26" fill="#1a1420" stroke="${a}" stroke-width="1.1"/>
+    <path d="M118 120 Q140 136 162 120" fill="${d}" opacity=".7"/>
+    <ellipse cx="140" cy="128" rx="10" ry="6" fill="none" stroke="${a}" stroke-width="1.2"/>
+    <circle cx="140" cy="128" r="3" fill="url(#${uid}-glow)"/>
+    <path d="M60 90 Q140 -10 220 90 L200 130 Q140 70 80 130 Z" fill="url(#${uid}-cloth)" stroke="${a}" stroke-width="1.5"/>
+    <path d="M70 96 Q140 20 210 96" fill="none" stroke="${l}" stroke-width=".8" opacity=".5"/>
+    <path d="M140 -4 L140 36" stroke="${a}" stroke-width="1.5"/>
+    <circle cx="140" cy="-6" r="5" fill="url(#${uid}-glow)"/>
+    ${stag?`<path d="M80 60 L200 320 M200 60 L80 320" stroke="#e0b43a" stroke-width="1.2" opacity=".5"/>`:""}`;
+}
+const GUEST_BODY = { knight:guestBodyKnight, scholar:guestBodyScholar, beast:guestBodyBeast, puppet:guestBodyPuppet, fixer:guestBodyFixer, mage:guestBodyMage };
+function guestSvg(guest, staggered=false, w=320, h=480, crop=false){
+  const look=guestLook(guest||{});
+  const uid="gs-"+String((guest&&guest.id)||"x").replace(/[^a-z0-9_-]/gi,"");
+  const vb=crop?look.crop:"0 0 280 440";
+  const body=(GUEST_BODY[look.arch]||guestBodyFixer)(uid, look.pal, look, staggered);
+  return `<svg viewBox="${vb}" width="${w}" height="${h}" role="img" aria-label="${(guest&&guest.concept)||"손님"} 손님">
+    ${guestDefs(uid, look.pal)}
+    <ellipse cx="140" cy="426" rx="92" ry="12" fill="#000" opacity=".5"/>
+    ${body}
+    ${staggered?`<text x="140" y="24" text-anchor="middle" fill="#e0b43a" font-size="13" letter-spacing="3" font-family="Georgia, serif">흐트러짐</text>`:""}
+  </svg>`;
+}
+
+function bookSvg(concept){
+  return `<svg viewBox="0 0 80 100" width="88" height="110" aria-hidden="true">
+    <defs><linearGradient id="bk" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2a2214"/><stop offset="100%" stop-color="#0e0b08"/></linearGradient></defs>
+    <ellipse cx="40" cy="92" rx="22" ry="5" fill="#000" opacity=".4"/>
+    <rect x="14" y="8" width="52" height="80" rx="2" fill="url(#bk)" stroke="#c4a35a" stroke-width="1.7"/>
+    <rect x="14" y="8" width="9" height="80" fill="#8f6b2a"/>
+    <path d="M18 8 V88" stroke="#e6d3a3" stroke-width=".5" opacity=".5"/>
+    <path d="M32 24 H58 M32 34 H58 M32 44 H50" stroke="#e6d3a3" stroke-width="1.15"/>
+    <circle cx="45" cy="62" r="8" fill="none" stroke="#c4a35a" stroke-width="1.1"/>
+    <text x="40" y="96" text-anchor="middle" fill="#cbb992" font-size="7">${(concept||"").slice(0,6)}</text>
+  </svg>`;
+}
+function dieSvg(type, value, broken){
+  const shown=value!=null;
+  const icon = {
+    "참격":`<path d="M20 ${shown?34:46} L32 ${shown?8:10} L44 ${shown?34:46} Z" fill="url(#dg)" stroke="#f3e6c0" stroke-width=".6"/>`,
+    "관통":`<path d="M18 ${shown?36:48} L32 8 L36 20 L48 14 L36 ${shown?40:54} Z" fill="url(#dg)" stroke="#f3e6c0" stroke-width=".6"/>`,
+    "방어":`<path d="M16 ${shown?28:34} Q32 6 48 ${shown?28:34} L32 ${shown?42:54} Z" fill="#6ebd96" stroke="#d5ffe8" stroke-width=".6"/>`,
+    "회피":`<path d="M16 16 Q46 8 50 28 Q30 26 18 40 Z" fill="#7aa0c4" stroke="#cfe3ff" stroke-width=".6"/>`
+  }[type]||"";
+  return `<svg viewBox="0 0 64 64" width="110" height="110">
+    <defs><linearGradient id="dg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f3e6c0"/><stop offset="100%" stop-color="#8f6b2a"/></linearGradient></defs>
+    <rect x="3" y="3" width="58" height="58" rx="10" fill="#120e10" stroke="#c4a35a" stroke-width="2.2"/>
+    <rect x="8" y="8" width="48" height="48" rx="6" fill="none" stroke="#8f6b2a" stroke-width=".8"/>
+    <path d="M10 14 H18 M46 14 H54 M10 50 H18 M46 50 H54" stroke="#e6d3a3" stroke-width="1.2"/>
+    ${icon}
+    ${shown?`<circle cx="32" cy="50" r="9" fill="#0b0e16" stroke="#e6d3a3" stroke-width="1.2"/>
+      <text x="32" y="55" text-anchor="middle" fill="#f3e6c0" font-size="14" font-weight="700">${value}</text>`:""}
+    ${broken?`<path d="M12 12 L52 52 M52 12 L12 52" stroke="#c45c4a" stroke-width="2.6"/>`:""}
+  </svg>`;
+}
+function glyphSvg(item, muted=false, size=40){
+  const col = muted?"#3a4150": item.rarity==="SSR"?"#e6d3a3":item.rarity==="SR"?"#c4a35a":item.rarity==="R"?"#8f6b2a":"#9aa3b2";
+  const body = {
+    "책갈피":`<path d="M16 6 H34 V38 L25 31 L16 38 Z" fill="${col}" stroke="#1a140c" stroke-width=".6"/>`,
+    "장식":`<path d="M10 14 H38 L34 40 H14 Z M18 14 V8 H30 V14" fill="${col}"/><circle cx="24" cy="26" r="5" fill="#0b0e16"/>`,
+    "깃펜":`<path d="M22 4 H26 L28 34 L24 46 L20 34 Z" fill="${col}"/><path d="M22 10 Q34 22 24 34" fill="none" stroke="#1a140c" stroke-width="1"/>`,
+    "동반자":`<g fill="${col}"><ellipse cx="22" cy="30" rx="13" ry="8"/><circle cx="30" cy="22" r="7"/><path d="M36 22 L44 16" stroke="${col}" stroke-width="2"/></g>`,
+    "서고":`<g fill="${col}"><rect x="8" y="20" width="8" height="20"/><rect x="18" y="12" width="8" height="28"/><rect x="28" y="16" width="8" height="24"/></g>`,
+    "호칭":`<path d="M24 4 L28 16 H40 L30 24 L34 38 L24 30 L14 38 L18 24 L8 16 H20 Z" fill="${col}"/>`
+  }[item.slot]||"";
+  return `<svg viewBox="0 0 48 48" width="${size}" height="${size}" style="opacity:${muted?.4:1}">${body}</svg>`;
+}
+
+/* ---------- background + FX canvas ---------- */
+const FX = (() => {
+  let bg, fx, bctx, fctx, w=0,h=0, dust=[], sparks=[], t=0, parallax={x:0,y:0}, mode="title";
+  function resize(){
+    const g=$("#game"); w=g.clientWidth; h=g.clientHeight;
+    [bg,fx].forEach(c=>{ c.width=w*devicePixelRatio; c.height=h*devicePixelRatio; c.style.width=w+"px"; c.style.height=h+"px"; });
+    bctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    fctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    if(!dust.length) seed();
+  }
+  function seed(){
+    dust=Array.from({length:90},()=>({
+      x:Math.random()*w, y:Math.random()*h, z:.3+Math.random()*1.2,
+      r:.4+Math.random()*1.4, s:.08+Math.random()*.25, a:.15+Math.random()*.45,
+      hue:Math.random()>.7?"rgba(230,211,163,":"rgba(200,200,210,"
+    }));
+  }
+  function drawShelfLayer(ctx, y, scale, alpha, off){
+    const bh=42*scale, gap=16*scale;
+    ctx.save(); ctx.globalAlpha=alpha;
+    ctx.fillStyle="#1a140c"; ctx.fillRect(0,y,w,8*scale);
+    let x=-20+off;
+    while(x<w+20){
+      const hh=bh*(.7+((x*13)%11)/20);
+      const hue = (Math.abs(Math.sin(x*0.07))*40)+20;
+      ctx.fillStyle=`hsl(${hue},35%,${18+scale*8}%)`;
+      ctx.fillRect(x, y-hh, 10*scale, hh);
+      if((x|0)%5===0){ ctx.fillStyle="#c4a35a"; ctx.fillRect(x+2,y-hh,2,Math.min(8,hh)); }
+      x+=gap;
+    }
+    ctx.restore();
+  }
+  function gothicWindow(ctx, cx, cy, sc, stained){
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(sc, sc);
+    ctx.beginPath(); ctx.moveTo(-78,130); ctx.lineTo(-78,24); ctx.quadraticCurveTo(0,-36,78,24); ctx.lineTo(78,130); ctx.closePath();
+    if(stained){
+      const g=ctx.createLinearGradient(0,-20,0,130);
+      g.addColorStop(0,"rgba(60,80,110,.45)"); g.addColorStop(.5,"rgba(40,50,70,.35)"); g.addColorStop(1,"rgba(20,24,36,.5)");
+      ctx.fillStyle=g; ctx.fill();
+      ctx.save(); ctx.clip();
+      ctx.strokeStyle="rgba(196,163,90,.35)"; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(0,-20); ctx.lineTo(0,130); ctx.moveTo(-78,68); ctx.lineTo(78,68);
+      ctx.moveTo(-40,24); ctx.lineTo(-40,130); ctx.moveTo(40,24); ctx.lineTo(40,130); ctx.stroke();
+      // warm light through glass
+      const lg=ctx.createRadialGradient(0,40,4,0,40,90);
+      lg.addColorStop(0,"rgba(230,211,163,.28)"); lg.addColorStop(1,"rgba(230,211,163,0)");
+      ctx.fillStyle=lg; ctx.fillRect(-78,-36,156,166);
+      ctx.restore();
+    } else {
+      ctx.fillStyle="rgba(16,20,30,.4)"; ctx.fill();
+    }
+    ctx.strokeStyle="rgba(196,163,90,.7)"; ctx.lineWidth=2.2; ctx.stroke();
+    ctx.strokeStyle="rgba(243,230,192,.35)"; ctx.lineWidth=.8;
+    ctx.beginPath(); ctx.moveTo(-78,130); ctx.lineTo(-78,24); ctx.quadraticCurveTo(0,-36,78,24); ctx.lineTo(78,130); ctx.stroke();
+    ctx.restore();
+  }
+  function drawArena(ctx){
+    // side halls + perspective floor, no center window
+    const spotL=ctx.createRadialGradient(w*.22,h*.72,10,w*.22,h*.72,w*.28);
+    spotL.addColorStop(0,"rgba(230,211,163,.16)"); spotL.addColorStop(1,"transparent");
+    const spotR=ctx.createRadialGradient(w*.78,h*.72,10,w*.78,h*.72,w*.28);
+    spotR.addColorStop(0,"rgba(180,160,200,.10)"); spotR.addColorStop(1,"transparent");
+    ctx.fillStyle=spotL; ctx.fillRect(0,0,w,h);
+    ctx.fillStyle=spotR; ctx.fillRect(0,0,w,h);
+    // tall side shelves
+    for(let side=0; side<2; side++){
+      for(let row=0; row<7; row++){
+        const y=h*.18+row*(h*.09);
+        const x0=side?w-150:12;
+        ctx.fillStyle="#120e0a"; ctx.fillRect(x0,y+28,138,7);
+        ctx.fillStyle="rgba(196,163,90,.22)"; ctx.fillRect(x0,y+28,138,1);
+        for(let i=0;i<9;i++){
+          const hh=16+(i*7+row*3)%18;
+          const gold=(i+row)%5===0;
+          ctx.fillStyle=gold?"#c4a35a": (i%2?"#2a1c12":"#1a140c");
+          ctx.fillRect(x0+6+i*14, y+28-hh, 12, hh);
+        }
+      }
+    }
+    // wood floor perspective
+    ctx.beginPath();
+    ctx.moveTo(w*.1,h*.82); ctx.lineTo(w*.9,h*.82); ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
+    const fg=ctx.createLinearGradient(0,h*.82,0,h);
+    fg.addColorStop(0,"rgba(28,22,14,.85)"); fg.addColorStop(1,"rgba(8,6,4,.95)");
+    ctx.fillStyle=fg; ctx.fill();
+    ctx.strokeStyle="rgba(196,163,90,.35)"; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(w*.1,h*.82); ctx.lineTo(w*.9,h*.82); ctx.stroke();
+    ctx.strokeStyle="rgba(196,163,90,.12)"; ctx.lineWidth=1;
+    for(let i=1;i<8;i++){
+      const y=h*.82+(h*.18)*(i/8);
+      ctx.beginPath(); ctx.moveTo(w*.1*(1-i/8), y); ctx.lineTo(w-w*.1*(1-i/8), y); ctx.stroke();
+    }
+    for(let i=0;i<=10;i++){
+      const t=i/10;
+      ctx.beginPath(); ctx.moveTo(w*.1+t*w*.8, h*.82); ctx.lineTo(t*w, h); ctx.stroke();
+    }
+  }
+  function frame(ts){
+    t=ts*.001;
+    bctx.clearRect(0,0,w,h);
+    const px=parallax.x, py=parallax.y;
+    const g=bctx.createLinearGradient(0,0,0,h);
+    g.addColorStop(0,"#0b0e16"); g.addColorStop(.45,"#121018"); g.addColorStop(1,"#07080d");
+    bctx.fillStyle=g; bctx.fillRect(0,0,w,h);
+    const lg=bctx.createRadialGradient(w*.5+px*8,h*.16+py*6,10,w*.5,h*.2,w*.5);
+    lg.addColorStop(0, mode==="battle"?"rgba(230,211,163,.08)":"rgba(230,211,163,.26)");
+    lg.addColorStop(1,"rgba(0,0,0,0)");
+    bctx.fillStyle=lg; bctx.fillRect(0,0,w,h);
+    if(mode==="battle"){
+      drawArena(bctx);
+    } else {
+      gothicWindow(bctx, w/2+px*6, h*.075+py*4, mode==="title"?1.15:0.92, true);
+      drawShelfLayer(bctx, h*.46+py*8, .7, .4, px*10 + t*2);
+      drawShelfLayer(bctx, h*.62+py*14, 1, .6, -px*18);
+      drawShelfLayer(bctx, h*.82+py*22, 1.45, .85, px*28);
+      bctx.fillStyle="rgba(10,8,6,.55)"; bctx.fillRect(0,h*.86,w,h*.14);
+      bctx.strokeStyle="rgba(196,163,90,.25)"; bctx.beginPath(); bctx.moveTo(40,h*.88); bctx.lineTo(w-40,h*.88); bctx.stroke();
+    }
+    for(const p of dust){
+      p.y-=p.s*p.z; p.x+=Math.sin(t*p.z+p.y*.01)*.15;
+      if(p.y<-5){ p.y=h+5; p.x=Math.random()*w; }
+      bctx.fillStyle=p.hue+(p.a)+")";
+      bctx.beginPath(); bctx.arc(p.x+px*p.z*8,p.y,p.r,0,6.28); bctx.fill();
+    }
+    fctx.clearRect(0,0,w,h);
+    sparks=sparks.filter(s=>s.life>0);
+    for(const s of sparks){
+      s.life-=s.dec; s.x+=s.vx; s.y+=s.vy; s.vy+=.14;
+      fctx.globalAlpha=Math.max(0,s.life);
+      fctx.fillStyle=s.c;
+      if(s.long){ fctx.save(); fctx.translate(s.x,s.y); fctx.rotate(s.rot||0); fctx.fillRect(0,0,s.sz*6,s.sz*.7); fctx.restore(); }
+      else fctx.fillRect(s.x,s.y,s.sz,s.sz);
+    }
+    fctx.globalAlpha=1;
+    requestAnimationFrame(frame);
+  }
+  return {
+    init(){
+      bg=$("#bg"); fx=$("#fx"); bctx=bg.getContext("2d"); fctx=fx.getContext("2d");
+      resize(); addEventListener("resize", resize);
+      addEventListener("pointermove", e=>{
+        parallax.x=(e.clientX/w-.5)*12; parallax.y=(e.clientY/h-.5)*8;
+      });
+      requestAnimationFrame(frame);
+    },
+    setMode(m){ mode=m; },
+    burst(x,y,n=28,color="#e6d3a3"){
+      for(let i=0;i<n;i++){
+        const a=Math.random()*6.28, sp=2+Math.random()*8;
+        sparks.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-3,life:1,dec:.016+Math.random()*.03,sz:1.5+Math.random()*3.2,c:color,long:i%3===0,rot:a});
+      }
+    },
+    size(){ return {w,h}; }
+  };
+})();
+/* ---------- state ---------- */
+function defaultSave(){
+  return {
+    hp:COMBAT.playerStartHp, maxHp:COMBAT.playerStartHp, level:1, xp:0,
+    questionsAnswered:0, ticketsSpent:0, ownedIds:[],
+    equipped:{책갈피:null,장식:null,깃펜:null,동반자:null,서고:null,호칭:null},
+    conqueredIds:[], conceptStats:{}, receptionsWon:0,
+    pullsSinceSr:0, pullsSinceSsr:0, books:{},
+    unlockedPageIds:[...STARTER_PAGES], unlockedKeyIds:["novice"], equippedKeyId:"novice",
+    muted:false,
+    egoOwned:[], egoEquipped:emptyEgoEquip(), egoPity:{},
+    recallStats:{}
+  };
+}
+function loadSave(){
+  try{
+    const r=JSON.parse(localStorage.getItem(SAVE_KEY));
+    if(r&&typeof r==="object"){
+      const d=defaultSave();
+      const s={...d,...r};
+      s.equipped={...d.equipped,...(r.equipped||{})};
+      s.egoEquipped={...d.egoEquipped,...(r.egoEquipped||{})};
+      s.egoOwned=Array.isArray(r.egoOwned)?r.egoOwned:[];
+      s.egoPity=r.egoPity&&typeof r.egoPity==="object"?r.egoPity:{};
+      s.recallStats=r.recallStats&&typeof r.recallStats==="object"?r.recallStats:{};
+      return s;
+    }
+  }catch(e){}
+  return defaultSave();
+}
+function persist(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
+
+let save=loadSave();
+let scene="title", floorId=FLOORS[0].id, selectedGuestId=WEAK_POINTS[0].id;
+let reception=null, collectTab="gacha", slotFilter="전체", reveals=null;
+let busy=false, sheetOpen=false;
+
+/* ---------- transitions / toast / shake ---------- */
+function transit(next, fn){
+  const tr=$("#transition"); tr.classList.add("go");
+  setTimeout(()=>{ fn&&fn(); showScene(next); tr.classList.remove("go"); }, 420);
+}
+function showScene(name){
+  scene=name; FX.setMode(name);
+  $$(".scene").forEach(s=>{
+    const on=s.id==="scene-"+name;
+    if(on){ s.style.transition=""; s.style.visibility="visible"; s.classList.add("on"); }
+    else { s.style.transition="none"; s.classList.remove("on"); s.style.visibility="hidden"; }
+  });
+}
+function toast(msg, ms=1400){ const el=$("#toast"); el.textContent=msg; el.classList.add("on"); setTimeout(()=>el.classList.remove("on"),ms); }
+let learnTimer;
+function learnToast(html, ms=4200){
+  const el=$("#learn-toast"); if(!el) return;
+  el.innerHTML=html; el.classList.add("on");
+  clearTimeout(learnTimer);
+  learnTimer=setTimeout(()=>el.classList.remove("on"), ms);
+}
+function shake(n=8){
+  const el=$("#shake"); let i=0;
+  const step=()=>{ i++; el.style.transform=`translate(${(Math.random()*2-1)*n}px,${(Math.random()*2-1)*n}px)`;
+    if(i<10) requestAnimationFrame(step); else el.style.transform=""; };
+  step();
+}
+function flash(a=.35){ const f=$("#flash"); f.style.opacity=a; f.style.transition="none"; requestAnimationFrame(()=>{ f.style.transition="opacity .35s ease"; f.style.opacity=0; }); }
+function floatDmg(x,y,n,kind){
+  const d=document.createElement("div");
+  d.className="dmg"+(kind==="hurt"?" hurt":kind==="stag"?" stag":"");
+  d.textContent = kind==="stag" ? "흐트 "+n : "-"+n;
+  d.style.left=x+"px"; d.style.top=y+"px";
+  $("#shake").appendChild(d);
+  setTimeout(()=>d.remove(),800);
+}
+
+/* ---------- scene HTML builders ---------- */
+function renderAll(){
+  if(scene==="title") renderTitle();
+  else if(scene==="lobby") renderLobby();
+  else if(scene==="battle") renderBattle();
+  else if(scene==="shelf") renderShelf();
+  else if(scene==="collection") renderCollection();
+  $("#mute").textContent = SFX.muted ? "무음" : "소리";
+}
+
+function ensureScenes(){
+  const root=$("#scenes");
+  if($("#scene-title")) return;
+  root.innerHTML=`
+    <section class="scene on" id="scene-title"></section>
+    <section class="scene" id="scene-lobby"></section>
+    <section class="scene" id="scene-battle"></section>
+    <section class="scene panel-scene" id="scene-shelf"></section>
+    <section class="scene panel-scene" id="scene-collection"></section>`;
+}
+
+function renderTitle(){
+  $("#scene-title").innerHTML=`
+    <div class="candles l">${candleSvg()}</div>
+    <div class="candles r">${candleSvg()}</div>
+    ${emblemSvg()}
+    <div class="sub">C O N C E P T &nbsp; L I B R A R Y</div>
+    <h1 class="gold-title">개념의 서고</h1>
+    <div class="filigree" style="width:min(420px,70vw);margin:8px auto">✦</div>
+    <div class="tag">예시 데이터 · 취약점이 손님이 되어 서고를 찾는다</div>
+    <button class="btn primary enter" id="btn-enter">입 장</button>`;
+  $("#btn-enter").onclick=()=>{ SFX.unlock(); SFX.click(); SFX.ambience(); transit("lobby", ()=>renderLobby()); };
+}
+
+function hudStats(){
+  return `<span class="brand gold-title">개념의 서고</span>
+    <span class="hudstat">Lv.${save.level}</span>
+    <span class="hudstat">${ico("hp",11)} ${save.hp}/${effectiveMaxHp(save)}</span>
+    <span class="hudstat">${ico("ticket",11)} ${ticketsHeld(save)}</span>
+    <span class="hudstat">${ico("gift",11)} ${save.ownedIds.length}/${COLLECTION_TOTAL}</span>
+    <span class="hudstat">${ico("book",11)} ${Object.keys(save.books).length}/${WEAK_POINTS.length}</span>
+    <span class="pill">예시</span>`;
+}
+function botNav(active){
+  const items=[["lobby","접대"],["shelf","책장"],["collection","장서"]];
+  return `<nav class="botnav">${items.map(([id,lb])=>`<button class="btn ${active===id?"primary":""}" data-go="${id}">${lb}</button>`).join("")}</nav>`;
+}
+
+function renderLobby(){
+  const floor=FLOORS.find(f=>f.id===floorId)||FLOORS[0];
+  const guests=WEAK_POINTS.filter(g=>g.floorId===floorId);
+  if(!guests.some(g=>g.id===selectedGuestId)) selectedGuestId=guests[0]?.id;
+  const g=GUEST_BY[selectedGuestId];
+  const done=save.conqueredIds.includes(g?.id);
+  const book=save.books[g?.id];
+  $("#scene-lobby").innerHTML=`
+    <div class="topbar">${hudStats()}</div>
+    <div class="lobby-grid">
+      <div class="col frame portrait-box">${cornerHtml()}
+        <div class="portrait-frame"><div class="pf-ring">${librarianSvg(save)}</div></div>
+        <div class="pf-plate"><div class="pname gold-title">사서 큐 양</div>
+        <div class="gmeta">${keyPerk(save).name}</div></div>
+        <div class="bonus-sum" style="margin-top:8px;width:100%">${bonusLabel(giftTotals(save))}</div>
+      </div>
+      <div class="col mid">
+        <div class="floors">${FLOORS.map(f=>`<button class="floor-btn ${f.id===floorId?"on":""}" data-floor="${f.id}">${ico("floor",13)} ${f.name}</button>`).join("")}</div>
+        <div class="floor-hero frame">${cornerHtml()}
+          <canvas class="arena-bg" id="floor-thumb" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+          <div class="cap"><h2 class="gold-title">${floor.name}</h2><div class="gmeta">${floor.subject} · ${floor.motto}</div></div>
+        </div>
+        <div class="guests">${guests.map(gs=>{
+          const ok=save.conqueredIds.includes(gs.id);
+          return `<button class="guest-card frame ${sheetOpen&&gs.id===selectedGuestId?"on":""}" data-guest="${gs.id}">${cornerHtml()}
+            <div class="bust">${guestSvg(gs,false,88,120,true)}</div>
+            <div class="ginfo"><div class="gold-title" style="font-size:16px;letter-spacing:.12em">${gs.concept}</div>
+            <div class="gmeta">취약 ${weaknessLabel(gs.weakness)} · ${ok?"회상 가능":"대기"}</div></div>
+            <span class="chev">${ico("chev",16)}</span>
+          </button>`;
+        }).join("")}</div>
+      </div>
+    </div>
+    ${botNav("lobby")}
+    <div class="sheet-backdrop" id="sheet-backdrop"></div>
+    <aside class="guest-sheet" id="guest-sheet" aria-hidden="true"></aside>`;
+  bindNav();
+  $$("[data-floor]").forEach(b=>b.onclick=()=>{ floorId=b.dataset.floor; SFX.click(); closeGuestSheet(); renderLobby(); });
+  $$("[data-guest]").forEach(b=>b.onclick=()=>{ selectedGuestId=b.dataset.guest; SFX.hover(); openGuestSheet(selectedGuestId); });
+  paintMiniFloor($("#floor-thumb"), floorId);
+  if(sheetOpen && selectedGuestId) openGuestSheet(selectedGuestId, true);
+}
+function guestSheetHtml(g){
+  if(!g) return "";
+  const done=save.conqueredIds.includes(g.id);
+  const book=save.books[g.id];
+  const look=guestLook(g);
+  const rw=BOOK_REWARDS[g.id];
+  const gifts=EGO_GIFTS.filter(x=>x.guestId===g.id);
+  const owned=new Set(save.egoOwned||[]);
+  const st=save.recallStats[g.id]||{recalls:0,wins:0,correct:0,total:0,history:[]};
+  const acc=st.total?Math.round(100*st.correct/st.total):null;
+  const trend=st.history&&st.history.length?st.history.map(n=>Math.round(n*100)+"%").join(" → "):"—";
+  const qn=g.questions.length;
+  const readN=rw&&PAGE_BY[rw.readPage]?.name, burnN=rw&&KEY_BY[rw.burnKey]?.name;
+  const bookSt=book? (book==="shelved"?"보관 중":book==="read"?"열람함":"소각함"): "아직 책이 되지 않음";
+  return `${cornerHtml()}
+    <div class="sheet-handle"></div>
+    <button class="sheet-close" id="sheet-close" type="button" aria-label="닫기">닫기</button>
+    <div class="sheet-top">
+      ${guestSvg(g,false,160,220,false)}
+      <div style="flex:1;min-width:0">
+        <h3 class="gold-title" style="font-size:22px;padding-right:44px">${g.concept}</h3>
+        <div class="gmeta">${g.subject} · ${ARCH_LABEL[look.arch]||look.arch}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0">
+          <span class="pill">취약 ${weaknessLabel(g.weakness)}</span>
+          <span class="pill">체력 ${COMBAT.guestHp[g.weakness]}</span>
+          <span class="pill">흐트러짐 ${COMBAT.guestStagger[g.weakness]}</span>
+          <span class="pill">문항 ${qn}</span>
+        </div>
+        <span class="pill">${done?"회상 가능":"대기"} · ${bookSt}</span>
+      </div>
+    </div>
+    <p style="margin:12px 0;font-size:13px;line-height:1.7;color:var(--parch)">${g.explanation}</p>
+    <div class="gmeta">보상 · 열람 시 책장 「${readN||"—"}」 · 소각 시 핵심 책장 「${burnN||"—"}」</div>
+    <div class="gmeta" style="margin-top:6px">에고 기프트 ${gifts.filter(x=>owned.has(x.id)).length}/${gifts.length}
+      · ${gifts.map(x=>owned.has(x.id)?x.name:"????").join(" · ")}
+      · 첫 접대 ${Math.round(EGO_GIFT_RULES.dropRateFirstClear*100)}% · 회상 ${Math.round(EGO_GIFT_RULES.dropRateRecall*100)}%</div>
+    ${done?`<div class="gmeta" style="margin-top:8px">회상 ${st.recalls}회 · 승리 ${st.wins}회 · 정답률 ${acc==null?"—":acc+"%"} · 추이 ${trend}</div>`:""}
+    <div class="sheet-actions">
+      <button class="btn primary" id="btn-recv">${done?"회상 시작":"접대 시작"}</button>
+    </div>`;
+}
+function openGuestSheet(id, instant){
+  const g=GUEST_BY[id]; if(!g) return;
+  selectedGuestId=id; sheetOpen=true;
+  const sheet=$("#guest-sheet"), back=$("#sheet-backdrop"), nav=$(".botnav");
+  if(!sheet) return;
+  sheet.innerHTML=guestSheetHtml(g);
+  sheet.setAttribute("aria-hidden","false");
+  $$(".guest-card").forEach(c=>c.classList.toggle("on", c.dataset.guest===id));
+  if(instant){ sheet.style.transition="none"; if(nav) nav.style.transition="none"; }
+  requestAnimationFrame(()=>{
+    back&&back.classList.add("on");
+    sheet.classList.add("on");
+    nav&&nav.classList.add("away");
+    if(instant){ void sheet.offsetWidth; sheet.style.transition=""; if(nav) nav.style.transition=""; }
+  });
+  const close=()=>closeGuestSheet();
+  $("#sheet-close")&&($("#sheet-close").onclick=close);
+  back&&(back.onclick=close);
+  $("#btn-recv")&&($("#btn-recv").onclick=()=>{ sheetOpen=false; beginReception(id); });
+  bindSheetSwipe(sheet);
+}
+function closeGuestSheet(){
+  sheetOpen=false;
+  const sheet=$("#guest-sheet"), back=$("#sheet-backdrop"), nav=$(".botnav");
+  if(sheet){ sheet.classList.remove("on"); sheet.setAttribute("aria-hidden","true"); }
+  back&&back.classList.remove("on");
+  nav&&nav.classList.remove("away");
+  $$(".guest-card").forEach(c=>c.classList.remove("on"));
+}
+function bindSheetSwipe(sheet){
+  let y0=null, dy=0;
+  const start=e=>{ const t=e.touches?e.touches[0]:e; y0=t.clientY; dy=0; };
+  const move=e=>{
+    if(y0==null) return;
+    const t=e.touches?e.touches[0]:e; dy=t.clientY-y0;
+    if(dy>0 && window.innerWidth<=860) sheet.style.transform=`translateY(${dy}px)`;
+  };
+  const end=()=>{
+    if(y0==null) return;
+    sheet.style.transform="";
+    if(dy>64) closeGuestSheet();
+    y0=null; dy=0;
+  };
+  sheet.addEventListener("touchstart", start, {passive:true});
+  sheet.addEventListener("touchmove", move, {passive:true});
+  sheet.addEventListener("touchend", end);
+}
+
+
+function paintMiniFloor(cv, fid){
+  if(!cv) return;
+  const W=cv.clientWidth,H=cv.clientHeight; if(!W||!H) return;
+  cv.width=W*devicePixelRatio; cv.height=H*devicePixelRatio;
+  const c=cv.getContext("2d"); c.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  const g=c.createLinearGradient(0,0,0,H); g.addColorStop(0,"#161018"); g.addColorStop(1,"#0a080c");
+  c.fillStyle=g; c.fillRect(0,0,W,H);
+  const rg=c.createRadialGradient(W*.72,H*.3,6,W*.72,H*.35,W*.4);
+  rg.addColorStop(0,"rgba(230,211,163,.28)"); rg.addColorStop(1,"transparent");
+  c.fillStyle=rg; c.fillRect(0,0,W,H);
+  const x0=W*0.48;
+  c.fillStyle="#1a140c"; c.fillRect(x0,H-16,W-x0,16);
+  c.fillStyle="rgba(196,163,90,.25)"; c.fillRect(x0,H-16,W-x0,1);
+  const n=Math.max(6, Math.floor((W-x0)/16));
+  for(let i=0;i<n;i++){
+    const x=x0+8+i*16, hh=18+(i*9)%(H*0.55);
+    c.fillStyle=i%5===0?"#c4a35a":(i%2?"#2a1c12":"#1a140c");
+    c.fillRect(x, H-16-hh, 13, hh);
+    if(i%3===0){ c.fillStyle="rgba(230,211,163,.15)"; c.fillRect(x+2, H-16-hh, 2, Math.min(10,hh)); }
+  }
+}
+
+function bindNav(){
+  $$("[data-go]").forEach(b=>b.onclick=()=>{
+    SFX.click();
+    const go=b.dataset.go;
+    transit(go, ()=>{
+      if(go==="lobby") renderLobby();
+      if(go==="shelf") renderShelf();
+      if(go==="collection") renderCollection();
+    });
+  });
+}
+
+/* ---------- reception / battle ---------- */
+function shuffle(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function buildQuiz(guest, recall){
+  let qs=guest.questions.map(q=>{
+    if(!recall || q.type==="ox") return {...q, options:q.options.slice()};
+    const pairs=q.options.map((o,i)=>({o,i}));
+    const sh=shuffle(pairs);
+    return {...q, options:sh.map(p=>p.o), correctIndex:sh.findIndex(p=>p.i===q.correctIndex)};
+  });
+  return recall?shuffle(qs):qs;
+}
+function ensureRecall(id){
+  if(!save.recallStats[id]) save.recallStats[id]={recalls:0,wins:0,correct:0,total:0,history:[]};
+  return save.recallStats[id];
+}
+function beginReception(guestId){
+  const guest=GUEST_BY[guestId]; if(!guest) return;
+  SFX.click();
+  sheetOpen=false;
+  const isRecall=save.conqueredIds.includes(guest.id);
+  if(save.hp<=0 || save.hp>=save.maxHp) save.hp=effectiveMaxHp(save);
+  reception={
+    guestId, guestHp:COMBAT.guestHp[guest.weakness], guestMaxHp:COMBAT.guestHp[guest.weakness],
+    stagger:0, staggerMax:COMBAT.guestStagger[guest.weakness], staggered:false,
+    emotion:startEmotion(save), emotionCharge:0,
+    light:startLight(save), maxLight:Math.min(COMBAT.maxLightCap,COMBAT.baseLight+startEmotion(save)),
+    qIndex:0, combo:0, turn:1, phase:"select",
+    handIds:[...new Set([...save.unlockedPageIds,...STARTER_PAGES])],
+    guestDie:COMBAT.guestDie[guest.weakness],
+    log:[`${guest.concept} 손님이 서고 문 앞에 서 있다.`],
+    quiz:buildQuiz(guest, isRecall), isRecall, sessionCorrect:0, sessionTotal:0, droppedGift:null
+  };
+  persist();
+  transit("battle", ()=>renderBattle());
+}
+
+function renderBattle(){
+  const rec=reception, guest=rec&&GUEST_BY[rec.guestId];
+  if(!rec||!guest){ transit("lobby",()=>renderLobby()); return; }
+  const el=$("#scene-battle");
+  const pages=rec.handIds.map(id=>PAGE_BY[id]).filter(Boolean);
+  const n=pages.length;
+  el.innerHTML=`
+    <div class="battle-stage">
+      <div class="arena" id="arena">
+        <canvas class="arena-bg" id="arena-bg"></canvas>
+        <div class="fighter librarian" id="fig-lib">${librarianSvg(save)}</div>
+        <div class="fighter guest arch-${guestLook(guest).arch} ${rec.staggered?"staggered":""}" id="fig-gst">${guestSvg(guest,rec.staggered)}</div>
+        <div class="clash" id="clash">
+          <div class="impact-ring"></div>
+          <div class="slash s1"></div>
+          <div class="slash s2"></div>
+          <div class="die" id="die-p"></div>
+          <div class="vs">합</div>
+          <div class="die" id="die-g"></div>
+        </div>
+        <div class="result-banner" id="rbanner"></div>
+        <div class="qpanel frame" id="qpanel">${cornerHtml()}<div id="qinner"></div></div>
+      </div>
+      <div class="hud-top">
+        <div class="bars frame">${cornerHtml()}
+          <div class="bar-lab"><span>${ico("hp",12)} 사서 큐 양</span><span id="lab-php">${save.hp}/${effectiveMaxHp(save)}</span></div>
+          ${barHtml("hp","bar-php",(save.hp/effectiveMaxHp(save))*100)}
+          <div class="orbs">${ico("light",12)} 빛 ${Array.from({length:rec.maxLight},(_,i)=>`<span class="orb ${i<rec.light?"on":""}"></span>`).join("")}</div>
+          <div class="pips">${ico("emotion",12)} 감정 ${Array.from({length:COMBAT.emotionMax},(_,i)=>`<span class="pip ${i<rec.emotion?"on":""}"></span>`).join("")} Lv.${rec.emotion}</div>
+        </div>
+        <div class="turnchip">${rec.turn}턴 · 연속 ${rec.combo}<br>${guest.concept}</div>
+        <div class="bars frame">${cornerHtml()}
+          <div class="bar-lab"><span>${ico("hp",12)} ${guest.concept}</span><span id="lab-ghp">${rec.guestHp}/${rec.guestMaxHp}</span></div>
+          ${barHtml("hp","bar-ghp",(rec.guestHp/rec.guestMaxHp)*100)}
+          <div class="bar-lab" style="margin-top:8px"><span>${ico("stag",12)} 흐트러짐</span><span id="lab-stg">${rec.stagger}/${rec.staggerMax}</span></div>
+          ${barHtml("stag","bar-stg",(rec.stagger/rec.staggerMax)*100)}
+        </div>
+      </div>
+      <div class="logbox">${rec.log.slice(-8).map(t=>`<div>${t}</div>`).join("")}</div>
+      <div class="hand" id="hand">${pages.map((p,i)=>{
+        const ang=(i-(n-1)/2)*7;
+        const off=rec.light<p.cost||rec.emotion<p.emotion;
+        return `<div class="cc ${off?"off":""}" data-page="${p.id}" style="transform:rotate(${ang}deg) translateY(${Math.abs(ang)*1.2}px);z-index:${i}">
+          <div class="card"><div class="foil"></div>
+            <div class="row"><span class="gem" title="빛">${p.cost}</span><span class="emo">${ico("emotion",12)} ${p.emotion}+</span></div>
+            <div class="illu">${dieMark(p.dice[0].type,34)}</div>
+            <div class="nm gold-title">${p.name}</div><div class="tx">${p.text}</div>
+            <div class="dice">${p.dice.map(d=>`<span>${dieMark(d.type,12)} ${d.type} ${d.min}–${d.max}</span>`).join("")}</div></div>
+        </div>`;
+      }).join("")}</div>
+    </div>`;
+  paintBattleFloor($("#arena-bg"), guest.floorId);
+  if(rec.phase==="select"){
+    $$(".cc:not(.off)").forEach(c=>{
+      c.onmouseenter=()=>SFX.hover();
+      c.onclick=()=>choosePage(c.dataset.page);
+    });
+  } else {
+    $("#hand").style.opacity=".2";
+    $("#hand").style.pointerEvents="none";
+  }
+  if(rec.phase==="question") showQuestion();
+  if(rec.phase==="win") showWin();
+  if(rec.phase==="lose") showLose();
+}
+
+function paintBattleFloor(cv, fid){
+  if(!cv) return;
+  const W=cv.clientWidth,H=cv.clientHeight;
+  if(!W||!H) return;
+  cv.width=W*devicePixelRatio; cv.height=H*devicePixelRatio;
+  const c=cv.getContext("2d"); c.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  const g=c.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,"#0a0c12"); g.addColorStop(.45,"#101018"); g.addColorStop(1,"#07060a");
+  c.fillStyle=g; c.fillRect(0,0,W,H);
+  // high faint arch, well above HUD
+  c.save(); c.globalAlpha=.35; c.translate(W/2, -20);
+  c.beginPath(); c.moveTo(-120,110); c.lineTo(-120,20); c.quadraticCurveTo(0,-40,120,20); c.lineTo(120,110); c.closePath();
+  const wg=c.createLinearGradient(0,0,0,110);
+  wg.addColorStop(0,"rgba(80,100,130,.35)"); wg.addColorStop(1,"rgba(20,24,36,.1)");
+  c.fillStyle=wg; c.fill();
+  c.strokeStyle="rgba(196,163,90,.35)"; c.lineWidth=1.5; c.stroke();
+  c.restore();
+  const sl=c.createRadialGradient(W*.22,H*.7,20,W*.22,H*.7,W*.3);
+  sl.addColorStop(0,"rgba(230,211,163,.2)"); sl.addColorStop(1,"transparent");
+  const sr=c.createRadialGradient(W*.78,H*.7,20,W*.78,H*.7,W*.3);
+  sr.addColorStop(0,"rgba(170,150,200,.12)"); sr.addColorStop(1,"transparent");
+  c.fillStyle=sl; c.fillRect(0,0,W,H); c.fillStyle=sr; c.fillRect(0,0,W,H);
+  for(let side=0;side<2;side++){
+    for(let row=0;row<7;row++){
+      const y=H*.16+row*(H*.085);
+      const x0=side?W-148:10;
+      c.fillStyle="#120e0a"; c.fillRect(x0,y+26,138,7);
+      c.fillStyle="rgba(196,163,90,.2)"; c.fillRect(x0,y+26,138,1);
+      for(let i=0;i<9;i++){
+        const hh=16+(i*7+row*3)%18;
+        c.fillStyle=(i+row)%5===0?"#c4a35a":(i%2?"#2a1c12":"#1a140c");
+        c.fillRect(x0+6+i*14,y+26-hh,12,hh);
+      }
+    }
+  }
+  c.beginPath();
+  c.moveTo(W*.1,H*.82); c.lineTo(W*.9,H*.82); c.lineTo(W,H); c.lineTo(0,H); c.closePath();
+  const fg=c.createLinearGradient(0,H*.82,0,H);
+  fg.addColorStop(0,"rgba(32,24,14,.9)"); fg.addColorStop(1,"rgba(8,6,4,.96)");
+  c.fillStyle=fg; c.fill();
+  c.strokeStyle="rgba(196,163,90,.4)"; c.lineWidth=1.6;
+  c.beginPath(); c.moveTo(W*.1,H*.82); c.lineTo(W*.9,H*.82); c.stroke();
+  c.strokeStyle="rgba(196,163,90,.12)"; c.lineWidth=1;
+  for(let i=1;i<8;i++){
+    const y=H*.82+(H*.18)*(i/8);
+    c.beginPath(); c.moveTo(W*.1*(1-i/8),y); c.lineTo(W-W*.1*(1-i/8),y); c.stroke();
+  }
+  for(let i=0;i<=10;i++){
+    const k=i/10;
+    c.beginPath(); c.moveTo(W*.1+k*W*.8,H*.82); c.lineTo(k*W,H); c.stroke();
+  }
+}
+
+function choosePage(pageId){
+  if(!reception||reception.phase!=="select"||busy) return;
+  const page=PAGE_BY[pageId]; if(!page) return;
+  if(reception.light<page.cost||reception.emotion<page.emotion) return;
+  SFX.card();
+  reception.chosenPageId=pageId;
+  reception.light-=page.cost;
+  reception.phase="question";
+  renderBattle();
+}
+
+function showQuestion(){
+  const rec=reception, guest=GUEST_BY[rec.guestId], page=PAGE_BY[rec.chosenPageId];
+  const bank=rec.quiz||guest.questions;
+  const q=bank[rec.qIndex%bank.length];
+  const pan=$("#qpanel"); pan.classList.add("on");
+  $("#qinner").innerHTML=`<h4>합 · ${page.name}</h4><div class="prompt">${q.prompt}</div>
+    <div class="qopts">${q.options.map((o,i)=>`<button data-opt="${i}">${q.type==="mc"?String.fromCharCode(65+i)+". ":""}${o}</button>`).join("")}</div>`;
+  $$("[data-opt]").forEach(b=>b.onclick=()=>answer(+b.dataset.opt));
+}
+
+function answer(opt){
+  if(!reception||reception.phase!=="question"||busy) return;
+  const rec=reception, guest=GUEST_BY[rec.guestId], page=PAGE_BY[rec.chosenPageId];
+  const bank=rec.quiz||guest.questions;
+  const q=bank[rec.qIndex%bank.length];
+  const correct=opt===q.correctIndex;
+  const gDie=rec.staggered?{...COMBAT.guestDie[guest.weakness],min:0,max:1}:COMBAT.guestDie[guest.weakness];
+  const clash=resolveClash(page,gDie,correct,rec.staggered,rec.emotion);
+  const ticketsBefore=ticketsHeld(save);
+  rec.guestDie=gDie;
+  rec.playerRoll=clash.playerRoll; rec.guestRoll=clash.guestRoll;
+  rec.lastCorrect=correct; rec.lastFlavor=clash.flavor; rec.crit=clash.crit;
+  rec.dmgG=clash.damageToGuest; rec.dmgP=clash.damageToPlayer; rec.stagHit=clash.staggerHit;
+
+  let nextGuestHp=Math.max(0,rec.guestHp-clash.damageToGuest);
+  let nextPlayerHp=Math.max(0,save.hp-clash.damageToPlayer);
+  let nextStagger=rec.staggered?0:rec.stagger+clash.staggerHit;
+  let nowStaggered=false;
+  if(!rec.staggered && nextStagger>=rec.staggerMax){ nowStaggered=true; nextStagger=rec.staggerMax; }
+  let emotion=rec.emotion, charge=rec.emotionCharge, combo=correct?rec.combo+1:0;
+  let emoUp=false;
+  if(correct){ charge+=1; if(charge>=COMBAT.chargesPerEmotion && emotion<COMBAT.emotionMax){ emotion+=1; charge=0; emoUp=true; } }
+  else charge=0;
+  const defeated=nextGuestHp<=0;
+  const firstClear=defeated && !save.conqueredIds.includes(guest.id);
+  const nextQ=save.questionsAnswered+1;
+  const nextWins=save.receptionsWon+(firstClear?1:0);
+  const ticketsGained=Math.max(0,(ticketsGranted(nextQ,nextWins)-save.ticketsSpent)-ticketsBefore);
+
+  let nextLevel=save.level,nextXp=save.xp,nextMax=save.maxHp,levelMsg="";
+  if(defeated){
+    nextXp+=COMBAT.xpByWeakness[guest.weakness];
+    let need=xpNeeded(nextLevel); const msgs=[];
+    while(nextXp>=need){ nextXp-=need; nextLevel++; nextMax+=COMBAT.hpPerLevel; need=xpNeeded(nextLevel); msgs.push(`${pick(LEVEL_UP_MESSAGES)} (Lv.${nextLevel})`); }
+    if(msgs.length) levelMsg=msgs.join(" ");
+  }
+  rec.log.push(clash.flavor);
+  rec.sessionTotal=(rec.sessionTotal||0)+1;
+  if(correct) rec.sessionCorrect=(rec.sessionCorrect||0)+1;
+  const rst=ensureRecall(guest.id); rst.total++; if(correct) rst.correct++;
+  if(!correct) rec.log.push("해설 · "+guest.explanation);
+  if(nowStaggered) rec.log.push(`${guest.concept} 손님이 흐트러졌다!`);
+  if(emoUp) rec.log.push(`감정 단계가 ${emotion}으로 올랐다.`);
+  if(ticketsGained) rec.log.push(`책갈피 뽑기권 +${ticketsGained}`);
+  if(defeated) rec.log.push(firstClear?`${guest.concept} 손님이 책이 되었다.`:`재접대를 마쳤다.`);
+
+  const prevStat=save.conceptStats[guest.id]||{correct:0,total:0};
+  save.hp=defeated&&levelMsg?nextMax:nextPlayerHp;
+  save.maxHp=nextMax; save.level=nextLevel; save.xp=nextXp;
+  save.questionsAnswered=nextQ; save.receptionsWon=nextWins;
+  if(firstClear){ save.conqueredIds=[...save.conqueredIds,guest.id]; save.books={...save.books,[guest.id]:"shelved"}; }
+  save.conceptStats={...save.conceptStats,[guest.id]:{correct:prevStat.correct+(correct?1:0),total:prevStat.total+1}};
+  persist();
+
+  rec.guestHp=nextGuestHp; rec.stagger=nowStaggered?rec.staggerMax:nextStagger;
+  rec.willStagger=nowStaggered; rec.emotion=emotion; rec.emotionCharge=charge; rec.combo=combo;
+  rec.qIndex++; rec.ticketsGained=ticketsGained; rec.levelUpMessage=levelMsg; rec.emoUp=emoUp;
+  rec.maxLight=Math.min(COMBAT.maxLightCap,COMBAT.baseLight+emotion);
+  rec.phase="rolling";
+  playClashAnim(defeated, nextPlayerHp<=0 && !defeated);
+}
+
+function playClashAnim(winAll, loseAll){
+  busy=true;
+  const rec=reception;
+  $("#qpanel")?.classList.remove("on");
+  $("#hand").style.opacity=".15";
+  const clash=$("#clash"); clash.classList.add("show");
+  $("#die-p").innerHTML=dieSvg(PAGE_BY[rec.chosenPageId].dice[0].type, null, false);
+  $("#die-g").innerHTML=dieSvg(rec.guestDie.type, null, false);
+  clash.classList.remove("hit","crit");
+  $("#die-p").classList.add("roll"); $("#die-g").classList.add("roll");
+  SFX.dice();
+  const delay=rec.crit?400:300;
+  setTimeout(()=>{
+    $("#die-p").innerHTML=dieSvg(PAGE_BY[rec.chosenPageId].dice[0].type, rec.playerRoll, false);
+    $("#die-g").innerHTML=dieSvg(rec.guestDie.type, rec.guestRoll, rec.lastCorrect);
+    SFX.clash(rec.lastCorrect);
+    if(rec.crit) SFX.crit();
+    clash.classList.add("hit");
+    if(rec.crit){ clash.classList.add("crit"); document.body.classList.add("slowmo"); setTimeout(()=>document.body.classList.remove("slowmo"),280); }
+    const {w,h}=FX.size();
+    FX.burst(w/2,h*.44, rec.crit?70:40, rec.lastCorrect?"#e6d3a3":"#c45c4a");
+    FX.burst(w/2,h*.44, 14, "#fff6c8");
+    flash(rec.crit?.45:.22);
+    shake(rec.crit?12:8);
+    const lib=$("#fig-lib").getBoundingClientRect(), gst=$("#fig-gst").getBoundingClientRect();
+    if(rec.dmgG){ floatDmg(gst.left+gst.width/2, gst.top+36, rec.dmgG, "hp"); $("#fig-gst").classList.add("hit"); }
+    if(rec.dmgP){ floatDmg(lib.left+lib.width/2, lib.top+36, rec.dmgP, "hurt"); $("#fig-lib").classList.add("hit"); }
+    if(rec.stagHit) floatDmg(gst.left+gst.width/2+30, gst.top+92, rec.stagHit, "stag");
+    setBar("bar-php",(save.hp/effectiveMaxHp(save))*100);
+    setBar("bar-ghp",(rec.guestHp/rec.guestMaxHp)*100);
+    setBar("bar-stg",(rec.stagger/rec.staggerMax)*100);
+    const lphp=$("#lab-php"); if(lphp) lphp.textContent=save.hp+"/"+effectiveMaxHp(save);
+    const lghp=$("#lab-ghp"); if(lghp) lghp.textContent=rec.guestHp+"/"+rec.guestMaxHp;
+    const lstg=$("#lab-stg"); if(lstg) lstg.textContent=rec.stagger+"/"+rec.staggerMax;
+    if(rec.willStagger){ SFX.stagger(); $("#fig-gst").classList.add("staggered"); }
+    if(!rec.lastCorrect){
+      const guest=GUEST_BY[rec.guestId];
+      learnToast(`<b>해설 · ${guest.concept}</b>${guest.explanation}`, 4200);
+    }
+    rec.staggered=!!rec.willStagger;
+    rec.phase= winAll?"win": loseAll?"lose":"result";
+    const after=rec.crit?300:200;
+    setTimeout(()=>{
+      busy=false;
+      if(winAll){ SFX.win(); SFX.book(); $("#fig-gst")?.classList.add("defeated"); setTimeout(()=>showWin(), 240); }
+      else if(loseAll){ SFX.lose(); showLose(); }
+      else nextTurn();
+    }, after);
+  }, delay);
+}
+
+function showClashResult(){ /* 합 결과는 떠있는 숫자와 기록으로만 표시 */ }
+
+function nextTurn(){
+  if(!reception||busy) return;
+  const rec=reception;
+  const breathe=rec.chosenPageId==="breathe"?1:0;
+  const cap=Math.min(COMBAT.maxLightCap,COMBAT.baseLight+rec.emotion);
+  rec.phase="select"; rec.chosenPageId=undefined; rec.lastFlavor=undefined;
+  rec.staggered=false; rec.stagger=rec.willStagger?0:rec.stagger; rec.willStagger=false;
+  rec.light=Math.min(cap, rec.light+lightRegen(save)+breathe);
+  rec.maxLight=cap; rec.turn++;
+  renderBattle();
+}
+
+
+function rollEgoGift(guest, isRecall){
+  const pool=EGO_GIFTS.filter(g=>g.guestId===guest.id);
+  const owned=new Set(save.egoOwned||[]);
+  const unowned=pool.filter(g=>!owned.has(g.id));
+  if(!unowned.length) return null;
+  save.egoPity=save.egoPity||{};
+  save.egoPity[guest.id]=(save.egoPity[guest.id]||0)+1;
+  const rate=isRecall?EGO_GIFT_RULES.dropRateRecall:EGO_GIFT_RULES.dropRateFirstClear;
+  const pity=EGO_GIFT_RULES.pityEvery && save.egoPity[guest.id]>=EGO_GIFT_RULES.pityEvery;
+  if(!(Math.random()<rate || pity || (!isRecall && rate>=1))) return null;
+  const item=unowned[Math.floor(Math.random()*unowned.length)];
+  save.egoOwned=[...save.egoOwned, item.id];
+  save.egoPity[guest.id]=0;
+  save.egoEquipped=save.egoEquipped||emptyEgoEquip();
+  if(!save.egoEquipped[item.slot]) save.egoEquipped[item.slot]=item.id;
+  return item;
+}
+function finishReceptionStats(guest, won){
+  const st=ensureRecall(guest.id);
+  const rec=reception;
+  if(rec&&rec.isRecall){ st.recalls++; if(won) st.wins++; }
+  else if(won){ st.wins++; }
+  const tot=rec&&rec.sessionTotal||0, ok=rec&&rec.sessionCorrect||0;
+  if(tot){ st.history=[...(st.history||[]), ok/tot].slice(-5); }
+  save.recallStats={...save.recallStats, [guest.id]:st};
+}
+function showWin(){
+  const rec=reception, guest=GUEST_BY[rec.guestId];
+  finishReceptionStats(guest, true);
+  const gift=rollEgoGift(guest, !!rec.isRecall);
+  rec.droppedGift=gift;
+  persist();
+  const b=$("#rbanner"); b.classList.add("on");
+  const giftMsg=gift?`에고 기프트 「${gift.name}」을 손에 넣었다. (${gift.slot})`:(rec.isRecall?"이번 회상에서는 기프트가 떨어지지 않았다.":"");
+  b.innerHTML=`<div style="animation:bookIn .55s ease">${bookSvg(guest.concept)}</div>
+    <div class="big" style="margin-top:8px">${guest.concept}</div>
+    <div class="msg">${rec.isRecall?"회상을 마쳤다.":(rec.levelUpMessage||"손님이 서고의 책이 되었다. 열람하거나 소각해 새 책장을 얻을 수 있다.")}</div>
+    ${giftMsg?`<div class="msg" style="margin-top:8px;color:var(--gold2)">${giftMsg}</div>`:""}
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap">
+      <button class="btn primary" id="btn-toshelf">책장으로</button>
+      <button class="btn" id="btn-nextg">다음 손님</button>
+      <button class="btn" id="btn-lobby">층으로</button>
+    </div>`;
+  $("#btn-toshelf").onclick=()=>{ reception=null; transit("shelf",()=>renderShelf()); };
+  $("#btn-nextg").onclick=()=>{
+    const next=WEAK_POINTS.find(x=>!save.conqueredIds.includes(x.id));
+    if(next) beginReception(next.id);
+    else { reception=null; transit("lobby",()=>renderLobby()); }
+  };
+  $("#btn-lobby").onclick=()=>{ reception=null; transit("lobby",()=>renderLobby()); };
+}
+
+function showLose(){
+  const rec=reception, guest=GUEST_BY[rec.guestId];
+  finishReceptionStats(guest, false); persist();
+  const b=$("#rbanner"); b.classList.add("on");
+  b.innerHTML=`<div class="big">접대가 꺾였다</div>
+    <div class="msg">괜찮아. 설명을 다시 읽고 책장을 바꾸면 된다. 모은 장서와 책은 그대로다.</div>
+    <div class="expl">${guest.explanation}</div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:16px">
+      <button class="btn primary" id="btn-retry">다시 접대</button>
+      <button class="btn" id="btn-lobby">층으로</button>
+    </div>`;
+  $("#btn-retry").onclick=()=>{ save.hp=save.maxHp; persist(); beginReception(guest.id); };
+  $("#btn-lobby").onclick=()=>{ save.hp=save.maxHp; persist(); reception=null; transit("lobby",()=>renderLobby()); };
+}
+
+/* ---------- shelf / collection ---------- */
+function renderShelf(){
+  const books=WEAK_POINTS.filter(g=>save.books[g.id]);
+  $("#scene-shelf").innerHTML=`
+    <div class="topbar">${hudStats()}</div>
+    <h2 class="gold-title" style="font-size:22px;margin-bottom:8px">책장</h2>
+    <p class="gmeta" style="margin-bottom:12px">접대에 성공한 손님이 책이 됩니다. 열람은 새 책장을, 소각은 핵심 책장을 엽니다.</p>
+    <div class="scroll">${books.length?books.map(g=>{
+      const st=save.books[g.id], rw=BOOK_REWARDS[g.id];
+      const rn=rw&&PAGE_BY[rw.readPage]?.name, bn=rw&&KEY_BY[rw.burnKey]?.name;
+      return `<div class="book-item frame">${cornerHtml()}${bookSvg(g.concept)}
+        <div style="flex:1"><div class="gold-title" style="font-size:16px">${g.concept}</div>
+        <div class="gmeta">${st==="shelved"?"보관 중":st==="read"?"열람함":"소각함"} · 열람: ${rn||"—"} · 소각: ${bn||"—"}</div>
+        ${st==="shelved"?`<div style="margin-top:8px;display:flex;gap:6px">
+          <button class="btn primary" data-read="${g.id}">열람</button>
+          <button class="btn" data-burn="${g.id}">소각</button></div>`:
+          `<div class="gmeta" style="margin-top:6px">이 책은 이미 서고의 힘이 되었습니다.</div>`}
+        </div></div>`;
+    }).join(""):`<div class="frame" style="padding:20px">${cornerHtml()}아직 책장이 비어 있습니다. 손님을 접대해 책을 남기세요.</div>`}</div>
+    <h3 class="gold-title" style="font-size:16px;margin:16px 0 8px">핵심 책장</h3>
+    <div class="scroll" style="flex:0 0 auto;grid-template-rows:auto">${KEY_PAGES.map(p=>{
+      const un=save.unlockedKeyIds.includes(p.id), eq=save.equippedKeyId===p.id;
+      return `<div class="key-item frame">${cornerHtml()}<div>
+        <div class="gold-title" style="font-size:15px">${p.name}</div>
+        <div class="gmeta">${un?p.text:"아직 열리지 않은 장서복입니다."}</div>
+        ${un?`<button class="btn ${eq?"":"primary"}" style="margin-top:8px" data-key="${p.id}">${eq?"착장 중":"착장"}</button>`:`<span class="pill">미획득</span>`}
+      </div></div>`;
+    }).join("")}</div>
+    <h3 class="gold-title" style="font-size:16px;margin:16px 0 8px">에고 기프트</h3>
+    <p class="gmeta" style="margin-bottom:8px">접대와 회상으로 모은 기프트. 개별 효과는 아주 작지만, 장착한 기프트와 세트 보너스가 쌓입니다. 장서 뽑기와는 별개입니다.</p>
+    <div class="bonus-sum" style="margin-bottom:10px">누적 효과 · ${bonusLabel(giftTotals(save))}</div>
+    <div class="gift-grid">${EGO_GIFTS.map(g=>{
+      const have=(save.egoOwned||[]).includes(g.id), eq=(save.egoEquipped||{})[g.slot]===g.id;
+      const from=GUEST_BY[g.guestId]?.concept||g.guestId;
+      return `<div class="gift-cell frame ${eq?"eq":""}">${cornerHtml()}
+        <div class="gold-title" style="font-size:14px">${have?g.name:"????"}</div>
+        <div class="gmeta">${g.slot} · ${from}${have?"":" · 미획득"}</div>
+        <div class="gmeta">${have?g.text:"해당 손님을 접대하거나 회상해 얻을 수 있다."}</div>
+        ${have?`<button class="btn ${eq?"":"primary"}" style="margin-top:6px" data-gift="${g.id}">${eq?"해제":"장착"}</button>`:""}
+      </div>`;
+    }).join("")}</div>
+    ${botNav("shelf")}`;
+  bindNav();
+  $$("[data-read]").forEach(b=>b.onclick=()=>handleBook(b.dataset.read,"read"));
+  $$("[data-burn]").forEach(b=>b.onclick=()=>handleBook(b.dataset.burn,"burn"));
+  $$("[data-key]").forEach(b=>b.onclick=()=>{ save.equippedKeyId=b.dataset.key; persist(); SFX.click(); renderShelf(); });
+  $$("[data-gift]").forEach(b=>b.onclick=()=>{
+    const g=EGO_BY[b.dataset.gift]; if(!g) return;
+    save.egoEquipped=save.egoEquipped||emptyEgoEquip();
+    save.egoEquipped[g.slot] = save.egoEquipped[g.slot]===g.id ? null : g.id;
+    if(save.hp>effectiveMaxHp(save)) save.hp=effectiveMaxHp(save);
+    persist(); SFX.click(); renderShelf();
+  });
+}
+
+function handleBook(id, action){
+  const rw=BOOK_REWARDS[id]; if(!rw||save.books[id]!=="shelved") return;
+  SFX.book();
+  if(action==="read"){
+    if(!save.unlockedPageIds.includes(rw.readPage)) save.unlockedPageIds=[...save.unlockedPageIds,rw.readPage];
+    if(id==="metacognition" && !save.unlockedPageIds.includes("apex")) save.unlockedPageIds=[...save.unlockedPageIds,"apex"];
+    save.books={...save.books,[id]:"read"};
+    toast(`${PAGE_BY[rw.readPage]?.name||"책장"} 해금`);
+  } else {
+    if(!save.unlockedKeyIds.includes(rw.burnKey)) save.unlockedKeyIds=[...save.unlockedKeyIds,rw.burnKey];
+    save.books={...save.books,[id]:"burned"};
+    toast(`${KEY_BY[rw.burnKey]?.name||"핵심 책장"} 해금`);
+  }
+  persist(); renderShelf();
+}
+
+function renderCollection(){
+  const held=ticketsHeld(save);
+  const items=slotFilter==="전체"?COSMETIC_ITEMS:COSMETIC_ITEMS.filter(i=>i.slot===slotFilter);
+  $("#scene-collection").innerHTML=`
+    <div class="topbar">${hudStats()}</div>
+    <h2 class="gold-title" style="font-size:22px">장서</h2>
+    <p class="gmeta" style="margin:6px 0 10px">장신구는 외형 전용이며 전투 수치에 영향이 없습니다. 도감 ${save.ownedIds.length}/${COLLECTION_TOTAL} · 권 ${held}장 · SSR 천장 ${Math.max(0,GACHA_RULES.ssrPity-save.pullsSinceSsr)}회</p>
+    <div class="tabs">
+      ${[["gacha","뽑기"],["album","도감"],["dress","코디"]].map(([id,lb])=>`<button class="btn ${collectTab===id?"primary":""}" data-ct="${id}">${lb}</button>`).join("")}
+    </div>
+    <div id="col-body" style="flex:1;overflow:auto"></div>
+    ${botNav("collection")}`;
+  bindNav();
+  $$("[data-ct]").forEach(b=>b.onclick=()=>{ collectTab=b.dataset.ct; renderCollection(); });
+  const body=$("#col-body");
+  if(collectTab==="gacha"){
+    body.innerHTML=`
+      <div class="gacha-stage frame" id="gstage">${cornerHtml()}
+        <div class="pillar p-wide" id="pillar"></div>
+        <div class="pillar p-mid" id="pillar2"></div>
+        <div class="pillar p-core" id="pillar3"></div>
+        <div class="flare" id="flare"></div>
+        <div id="greveal"></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;margin:14px 0">
+        <button class="btn primary" id="pull1" ${held<1?"disabled":""}>1회 뽑기</button>
+        <button class="btn" id="pull10" ${held<10?"disabled":""}>10회 뽑기</button>
+      </div>
+      <div class="gmeta" style="text-align:center">확률 N ${GACHA_RULES.rates.N}% · R ${GACHA_RULES.rates.R}% · SR ${GACHA_RULES.rates.SR}% · SSR ${GACHA_RULES.rates.SSR}% · 미보유 우선</div>`;
+    $("#pull1").onclick=()=>pullGacha(1);
+    $("#pull10").onclick=()=>pullGacha(10);
+    if(reveals) paintReveal();
+  } else if(collectTab==="album"){
+    body.innerHTML=`<div class="tabs">${["전체",...SLOTS].map(s=>`<button class="btn ${slotFilter===s?"primary":""}" data-sf="${s}">${s}</button>`).join("")}</div>
+      <div class="album">${items.map(it=>{
+        const own=save.ownedIds.includes(it.id), eq=save.equipped[it.slot]===it.id;
+        return `<div class="al-cell ${own?"own":""} ${eq?"eq":""}">
+          ${glyphSvg(it,!own,42)}
+          <div class="nm">${own?it.name:"????"}</div>
+          <div class="gmeta">${it.rarity}${own?"":" · "+it.slot}</div>
+          ${own?`<button class="btn" style="margin-top:6px;padding:4px 8px" data-eq="${it.id}">${eq?"해제":"착장"}</button>`:""}
+        </div>`;
+      }).join("")}</div>`;
+    $$("[data-sf]").forEach(b=>b.onclick=()=>{ slotFilter=b.dataset.sf; renderCollection(); });
+    $$("[data-eq]").forEach(b=>b.onclick=()=>equipItem(b.dataset.eq));
+  } else {
+    body.innerHTML=`<div style="display:grid;grid-template-columns:min(280px,40vw) 1fr;gap:16px">
+      <div class="frame" style="padding:12px;text-align:center">${cornerHtml()}${librarianSvg(save,240,340)}
+        <div class="pname">사서 큐 양</div><div class="gmeta">${keyPerk(save).name} · 장신구는 외형만 변경</div></div>
+      <div>${SLOTS.map(slot=>{
+        const eq=ITEM_BY[save.equipped[slot]||""];
+        const owned=COSMETIC_ITEMS.filter(i=>i.slot===slot&&save.ownedIds.includes(i.id));
+        return `<div class="frame" style="padding:10px;margin-bottom:8px">${cornerHtml()}
+          <div style="display:flex;justify-content:space-between"><b style="color:var(--gold2)">${slot}</b>
+          ${eq?`<button class="btn" data-off="${slot}">해제</button>`:""}</div>
+          <div class="gmeta">${eq?eq.name:"기본 모습"}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${owned.length?owned.map(i=>`<button data-eq="${i.id}" title="${i.name}">${glyphSvg(i,false,28)}</button>`).join(""):`<span class="gmeta">아직 모은 장서가 없습니다.</span>`}</div>
+        </div>`;
+      }).join("")}</div></div>`;
+    $$("[data-eq]").forEach(b=>b.onclick=()=>equipItem(b.dataset.eq));
+    $$("[data-off]").forEach(b=>b.onclick=()=>{ save.equipped[b.dataset.off]=null; persist(); renderCollection(); });
+  }
+}
+
+function equipItem(id){
+  const it=ITEM_BY[id]; if(!it) return;
+  save.equipped[it.slot] = save.equipped[it.slot]===id ? null : id;
+  persist(); SFX.click(); renderCollection();
+}
+
+function pullGacha(times){
+  if(ticketsHeld(save)<times) return;
+  SFX.click();
+  const results=[];
+  for(let i=0;i<times;i++){
+    const rarity=rollRarity(save.pullsSinceSr,save.pullsSinceSsr);
+    const item=pickGachaItem(rarity,save.ownedIds);
+    const isNew=!save.ownedIds.includes(item.id);
+    if(isNew) save.ownedIds=[...save.ownedIds,item.id];
+    if(item.rarity==="SSR"){ save.pullsSinceSr=0; save.pullsSinceSsr=0; }
+    else if(item.rarity==="SR"){ save.pullsSinceSr=0; save.pullsSinceSsr++; }
+    else { save.pullsSinceSr++; save.pullsSinceSsr++; }
+    save.ticketsSpent++;
+    results.push({item,isNew,flavor:pick(REVEAL_TEXT[item.rarity])});
+  }
+  persist(); reveals=results; paintReveal();
+}
+
+function paintReveal(){
+  const box=$("#greveal"); if(!box||!reveals) return;
+  const best=reveals.reduce((a,b)=>RARITY_ORDER.indexOf(b.item.rarity)>RARITY_ORDER.indexOf(a.item.rarity)?b:a);
+  const colors={N:"#9aa3b2",R:"#6ebd96",SR:"#7aa0c4",SSR:"#e6d3a3"};
+  const col=colors[best.item.rarity];
+  ["pillar","pillar2","pillar3"].forEach(id=>{
+    const el=$("#"+id); if(!el) return;
+    el.style.color=col; el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
+  });
+  const fl=$("#flare"); if(fl){ fl.classList.remove("on"); void fl.offsetWidth; fl.classList.add("on"); }
+  SFX.gacha(best.item.rarity);
+  const {w,h}=FX.size();
+  FX.burst(w/2,h*.58, best.item.rarity==="SSR"?110:best.item.rarity==="SR"?60:28, col);
+  FX.burst(w/2,h*.58, 24, "#fff6c8");
+  box.innerHTML=reveals.map((r,i)=>`
+    <div class="gcard" id="gc${i}" style="display:${i===0?"block":"none"}">
+      <div class="gface back"><div class="gold-title">개념의 서고</div><div class="gmeta" style="margin-top:8px">장서</div></div>
+      <div class="gface front" style="box-shadow:0 0 28px ${colors[r.item.rarity]}">
+        ${glyphSvg(r.item,false,64)}
+        <div class="rar">${r.item.rarity}</div>
+        <div class="gold-title" style="font-size:16px;margin-top:8px">${r.item.name}</div>
+        <div class="gmeta">${r.item.slot} · ${r.isNew?"새로 등록":"중복"}</div>
+        <div class="gmeta" style="margin-top:8px">${r.flavor}</div>
+      </div>
+    </div>`).join("") + (reveals.length>1?`<div class="gmeta" style="margin-top:10px" id="gidx">1 / ${reveals.length}</div><button class="btn" id="gnext" style="margin-top:8px">다음</button>`:"");
+  let idx=0;
+  const flip=()=>{ const c=$("#gc"+idx); if(c) setTimeout(()=>c.classList.add("flip"),80); };
+  flip();
+  const nxt=$("#gnext");
+  if(nxt) nxt.onclick=()=>{
+    $("#gc"+idx).style.display="none";
+    idx=(idx+1)%reveals.length;
+    $$(".gcard").forEach((c,i)=>c.style.display=i===idx?"block":"none");
+    $("#gc"+idx).classList.remove("flip");
+    if($("#gidx")) $("#gidx").textContent=`${idx+1} / ${reveals.length}`;
+    SFX.gacha(reveals[idx].item.rarity); flip();
+  };
+}
+
+
+function showGuestLineup(ids){
+  const list=(ids&&ids.length?ids:WEAK_POINTS.map(g=>g.id)).slice(0,4).map(id=>GUEST_BY[id]).filter(Boolean);
+  const ov=$("#lineup"); if(!ov) return;
+  ov.innerHTML=list.map(g=>{
+    const look=guestLook(g);
+    return `<div class="lu-item fighter guest arch-${look.arch}" style="position:relative;bottom:auto;width:auto;animation-name:none;filter:none">
+      ${guestSvg(g,false,240,380,false)}
+      <div class="lu-name">${g.concept}</div>
+      <div class="lu-sub">${ARCH_LABEL[look.arch]||look.arch}</div>
+    </div>`;
+  }).join("");
+  ov.classList.add("on");
+  $$(".scene").forEach(s=>s.style.visibility="hidden");
+}
+function hideGuestLineup(){
+  const ov=$("#lineup"); if(ov) ov.classList.remove("on");
+  $$(".scene").forEach(s=>s.style.visibility="");
+}
+
+/* ---------- boot ---------- */
+function boot(){
+  ensureScenes();
+  FX.init();
+  SFX.setMuted(!!save.muted);
+  $("#mute").onclick=()=>{
+    SFX.unlock();
+    SFX.setMuted(!SFX.muted);
+    save.muted=SFX.muted; persist();
+    $("#mute").textContent=SFX.muted?"무음":"소리";
+    if(!SFX.muted) SFX.ambience();
+  };
+  renderTitle();
+  // debug for screenshots / tests
+  window.__studyGame = {
+    save, transit, showScene, renderLobby, renderBattle, renderCollection, renderShelf, renderTitle,
+    beginReception, answer, choosePage, pullGacha, giveTickets(n){ save.ticketsSpent=Math.max(0, save.ticketsSpent-n); persist(); },
+    setScene(n){ showScene(n); if(n==="lobby")renderLobby(); if(n==="battle")renderBattle(); if(n==="collection")renderCollection(); if(n==="shelf")renderShelf(); if(n==="title")renderTitle(); },
+    setTab(tab){ collectTab=tab; if(scene==="collection") renderCollection(); },
+    demoGacha(rarity){
+      collectTab="gacha";
+      const item=COSMETIC_ITEMS.find(i=>i.rarity===rarity)||COSMETIC_ITEMS[0];
+      reveals=[{item,isNew:true,flavor:(REVEAL_TEXT[item.rarity]&&REVEAL_TEXT[item.rarity][0])||""}];
+      showScene("collection"); renderCollection(); paintReveal();
+    },
+    forceTickets(n){ save.questionsAnswered = n * TICKET_RULES.questionsPerLecture; persist(); },
+    get reception(){return reception;},
+    playClashWin(){
+      if(reception&&reception.phase==="select"){
+        const p=reception.handIds.find(id=>PAGE_BY[id]&&PAGE_BY[id].cost<=reception.light&&PAGE_BY[id].emotion<=reception.emotion);
+        if(p){
+          choosePage(p);
+          setTimeout(()=>{
+            const bank=reception.quiz||GUEST_BY[reception.guestId].questions;
+            const q=bank[reception.qIndex%bank.length];
+            answer(q.correctIndex);
+          }, 80);
+        }
+      }
+    },
+    openGuestSheet, closeGuestSheet, showGuestLineup, hideGuestLineup,
+    giftTotals, bonusLabel
+  };
+}
+
+document.addEventListener("DOMContentLoaded", boot);
+</script></body></html>
