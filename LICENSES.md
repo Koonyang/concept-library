@@ -25,10 +25,17 @@ No Library of Ruina / Project Moon assets are included.
 - URL: https://commons.wikimedia.org/wiki/File:AbbeyLibrary-SaintGallen.jpg
 - Used for: lobby, title, and battle backgrounds (`assets/bg/`)
 
-## Sandoll / typography — Nanum Myeongjo
+## Pretendard — Kil Hyung-jin
 - License: SIL Open Font License 1.1
-- URL: https://fonts.google.com/specimen/Nanum+Myeongjo
-- Files: `assets/fonts/nanum-myeongjo-kr-400.woff2`, `assets/fonts/nanum-myeongjo-latin-400.woff2`
+- URL: https://github.com/orioncactus/pretendard
+- Used for: body / UI text (Korean + Latin), variable font, dynamic subsets
+- Files: `assets/fonts/pretendard/*.woff2`, `assets/fonts/fonts.css`, license text in `assets/fonts/LICENSE-Pretendard.txt`
+
+## Space Grotesk — Florian Karsten
+- License: SIL Open Font License 1.1
+- URL: https://github.com/floriankarsten/space-grotesk
+- Used for: headings, numerals, labels (Latin), variable font
+- Files: `assets/fonts/space-grotesk-latin-wght-normal.woff2`, `assets/fonts/space-grotesk-latin-ext-wght-normal.woff2`, license text in `assets/fonts/LICENSE-SpaceGrotesk.txt`
 - The SIL OFL 1.1 text is at https://openfontlicense.org/open-font-license-official-text/
 
-Attribution is not required by CC0, but it is gratefully given. Nanum Myeongjo is included under the OFL.
+Attribution is not required by CC0, but it is gratefully given. Pretendard and Space Grotesk are included under the OFL 1.1 (fonts are not sold by themselves; no Reserved Font Name is modified).
