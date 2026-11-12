@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="crime-floor-20261112L">
+<meta name="build" content="evade-bgm-20261113a">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -1151,6 +1151,12 @@ b,strong{font-weight:700}
 @media (max-width:860px){ .fn-arrow{width:48px;height:48px} .fn-name{font-size:17px} }
 .ticket-chip{display:flex;align-items:center;justify-content:center;gap:6px;margin:12px auto 0;width:max-content;padding:5px 14px;border-radius:999px;background:rgba(8,10,18,.55);border:1px solid rgba(var(--accent-rgb),.4);color:var(--gold2);font-size:12px}
 .ticket-chip b{font-family:var(--display);font-size:15px;color:var(--parch)}
+
+.die{position:relative}
+.die.keeps svg rect:first-of-type{stroke:#9fd0ff;filter:drop-shadow(0 0 7px rgba(140,200,255,.85))}
+.die.reused svg{filter:drop-shadow(0 0 6px rgba(140,200,255,.55))}
+.reuse-tag{position:absolute;left:50%;top:-8px;transform:translateX(-50%);padding:1px 8px;border-radius:999px;background:rgba(40,80,120,.9);border:1px solid #9fd0ff;color:#dff0ff;font-size:10px;font-weight:700;letter-spacing:0;white-space:nowrap;pointer-events:none;animation:reuseTag .5s ease-out}
+@keyframes reuseTag{from{opacity:0;transform:translate(-50%,6px) scale(.8)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
 </style>
 </head>
 <body>
@@ -1709,15 +1715,20 @@ function resolveScene(o){
   const P=o.P,G=o.G,pDice=o.pDice,gDice=o.gDice,correct=!!o.correct,isKey=!!o.isKey,rng=o.rng||Math.random,mods=o.mods||{};
   const m={hp:1+(mods.dmgPct||0), st:(1+(mods.staggerPct||0))*(correct?(isKey?COMBAT.keyCorrectStagger:COMBAT.correctStagger):1)};
   const one={hp:1,st:1};
-  const steps=[], n=Math.max(pDice?pDice.length:0,gDice?gDice.length:0);
-  for(let i=0;i<n;i++){
+  const steps=[], pn=pDice?pDice.length:0, gn=gDice?gDice.length:0;
+  /* 두 쪽의 주사위를 포인터로 맞붙인다. 회피 주사위가 합에서 이기면 소모되지 않고
+     (매번 다시 굴려) 상대의 다음 주사위와 다시 맞붙는다 — 지거나 비기거나 상대 주사위가 떨어질 때까지. */
+  let i=0, j=0, heldP=false, heldG=false, guard=0;
+  while((i<pn||j<gn)&&guard++<64){
     if(P.hp<=0||G.hp<=0) break;
-    const pd=(pDice&&P.stag===0)?pDice[i]:null, gd=(gDice&&G.stag===0)?gDice[i]:null;
-    if(!pd&&!gd) continue;
+    const pd=(pDice&&i<pn&&P.stag===0)?pDice[i]:null, gd=(gDice&&j<gn&&G.stag===0)?gDice[j]:null;
+    if(!pd&&!gd){ i++; j++; heldP=heldG=false; continue; }
+    if(pd&&!gd&&heldP){ i++; heldP=false; continue; }   /* 남은 상대 주사위가 없으면 재사용 중이던 회피는 그냥 끝난다 */
+    if(gd&&!pd&&heldG){ j++; heldG=false; continue; }
     let pr=0,gr=0,pRange=null,gRange=null;
     if(pd){ pRange=playerDieRange(pd,correct,isKey,o.emotion,mods.dieMin); pr=randInt(rng,pRange[0],pRange[1]); }
     if(gd){ gRange=guestDieRange(gd,correct,isKey); gr=randInt(rng,gRange[0],gRange[1]); }
-    const st={pd:pd?{type:pd.type,roll:pr}:null, gd:gd?{type:gd.type,roll:gr}:null, outcome:"none", events:[], newStag:[]};
+    const st={pd:pd?{type:pd.type,roll:pr,reused:!!(pd&&heldP)}:null, gd:gd?{type:gd.type,roll:gr,reused:!!(gd&&heldG)}:null, outcome:"none", events:[], newStag:[]};
     const ev=(t,e)=>{ e.target=t; st.events.push(e); if(e.newStag) st.newStag.push(t); };
     if(pd&&gd){
       const pa=isAttack(pd.type), ga=isAttack(gd.type);
@@ -1744,9 +1755,17 @@ function resolveScene(o){
       }
     } else if(pd){ if(isAttack(pd.type)){ st.outcome="P"; ev("G",hitUnit(G,pd.type,pr,m)); } }
     else if(gd){ if(isAttack(gd.type)){ st.outcome="G"; ev("P",hitUnit(P,gd.type,gr,one)); } }
+    /* 회피 주사위 재사용: 공격 주사위를 상대로 이긴 회피는 남는다 */
+    const keepP=!!(pd&&gd&&pd.type==="회피"&&isAttack(gd.type)&&st.outcome==="P");
+    const keepG=!!(pd&&gd&&gd.type==="회피"&&isAttack(pd.type)&&st.outcome==="G");
+    if(st.pd) st.pd.keeps=keepP; if(st.gd) st.gd.keeps=keepG;
     st.pRange=pRange; st.gRange=gRange;
     st.snap={pHp:P.hp,pSt:P.st,pStag:P.stag,gHp:G.hp,gSt:G.st,gStag:G.stag};
     steps.push(st);
+    if(keepP) heldP=true; else { heldP=false; i++; }
+    if(keepG) heldG=true; else { heldG=false; j++; }
+    if(keepP&&keepG){ heldP=heldG=false; i++; j++; }
+    /* 재사용 중인 쪽의 상대가 이미 한 칸 넘어갔다면 j/i는 위에서 증가했다 */
   }
   return steps;
 }
@@ -1923,7 +1942,7 @@ function pickGachaItem(rarity, ownedIds){
 
 /* ---------- Web Audio ---------- */
 const SFX = (() => {
-  let ctx=null, sfxMuted=false, bgmMuted=true, bgmNodes=[], bgmTimer=null, bgmPlaying=false;
+  let ctx=null, sfxMuted=false, bgmMuted=true, bgmPlaying=false;
   const ensure=()=>{ if(!ctx) ctx=new (window.AudioContext||window.webkitAudioContext)(); if(ctx.state==="suspended") ctx.resume(); return ctx; };
   const env=(g,t,a=.01,h=.06,d=.2,vol=.08)=>{ g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+a); g.gain.exponentialRampToValueAtTime(.0001,t+a+h+d); };
   function tone(freq,type,dur,vol=.08,det=0){
@@ -1998,68 +2017,57 @@ const SFX = (() => {
   function prime(){ // resume/create the AudioContext inside a user gesture (mobile autoplay policy)
     try{ const c=ensure(); const b=c.createBuffer(1,1,22050), s=c.createBufferSource(); s.buffer=b; s.connect(c.destination); s.start(0); }catch(e){}
   }
+  /* BGM — 사용자가 직접 올린 곡(assets/audio/bgm.mp3, 128kbps). 끝부분을 처음에 크로스페이드해 둔 파일이라
+     AudioBufferSource loop 로 끊김 없이 이어진다. 켜기/끄기는 페이드. 기본 꺼짐, 사용자 제스처에서만 시작. */
+  const BGM_URL="assets/audio/bgm.mp3", BGM_VOL=0.17, BGM_FADE_IN=1.6, BGM_FADE_OUT=.7;
+  let bgmBuf=null, bgmLoad=null, bgmSrc=null, bgmGain=null, bgmAudioEl=null, bgmToken=0;
+  function loadBgm(){
+    if(bgmBuf) return Promise.resolve(bgmBuf);
+    if(bgmLoad) return bgmLoad;
+    bgmLoad=fetch(BGM_URL).then(r=>{ if(!r.ok) throw new Error("bgm "+r.status); return r.arrayBuffer(); })
+      .then(ab=>new Promise((res,rej)=>ensure().decodeAudioData(ab,res,rej)))
+      .then(buf=>(bgmBuf=buf)).catch(e=>{ bgmLoad=null; throw e; });
+    return bgmLoad;
+  }
   function stopBgm(){
-    if(bgmTimer){ clearTimeout(bgmTimer); bgmTimer=null; }
-    const t=ctx?ctx.currentTime:0;
-    bgmNodes.forEach(n=>{
-      try{
-        if(n.gain && n.gain.gain){
-          n.gain.gain.cancelScheduledValues(t);
-          const cur=n.gain.gain.value;
-          n.gain.gain.setValueAtTime(cur,t);
-          n.gain.gain.linearRampToValueAtTime(0,t+.12);
-        }
-        if(n.stop) n.stop(t+.14);
-      }catch(e){}
-    });
-    const dump=bgmNodes.slice();
-    bgmNodes=[]; bgmPlaying=false;
-    setTimeout(()=>{ dump.forEach(n=>{ try{ n.disconnect&&n.disconnect(); }catch(e){} }); }, 180);
+    bgmToken++;
+    bgmPlaying=false;
+    const src=bgmSrc, g=bgmGain, el=bgmAudioEl; bgmSrc=null; bgmGain=null; bgmAudioEl=null;
+    if(src&&g&&ctx){
+      const t=ctx.currentTime;
+      try{ g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value,t); g.gain.linearRampToValueAtTime(0,t+BGM_FADE_OUT); src.stop(t+BGM_FADE_OUT+.05); }catch(e){}
+      setTimeout(()=>{ try{ src.disconnect(); g.disconnect(); }catch(e){} }, (BGM_FADE_OUT+.2)*1000);
+    }
+    if(el){
+      const t0=performance.now(), v0=el.volume;
+      (function fade(){ const k=Math.min(1,(performance.now()-t0)/(BGM_FADE_OUT*1000)); el.volume=v0*(1-k); if(k<1) requestAnimationFrame(fade); else { el.pause(); el.src=""; } })();
+    }
   }
   function startBgm(){
-    if(bgmMuted) return;
-    const c=ensure();
-    stopBgm();
-    const master=c.createGain(); master.gain.value=0;
-    const hp=c.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=120; hp.Q.value=.7;
-    master.connect(hp); hp.connect(c.destination);
-    const t0=c.currentTime;
-    master.gain.linearRampToValueAtTime(.065,t0+1.4);
-    function pad(freq,vol){
-      const o=c.createOscillator(), g=c.createGain(), lfo=c.createOscillator(), lg=c.createGain();
-      o.type="sine"; o.frequency.value=freq;
-      g.gain.value=vol;
-      lfo.type="sine"; lfo.frequency.value=.07;
-      lg.gain.value=vol*.22;
-      lfo.connect(lg); lg.connect(g.gain);
-      o.connect(g); g.connect(master);
-      o.start(); lfo.start();
-      bgmNodes.push(o,lfo,g,lg);
-    }
-    pad(220,.035);
-    pad(329.63,.022);
-    pad(440,.012);
-    const notes=[220,261.63,329.63,440,392,329.63,293.66,261.63];
-    let step=0;
-    function tick(){
-      if(bgmMuted||!bgmPlaying) return;
-      const c=ensure(), t=c.currentTime, freq=notes[step%notes.length];
-      step++;
-      const o=c.createOscillator(), g=c.createGain(), lp=c.createBiquadFilter();
-      o.type="triangle"; o.frequency.value=freq;
-      lp.type="lowpass"; lp.frequency.value=2200;
-      g.gain.setValueAtTime(0,t);
-      g.gain.linearRampToValueAtTime(.04,t+.02);
-      g.gain.exponentialRampToValueAtTime(.0001,t+1.35);
-      o.connect(lp); lp.connect(g); g.connect(master);
-      o.start(t); o.stop(t+1.45);
-      o.addEventListener("ended",()=>{ try{ o.disconnect(); lp.disconnect(); g.disconnect(); }catch(e){} });
-      bgmTimer=setTimeout(tick, step%8===0?1200:680);
-    }
-    bgmPlaying=true;
-    bgmNodes.push(master,hp);
-    bgmTimer=setTimeout(tick, 500);
+    if(bgmMuted||bgmPlaying) return;
+    const token=++bgmToken; bgmPlaying=true;
+    let c; try{ c=ensure(); if(c.state==="suspended") c.resume(); }catch(e){ bgmPlaying=false; return; }
+    loadBgm().then(buf=>{
+      if(token!==bgmToken||bgmMuted) return;
+      const g=c.createGain(); g.gain.value=0;
+      const src=c.createBufferSource(); src.buffer=buf; src.loop=true; src.connect(g); g.connect(c.destination);
+      const t=c.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(BGM_VOL,t+BGM_FADE_IN);
+      src.start(t);
+      bgmSrc=src; bgmGain=g;
+    }).catch(()=>{
+      /* decode/fetch 실패 시 HTMLAudioElement 로 대체 */
+      if(token!==bgmToken||bgmMuted) return;
+      try{
+        const el=new Audio(BGM_URL); el.loop=true; el.volume=0; bgmAudioEl=el;
+        el.play().then(()=>{ const t0=performance.now(); (function up(){ if(bgmAudioEl!==el) return; const k=Math.min(1,(performance.now()-t0)/(BGM_FADE_IN*1000)); el.volume=BGM_VOL*k; if(k<1) requestAnimationFrame(up); })(); }).catch(()=>{ bgmPlaying=false; });
+      }catch(e){ bgmPlaying=false; }
+    });
   }
+  document.addEventListener("visibilitychange",()=>{
+    if(!ctx||bgmMuted) return;
+    if(document.hidden){ if(bgmSrc) ctx.suspend().catch(()=>{}); if(bgmAudioEl) bgmAudioEl.pause(); }
+    else { ctx.resume().catch(()=>{}); if(bgmAudioEl) bgmAudioEl.play().catch(()=>{}); }
+  });
   return {
     get sfxMuted(){ return sfxMuted; },
     get bgmMuted(){ return bgmMuted; },
@@ -2067,6 +2075,7 @@ const SFX = (() => {
     setSfxMuted(v){ sfxMuted=!!v; },
     setBgmMuted(v){ bgmMuted=!!v; if(bgmMuted) stopBgm(); else startBgm(); },
     unlock(){ ensure(); if(!bgmMuted&&!bgmPlaying) startBgm(); },
+    get bgmPlaying(){ return bgmPlaying; }, get bgmBuffer(){ return bgmBuf; }, get bgmGainValue(){ return bgmGain?bgmGain.gain.value:0; },
     tak, prime, renderTakOffline, get takCount(){ return takCount; },
     startBgm, stopBgm,
     hover(){ tone(740,"sine",.08,.03); },
@@ -4137,12 +4146,14 @@ function animateScene(steps,winAll,loseAll,miss){
     clash.classList.add("show"); clash.classList.remove("hit","crit");
     dp.style.visibility=st.pd?"visible":"hidden"; dg.style.visibility=st.gd?"visible":"hidden";
     dp.innerHTML=st.pd?dieSvg(st.pd.type,null,false):""; dg.innerHTML=st.gd?dieSvg(st.gd.type,null,false):"";
+    dp.classList.toggle("reused",!!(st.pd&&st.pd.reused)); dg.classList.toggle("reused",!!(st.gd&&st.gd.reused));
+    dp.classList.toggle("keeps",!!(st.pd&&st.pd.keeps)); dg.classList.toggle("keeps",!!(st.gd&&st.gd.keeps));
     dp.classList.remove("roll"); dg.classList.remove("roll"); void dp.offsetWidth;
     dp.classList.add("roll"); dg.classList.add("roll");
     SFX.dice();
     setTimeout(()=>{
-      if(st.pd) dp.innerHTML=dieSvg(st.pd.type,st.pd.roll,st.outcome==="G"&&!!st.gd);
-      if(st.gd) dg.innerHTML=dieSvg(st.gd.type,st.gd.roll,st.outcome==="P"&&!!st.pd);
+      if(st.pd) dp.innerHTML=dieSvg(st.pd.type,st.pd.roll,st.outcome==="G"&&!!st.gd&&!st.gd.keeps)+(st.pd.reused?'<span class="reuse-tag">재사용</span>':"");
+      if(st.gd) dg.innerHTML=dieSvg(st.gd.type,st.gd.roll,st.outcome==="P"&&!!st.pd&&!st.pd.keeps)+(st.gd.reused?'<span class="reuse-tag">재사용</span>':"");
       SFX.clash(st.outcome==="P");
       if(rec.crit&&first) SFX.crit();
       clash.classList.add("hit");
