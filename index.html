@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="archetypes-sheet-burn-20261113a">
+<meta name="build" content="stage-books-20261113d">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -943,7 +943,7 @@ b,strong{font-weight:700}
 
 
 /* ===== whole-stage battle framing: moderate characters standing on a stage ===== */
-#scene-battle{--fig-h:clamp(118px,17vh,168px);--feet:clamp(214px,29vh,280px);--plate-h:26px}
+#scene-battle{--fig-h:clamp(90px,12.3vh,124px);--feet:clamp(214px,29vh,280px);--plate-h:26px}
 .fighter{top:auto;bottom:calc(var(--feet) - var(--plate-h));height:calc(var(--fig-h) + var(--plate-h));
   width:calc(var(--fig-h) * .66);max-height:none}
 .fighter.librarian{left:6%;right:auto}
@@ -955,7 +955,7 @@ b,strong{font-weight:700}
 .clash,.clash-zone{top:calc(100% - var(--feet) - var(--fig-h) * .56)}
 .clash-zone{width:min(34vw,170px);height:min(34vw,170px);opacity:.75}
 @media (min-width:861px){
-  #scene-battle{--fig-h:clamp(150px,24vh,232px);--feet:clamp(240px,29vh,300px)}
+  #scene-battle{--fig-h:clamp(110px,15vh,170px);--feet:clamp(240px,29vh,300px)}
   .fighter.librarian{left:calc(50% - var(--fig-h) * .66 - 90px)}
   .fighter.guest{right:calc(50% - var(--fig-h) * .66 - 90px)}
 }
@@ -963,7 +963,7 @@ b,strong{font-weight:700}
   .fighter.librarian{left:5%}.fighter.guest{right:5%}
   .char-plate{font-size:10px}
 }
-@media (max-height:780px) and (max-width:860px){#scene-battle{--fig-h:clamp(112px,16vh,146px);--feet:clamp(200px,28vh,232px)}}
+@media (max-height:780px) and (max-width:860px){#scene-battle{--fig-h:clamp(86px,12.3vh,112px);--feet:clamp(200px,28vh,232px)}}
 
 /* curator stamp (TAK!) */
 .tak-stamp{position:absolute;z-index:18;pointer-events:none;width:112px;height:112px;border-radius:50%;
@@ -1307,6 +1307,36 @@ b,strong{font-weight:700}
 @media (max-width:860px){ .pilebox{bottom:148px;right:8px} }
 .battle-stage:has(.qpanel.on) .pilebox{opacity:0;visibility:hidden}
 .battle-stage.result-on .pilebox{opacity:0!important;visibility:hidden!important}
+
+/* 책 캐러셀 */
+.bk-car{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.fn-arrow-sp{width:48px;flex:0 0 48px}
+.bk-slide{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 16px 18px;text-align:center;touch-action:pan-y;position:relative}
+.bk-slide.slide-in-r,.fn-title.slide-in-r{animation:fnInR .34s cubic-bezier(.2,.8,.2,1)}
+.bk-slide.slide-in-l,.fn-title.slide-in-l{animation:fnInL .34s cubic-bezier(.2,.8,.2,1)}
+.bk-slide.slide-out-l,#bk-title.slide-out-l{animation:fnOutL .15s ease-in forwards}
+.bk-slide.slide-out-r,#bk-title.slide-out-r{animation:fnOutR .15s ease-in forwards}
+.bk-art svg{width:112px;height:140px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.55))}
+.bk-count{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:999px;background:rgba(8,10,18,.68);border:1px solid rgba(var(--accent-rgb),.4);color:var(--gold2)}
+.bk-count svg{width:16px;height:16px;fill:none;stroke:currentColor}
+.bk-count b{font-family:var(--display);font-size:18px;font-weight:700;color:var(--parch);font-variant-numeric:tabular-nums}
+.bk-btns-c{justify-content:center;display:flex;gap:8px;flex-wrap:wrap}
+.bk-empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:34px 18px 28px;text-align:center}
+.bk-empty-ico{opacity:.32}.bk-empty-ico svg{width:64px;height:64px;fill:none;stroke:var(--parch2);stroke-width:1.2}
+.bk-empty-t{font-size:16px;font-weight:700;color:var(--parch)}
+.bk-empty-s{font-size:12px;color:var(--parch2);opacity:.8;margin-bottom:6px}
+/* 손님 정보: 책장 수집 현황 */
+.sheet-coll{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;margin:2px 0 0;font-size:12px;color:var(--parch2)}
+.sheet-coll b{font-family:var(--display);color:var(--parch);font-variant-numeric:tabular-nums}.sheet-coll b.ok{color:#7ee2a8}
+.sc-cells{display:inline-flex;gap:4px}
+.cc-cell{font-style:normal;min-width:22px;height:18px;padding:0 4px;display:inline-grid;place-items:center;border-radius:5px;font:700 9px/1 "Space Grotesk",system-ui;border:1px solid rgba(var(--accent-rgb),.3);color:var(--parch2);opacity:.55}
+.cc-cell.on{opacity:1;color:#1b1306;background:linear-gradient(180deg,#ffd98a,#f0a93c);border-color:transparent}
+.cc-cell.k.on{background:linear-gradient(180deg,#ff9aa8,#d9455c);color:#fff}
+.ci-prev-r{flex:0 0 auto;margin-left:auto}
+.ci-vsrow .ci-first{margin-left:auto}
+.ci-die{flex-wrap:nowrap}
+.dprev{margin-left:0}
+.card.mini .dice .dprev{flex-direction:column;gap:0;line-height:1.15;font-size:9px}
 </style>
 </head>
 <body>
@@ -3303,16 +3333,17 @@ function waxHtml(r){ r=r||"N"; return `<span class="wax rar-${r}" title="희귀�
 function paperLayers(){ return `<div class="paper-fiber"></div><div class="paper-stain"></div>`; }
 /* 정답/오답에 따른 주사위 변화 미리보기 — 실제 전투 공식(playerDieRange/guestDieRange)을 그대로 쓴다 */
 function previewCtx(){
-  const rec=reception; if(!rec||rec.phase!=="select") return null;
   const t=withKeyMods(giftTotals(save),save);
-  return {rec,dieMin:t.dieMin||0,isKey:!!(rec.intent&&rec.intent.big&&rec.g.stag<=0)};
+  const rec=reception;
+  if(!rec) return {rec:null,dieMin:t.dieMin||0,isKey:false,emotion:0};
+  return {rec,dieMin:t.dieMin||0,isKey:!!(rec.intent&&rec.intent.big&&rec.g.stag<=0),emotion:rec.emotion||0};
 }
 function myDiePreview(d){
-  const c=previewCtx(); if(!c) return null;
-  return {ok:playerDieRange(d,true,c.isKey,c.rec.emotion,c.dieMin),ng:playerDieRange(d,false,c.isKey,c.rec.emotion,c.dieMin),isKey:c.isKey};
+  const c=previewCtx();
+  return {ok:playerDieRange(d,true,c.isKey,c.emotion,c.dieMin),ng:playerDieRange(d,false,c.isKey,c.emotion,c.dieMin),isKey:c.isKey};
 }
 function guestDiePreview(d){
-  const c=previewCtx(); if(!c) return null;
+  const c=previewCtx();
   return {ok:guestDieRange(d,true,c.isKey),ng:guestDieRange(d,false,c.isKey),isKey:c.isKey};
 }
 function dprevHtml(pv,cls=""){
@@ -3321,7 +3352,7 @@ function dprevHtml(pv,cls=""){
 }
 function paperCardHtml(page, opts={}){
   const mini=!!opts.mini;
-  const dice=(page.dice||[]).map(d=>`<span>${dieMark(d.type, mini?10:12)} ${(mini||opts.prev)?"":(d.type+" ")}${d.min}–${d.max}${opts.prev?dprevHtml(myDiePreview(d)):""}</span>`).join("");
+  const dice=(page.dice||[]).map(d=>`<span>${dieMark(d.type, mini?10:12)} ${(mini||opts.prev)?"":(d.type+" ")}${dprevHtml(myDiePreview(d))}</span>`).join("");
   const first=(page.dice&&page.dice[0]&&page.dice[0].type)||"참격";
   const flavor=page.flavor?`<div class="flavor">${page.flavor}</div>`:"";
   const tx=mini?"":`<div class="tx">${page.text||""}</div>`;
@@ -3731,6 +3762,15 @@ function renderLobby(){
   if(sheetOpen && selectedGuestId) openGuestSheet(selectedGuestId, true);
 }
 function xBtn(id,label){ return `<button class="x-btn" ${id?`id="${id}" `:""}type="button" aria-label="${label||"닫기"}"><span class="x-ico"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2 12 12M12 2 2 12"/></svg></span></button>`; }
+function sheetCollHtml(g){
+  const pool=poolEntries(save,g.id);
+  const pages=pool.filter(e=>e.k==="page"), keys=pool.filter(e=>e.k==="key");
+  const got=pages.filter(e=>e.count>0).length;
+  const cell=e=>{ const pg=e.k==="page"?PAGE_BY[e.id]:null; const tag=e.k==="key"?"핵":(pg.rarity||"N"); return `<i class="cc-cell ${e.count>0?"on":""} ${e.k==="key"?"k":""}" title="${entryName(e)}">${tag}</i>`; };
+  return `<div class="sheet-coll" aria-label="책장 수집 ${got}/${pages.length}${keys.length?`, 핵심 책장 ${keys.some(e=>e.count>0)?"보유":"미보유"}`:""}">
+    <span class="sc-lab">책장 <b>${got}/${pages.length}</b></span>${keys.length?`<span class="sc-lab">핵심 <b class="${keys.some(e=>e.count>0)?"ok":""}">${keys.some(e=>e.count>0)?"✓":"—"}</b></span>`:""}
+    <span class="sc-cells">${pool.map(cell).join("")}</span></div>`;
+}
 function guestSheetHtml(g){
   if(!g) return "";
   const done=save.conqueredIds.includes(g.id);
@@ -3756,6 +3796,7 @@ function guestSheetHtml(g){
           <span class="pill">체력 ${COMBAT.guestHp[g.weakness]}</span>
           <span class="pill">흐트러짐 저항 ${COMBAT.guestStagger[g.weakness]}</span>
         </div>
+        ${sheetCollHtml(g)}
       </div>
     </div>
     <p style="margin:12px 0;font-size:13px;line-height:1.7;color:var(--parch)">${g.explanation}</p>
@@ -3919,15 +3960,13 @@ function cardInspectHtml(page){
   const t=withKeyMods(giftTotals(save),save);
   const dieMin=t.dieMin||0;
   const dies=(page.dice||[]).map(d=>{
-    const lo=d.min+dieMin, hi=Math.max(lo,d.max);
-    const shown=dieMin?`${d.min}–${d.max} → ${lo}–${hi}`:`${d.min}–${d.max}`;
     const pv=myDiePreview(d);
     return `<div class="ci-die">${dieMark(d.type,22)} <span>${d.type}</span>
-      <span class="range">${shown}</span>${dieMin?`<span class="mod">최솟값 +${dieMin}</span>`:""}${pv?`<div class="ci-prev"><span class="ci-pv-base">${d.min+dieMin}~${hi}</span><span class="ci-arrow">→</span><i class="ok">✓ ${pv.ok[0]}~${pv.ok[1]}</i><span class="ci-sl">/</span><i class="ng">✗ ${pv.ng[0]}~${pv.ng[1]}</i></div>`:""}</div>`;
+      <div class="ci-prev ci-prev-r"><i class="ok">✓ ${pv.ok[0]}~${pv.ok[1]}</i><span class="ci-sl">/</span><i class="ng">✗ ${pv.ng[0]}~${pv.ng[1]}</i></div></div>`;
   }).join("");
   let vsHtml="";
-  { const c=previewCtx(); if(c&&c.rec.intent&&c.rec.g.stag<=0){
-      vsHtml=`<div class="ci-sec ci-vs"><div class="lab">상대 예고 · ${c.rec.intent.name}${c.isKey?" ★":""}</div>${c.rec.intent.dice.map(d=>{ const gp=guestDiePreview(d); return `<div class="ci-vsrow">${dieMark(d.type,16)} <span>${d.type}</span><span class="range">${d.min}~${d.max}</span><span class="ci-arrow">→</span><i class="ok">✓ ${gp.ok[0]}~${gp.ok[1]}</i><span class="ci-sl">/</span><i class="ng">✗ ${gp.ng[0]}~${gp.ng[1]}</i></div>`; }).join("")}
+  { const c=previewCtx(); if(c.rec&&c.rec.intent&&c.rec.g.stag<=0){
+      vsHtml=`<div class="ci-sec ci-vs"><div class="lab">상대 예고 · ${c.rec.intent.name}${c.isKey?" ★":""}</div>${c.rec.intent.dice.map(d=>{ const gp=guestDiePreview(d); return `<div class="ci-vsrow">${dieMark(d.type,16)} <span>${d.type}</span><i class="ok ci-first">✓ ${gp.ok[0]}~${gp.ok[1]}</i><span class="ci-sl">/</span><i class="ng">✗ ${gp.ng[0]}~${gp.ng[1]}</i></div>`; }).join("")}
         <div class="gmeta">정답이면 내 주사위↑ 상대↓, 오답이면 내 주사위↓${c.isKey?" 상대↑":""}.</div></div>`; } }
   const conds=[];
   conds.push(page.cost?`빛 ${page.cost} 소모`:"빛 소모 없음");
@@ -4042,7 +4081,7 @@ function intentHtml(rec){
   if(rec.g.stag>0) return `<div class="intent down" id="intent"><div class="in-head"><span class="in-lab">상태</span><b>흐트러짐</b></div><div class="in-sub">이 막은 행동할 수 없다</div></div>`;
   const it=rec.intent; if(!it) return "";
   const ex=expectedDamage(it.dice,rec.p);
-  const dice=it.dice.map(d=>`<span class="in-die t-${d.type}">${dieMark(d.type,13)}<b>${d.type}</b> ${d.min}–${d.max}${dprevHtml(guestDiePreview(d),"gp")}</span>`).join("");
+  const dice=it.dice.map(d=>`<span class="in-die t-${d.type}">${dieMark(d.type,13)}<b>${d.type}</b> ${dprevHtml(guestDiePreview(d),"gp")}</span>`).join("");
   const hasAtk=it.dice.some(d=>isAttack(d.type));
   const dmg=hasAtk?`<div class="in-dmg"><span class="in-if">맞으면</span> <span class="hp">♥ −${ex.hpLo}~${ex.hpHi}</span> <span class="st">${ico("stag",10)} −${ex.stLo}~${ex.stHi}</span></div>`
     :`<div class="in-dmg"><span class="in-if">방어·회피 태세</span></div>`;
@@ -4707,34 +4746,60 @@ function showLose(){
 }
 
 /* ---------- shelf / collection ---------- */
+let bookSel=null, bookAnimDir=0;
+function heldBooks(){ return WEAK_POINTS.filter(g=>bookCount(save,g.id)>0); }
+function selectBook(gid){ bookSel=gid; if($("#scene-shelf")&&shelfTab==="books") renderShelf(); }
+function goBook(idx,dir){
+  const list=heldBooks(); if(list.length<2) return;
+  const n=list.length; idx=((idx%n)+n)%n;
+  SFX.click();
+  const finish=()=>{ bookSel=list[idx].id; bookAnimDir=dir; renderShelfBooks(); };
+  const els=$$("#bk-title,#bk-swipe");
+  if(!els.length||matchMedia("(prefers-reduced-motion: reduce)").matches){ finish(); return; }
+  els.forEach(e=>e.classList.add(dir>0?"slide-out-l":"slide-out-r"));
+  setTimeout(finish,150);
+}
+function booksCarouselHtml(){
+  const list=heldBooks();
+  if(!list.length){
+    return `<div class="bk-empty frame">${cornerHtml()}<div class="bk-empty-ico">${ico("book",64)}</div>
+      <div class="bk-empty-t">보유한 책이 없어요</div><div class="bk-empty-s">접대나 회상을 하면 책을 얻을 수 있어요</div>
+      <button class="btn primary" type="button" data-go="lobby">접대하러 가기</button></div>`;
+  }
+  let idx=list.findIndex(g=>g.id===bookSel); if(idx<0){ idx=0; bookSel=list[0].id; }
+  const g=list[idx], n=bookCount(save,g.id), pool=poolEntries(save,g.id), maxed=!pool.some(e=>e.w>0);
+  const last=lastBurn&&lastBurn.gid===g.id?lastBurn:null;
+  const many=list.length>1;
+  const dots=(()=>{ const N=list.length, MAXD=7; let a=0,b=N-1; if(N>MAXD){ a=Math.max(0,Math.min(N-MAXD,idx-Math.floor(MAXD/2))); b=a+MAXD-1; }
+    const d=[]; for(let i=a;i<=b;i++){ const edge=N>MAXD&&((i===a&&a>0)||(i===b&&b<N-1)); d.push(`<button class="fn-dot${i===idx?" on":""}${edge?" tiny":""}" type="button" data-bdot="${i}" role="tab" aria-selected="${i===idx}" aria-label="${list[i].concept} (${i+1}/${N})"><i></i></button>`); }
+    return `<div class="fn-dots" role="tablist" aria-label="책 선택" style="--fn-w:${(b-a)*13}px">${d.join("")}</div>`; })();
+  const anim=bookAnimDir?(bookAnimDir>0?"slide-in-r":"slide-in-l"):""; bookAnimDir=0;
+  return `<div class="bk-car">
+    <div class="floor-nav">
+      ${many?`<button class="fn-arrow" id="bk-prev" type="button" aria-label="이전 책"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>`:`<span class="fn-arrow-sp"></span>`}
+      <div class="fn-title ${anim}" id="bk-title" aria-live="polite"><div class="fn-count">${idx+1} / ${list.length}</div><h2 class="gold-title fn-name">${g.concept}</h2></div>
+      ${many?`<button class="fn-arrow" id="bk-next" type="button" aria-label="다음 책"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>`:`<span class="fn-arrow-sp"></span>`}
+    </div>
+    ${many?dots:""}
+    <div class="bk-slide frame ${anim}" id="bk-swipe">${cornerHtml()}
+      <div class="bk-art">${bookSvg(g.concept)}</div>
+      <div class="bk-count lightchip-like" role="status" aria-label="보유 ${n}권">${ico("book",16)}<b>×${n}</b></div>
+      <div class="bk-btns bk-btns-c">
+        <button class="btn primary" data-burn="${g.id}" ${n<1||maxed?"disabled":""}>소각 1권</button>
+        ${n>1&&!maxed?`<button class="btn" data-burn-all="${g.id}">모두 소각 (${n})</button>`:""}
+      </div>
+      ${maxed?`<div class="gmeta bk-note">이 책의 책장을 모두 모았어요</div>`:""}
+      ${last?`<div class="bk-result">소각 결과 · ${last.lines.join(" · ")}</div>`:""}
+    </div></div>`;
+}
 function renderShelfBooks(){
-  const pct=r=>(r>0?Math.round(r*100)+"%":"—");
-  const bookList=`<div class="item-grid">${WEAK_POINTS.map(g=>{
-      const n=bookCount(save,g.id), done=save.conqueredIds.includes(g.id);
-      const pool=poolEntries(save,g.id), maxed=!pool.some(e=>e.w>0);
-      const last=lastBurn&&lastBurn.gid===g.id?lastBurn:null;
-      return `<div class="book-item frame">${cornerHtml()}<div class="bk-top">${bookSvg(g.concept)}
-        <div style="flex:1;min-width:0"><div class="gold-title" style="font-size:16px">${g.concept}</div>
-        <div class="gmeta">${done?`보유 <b class="bk-n">${n}권</b>`:"아직 접대하지 않았다 · 접대하면 책 1권"}${maxed&&done?" · 이 책의 책장을 모두 모았다":""}</div>
-        ${done?`<div class="bk-btns">
-          <button class="btn primary" data-burn="${g.id}" ${n<1||maxed?"disabled":""}>소각 1권</button>
-          ${n>1&&!maxed?`<button class="btn" data-burn-all="${g.id}">모두 소각 (${n})</button>`:""}</div>`:""}</div></div>
-        <div class="bk-pool"><div class="bk-pool-h">소각하면 나오는 책장 · 확률</div>
-          ${pool.map(e=>{
-            const pg=e.k==="page"?PAGE_BY[e.id]:null;
-            const tag=e.k==="key"?"핵심":(pg.rarity||"N");
-            return `<div class="bk-row ${e.count>=e.cap?"got":""}"><span class="bk-tag t-${e.k==="key"?"key":tag}">${tag}</span><span class="bk-nm">${entryName(e)}</span>
-              <span class="bk-own">${e.count>=e.cap?"완료":e.count>0?`${e.count}/${e.cap}`:"미보유"}</span><span class="bk-rate">${pct(e.rate)}</span></div>`;}).join("")}
-          <div class="gmeta bk-note">미보유 책장이 더 잘 나오고, 중복이 이어지면 새 책장이 보장됩니다.</div></div>
-        ${last?`<div class="bk-result">소각 결과 · ${last.lines.join(" · ")}</div>`:""}
-        </div>`;
-    }).join("")}</div>`;
+  const bookList=booksCarouselHtml();
   $("#scene-shelf").innerHTML=`
     <div class="topbar">${hudStats()}</div>
     <div class="page-scroll">
     ${shelfTabsHtml()}
     <h2 class="gold-title" style="font-size:22px;margin-bottom:8px">책장</h2>
-    <p class="gmeta" style="margin-bottom:14px">접대와 회상에 성공할 때마다 그 손님의 책이 쌓입니다. 책을 소각하면 아래 풀에서 책장이 하나 나옵니다. 열쇠로 쓰는 핵심 책장도 같은 풀에 있습니다.</p>
+    <p class="gmeta" style="margin-bottom:10px">접대와 회상에 성공하면 그 손님의 책이 쌓입니다. 책을 소각하면 그 손님의 책장이 나옵니다. 책장 수집 현황은 손님 정보에서 볼 수 있어요.</p>
     ${bookList}
     <h3 class="gold-title sec-head">덱 편성</h3>
     <div class="deck-summary frame">${cornerHtml()}
@@ -4745,7 +4810,7 @@ function renderShelfBooks(){
     <h3 class="gold-title sec-head">전투 책장</h3>
     <div class="item-grid">${COMBAT_PAGES.map(p=>{
       const un=ownedCount(save,p.id)>0;
-      const dice=(p.dice||[]).map(d=>`${d.type} ${d.min}–${d.max}`).join(" · ");
+      const dice=(p.dice||[]).map(d=>`${d.type} ✓${myDiePreview(d).ok.join("~")} / ✗${myDiePreview(d).ng.join("~")}`).join(" · ");
       return `<div class="key-item frame">${cornerHtml()}<div style="min-width:0">
         <div class="gold-title" style="font-size:15px">${un?p.name:"????"}</div>
         <div class="gmeta">${un?`${p.cost}빛 · ${dice}<br>${p.text}<br><span class="src">보유 ${ownedCount(save,p.id)}/${DECK_MAX_COPIES}${p.starter?" · 기본 지급":" · 획득처 "+sourceLine("page",p.id)}</span>`:`아직 열리지 않았습니다.<br><span class="src">획득처 · ${sourceLine("page",p.id)}</span>`}</div>
@@ -4756,6 +4821,14 @@ function renderShelfBooks(){
   bindNav();
   bindShelfTabs();
   const od=$("#btn-open-deck"); if(od) od.onclick=()=>openDeckEditor({to:"shelf"});
+  $("#bk-prev")&&($("#bk-prev").onclick=()=>{ const l=heldBooks(); goBook(l.findIndex(g=>g.id===bookSel)-1,-1); });
+  $("#bk-next")&&($("#bk-next").onclick=()=>{ const l=heldBooks(); goBook(l.findIndex(g=>g.id===bookSel)+1,1); });
+  $$("[data-bdot]").forEach(b=>b.onclick=()=>{ const l=heldBooks(), cur=l.findIndex(g=>g.id===bookSel), i=+b.dataset.bdot; goBook(i,i>cur?1:-1); });
+  { let sx=0,sy=0,t0=0,tr=false; const l=()=>heldBooks(), cur=()=>l().findIndex(g=>g.id===bookSel);
+    const start=e=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; t0=Date.now(); tr=true; };
+    const end=e=>{ if(!tr) return; tr=false; const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
+      if(Math.abs(dx)>56&&Math.abs(dx)>Math.abs(dy)*1.6&&Date.now()-t0<700){ if(dx<0) goBook(cur()+1,1); else goBook(cur()-1,-1); } };
+    ["#bk-swipe",".bk-car .floor-nav"].forEach(sel=>{ const el=$(sel); if(!el) return; el.addEventListener("touchstart",start,{passive:true}); el.addEventListener("touchend",end,{passive:true}); }); }
   $$("[data-burn]").forEach(b=>b.onclick=()=>handleBook(b.dataset.burn,1));
   $$("[data-burn-all]").forEach(b=>b.onclick=()=>handleBook(b.dataset.burnAll,Infinity));
 }
@@ -5204,7 +5277,7 @@ function boot(){
   // debug for screenshots / tests
   window.__studyGame = {
     save, transit, showScene, renderLobby, renderBattle, renderCollection, renderShelf, renderTitle,
-    beginReception, answer, answerShort, choosePage, SFX, takPunch, showWin, showLose, engine:{COMBAT,TIER,ATK_TYPES,mkUnit,resolveScene,guestCombat,planIntent,expectedDamage,checkShort,keyQsOf,WEAK_POINTS,COMBAT_PAGES,PAGE_BY,hitUnit,playerDieRange,guestDieRange,playerStaggerMax,FLAT_RESIST,getRec(){return reception;}}, pullGacha, giveTickets(n){ save.ticketsSpent=Math.max(0, save.ticketsSpent-n); persist(); },
+    beginReception, selectBook, answer, answerShort, choosePage, SFX, takPunch, showWin, showLose, engine:{COMBAT,TIER,ATK_TYPES,mkUnit,resolveScene,guestCombat,planIntent,expectedDamage,checkShort,keyQsOf,WEAK_POINTS,COMBAT_PAGES,PAGE_BY,hitUnit,playerDieRange,guestDieRange,playerStaggerMax,FLAT_RESIST,getRec(){return reception;}}, pullGacha, giveTickets(n){ save.ticketsSpent=Math.max(0, save.ticketsSpent-n); persist(); },
     gx:{guestSvg,GX_VARIANTS,GX_VLABEL,GX_LABEL,gxAttack,gxExFlash,gxPick,GUEST_ART},
     data:{EGO_GIFTS,KEY_PAGES,COSMETIC_ITEMS,WEAK_POINTS,COMBAT_PAGES,FLOORS,KEY_QUESTIONS},
     acq:{BOOK_POOLS,BOOK_RULES,poolEntries,burnBookOnce,addBooks,bookCount,totalBooks,ownedCount,deckLimit,DECK_MIN,DECK_MAX,sourcesOf,acqAudit,migrateAcq,rollRecallBooks,loadSave,defaultSave,SAVE_KEY},
