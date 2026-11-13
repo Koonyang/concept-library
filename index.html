@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="tilefix-20261113h">
+<meta name="build" content="wrong-scroll-20261113j">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -596,6 +596,20 @@ body.dressing{cursor:grabbing;-webkit-user-select:none;user-select:none}
   font-size:11px;line-height:1.55;color:var(--parch2);padding:8px 10px;background:rgba(0,0,0,.4);
   border-left:2px solid var(--gold3);z-index:4}
 #shake{position:absolute;inset:0}
+.wrong-book{position:absolute;width:42px;height:34px;margin-left:-21px;z-index:60;pointer-events:none;opacity:0;transform-origin:50% 60%;animation:wrongBook .56s cubic-bezier(.45,0,.75,.5) forwards;filter:drop-shadow(0 4px 4px rgba(0,0,0,.5))}
+.wrong-book svg{width:100%;height:100%;display:block}
+@keyframes wrongBook{0%{opacity:0;transform:translateY(-110px) rotate(-22deg)}12%{opacity:1}34%{opacity:1;transform:translateY(-4px) rotate(4deg) scale(1,1)}40%{transform:translateY(4px) rotate(7deg) scale(1.12,.78)}56%{opacity:1;transform:translate(14px,-22px) rotate(34deg) scale(1,1)}100%{opacity:0;transform:translate(34px,46px) rotate(84deg)}}
+.wrong-vig{position:absolute;inset:0;z-index:58;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 46%,rgba(214,32,32,.55) 100%);box-shadow:inset 0 0 46px 6px rgba(235,44,44,.6);animation:wrongVig .52s ease-out forwards}
+@keyframes wrongVig{0%{opacity:0}28%{opacity:0}36%{opacity:1}100%{opacity:0}}
+#shake.wrong-shake{animation:wrongShake .3s .18s linear both}
+@keyframes wrongShake{0%{transform:translate(0,0)}15%{transform:translate(-6px,3px)}30%{transform:translate(5px,-3px)}45%{transform:translate(-4px,2px)}60%{transform:translate(3px,-2px)}78%{transform:translate(-2px,1px)}100%{transform:translate(0,0)}}
+.fighter.librarian .char.bonked{animation:charBonk .26s .2s ease-out both;transform-origin:50% 100%}
+@keyframes charBonk{0%{transform:none}35%{transform:scale(1.04,.9)}70%{transform:scale(.99,1.02)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){
+  #shake.wrong-shake{animation:wrongShakeLite .3s .18s linear both}
+  @keyframes wrongShakeLite{0%,100%{transform:translate(0,0)}35%{transform:translate(-1.5px,0)}70%{transform:translate(1.5px,0)}}
+  .wrong-book{animation-duration:.4s}.fighter.librarian .char.bonked{animation:none}
+}
 
 /* shelf & collection */
 .scroll,.item-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
@@ -2231,56 +2245,77 @@ const SFX = (() => {
   function prime(){ // resume/create the AudioContext inside a user gesture (mobile autoplay policy)
     try{ const c=ensure(); const b=c.createBuffer(1,1,22050), s=c.createBufferSource(); s.buffer=b; s.connect(c.destination); s.start(0); }catch(e){}
   }
-  /* BGM — 사용자가 직접 올린 곡(assets/audio/bgm.mp3, 128kbps). 끝부분을 처음에 크로스페이드해 둔 파일이라
-     AudioBufferSource loop 로 끊김 없이 이어진다. 켜기/끄기는 페이드. 기본 꺼짐, 사용자 제스처에서만 시작. */
-  const BGM_URL="assets/audio/bgm.mp3", BGM_VOL=0.17, BGM_FADE_IN=1.6, BGM_FADE_OUT=.7;
-  let bgmBuf=null, bgmLoad=null, bgmSrc=null, bgmGain=null, bgmAudioEl=null, bgmToken=0;
-  function loadBgm(){
-    if(bgmBuf) return Promise.resolve(bgmBuf);
-    if(bgmLoad) return bgmLoad;
-    bgmLoad=fetch(BGM_URL).then(r=>{ if(!r.ok) throw new Error("bgm "+r.status); return r.arrayBuffer(); })
+  /* BGM — 사용자가 직접 올린 곡 두 개. 로비: assets/audio/bgm.mp3 (끝부분을 처음에 크로스페이드해 둔 파일),
+     접대(전투): assets/audio/bgm-reception.mp3. 접대가 시작되면 로비곡을 내리고 접대곡을 올리는 크로스페이드(약 1.8초),
+     접대가 끝나면(승리·패배·물러남) 반대로. 켜기/끄기는 페이드. 기본 꺼짐, 사용자 제스처에서만 시작.
+     접대곡은 처음 필요할 때 불러오고, 준비가 덜 됐으면 준비되는 즉시 페이드 인한다(전투 시작을 막지 않는다). */
+  const BGM_VOL=0.17, BGM_FADE_IN=1.6, BGM_FADE_OUT=.7, BGM_XFADE=1.8;
+  const TRK={
+    lobby:{url:"assets/audio/bgm.mp3",vol:BGM_VOL,buf:null,load:null,src:null,gain:null,el:null,token:0,active:false},
+    battle:{url:"assets/audio/bgm-reception.mp3",vol:BGM_VOL,buf:null,load:null,src:null,gain:null,el:null,token:0,active:false}
+  };
+  let bgmMode="lobby";
+  function loadTrack(t){
+    if(t.buf) return Promise.resolve(t.buf);
+    if(t.load) return t.load;
+    t.load=fetch(t.url).then(r=>{ if(!r.ok) throw new Error("bgm "+r.status); return r.arrayBuffer(); })
       .then(ab=>new Promise((res,rej)=>ensure().decodeAudioData(ab,res,rej)))
-      .then(buf=>(bgmBuf=buf)).catch(e=>{ bgmLoad=null; throw e; });
-    return bgmLoad;
+      .then(buf=>(t.buf=buf)).catch(e=>{ t.load=null; throw e; });
+    return t.load;
   }
-  function stopBgm(){
-    bgmToken++;
-    bgmPlaying=false;
-    const src=bgmSrc, g=bgmGain, el=bgmAudioEl; bgmSrc=null; bgmGain=null; bgmAudioEl=null;
+  function trackStop(t,fade){
+    t.token++; t.active=false;
+    const src=t.src, g=t.gain, el=t.el; t.src=null; t.gain=null; t.el=null;
     if(src&&g&&ctx){
-      const t=ctx.currentTime;
-      try{ g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value,t); g.gain.linearRampToValueAtTime(0,t+BGM_FADE_OUT); src.stop(t+BGM_FADE_OUT+.05); }catch(e){}
-      setTimeout(()=>{ try{ src.disconnect(); g.disconnect(); }catch(e){} }, (BGM_FADE_OUT+.2)*1000);
+      const now=ctx.currentTime;
+      try{ g.gain.cancelScheduledValues(now); g.gain.setValueAtTime(g.gain.value,now); g.gain.linearRampToValueAtTime(0,now+fade); src.stop(now+fade+.05); }catch(e){}
+      setTimeout(()=>{ try{ src.disconnect(); g.disconnect(); }catch(e){} }, (fade+.2)*1000);
     }
     if(el){
       const t0=performance.now(), v0=el.volume;
-      (function fade(){ const k=Math.min(1,(performance.now()-t0)/(BGM_FADE_OUT*1000)); el.volume=v0*(1-k); if(k<1) requestAnimationFrame(fade); else { el.pause(); el.src=""; } })();
+      (function f(){ const k=Math.min(1,(performance.now()-t0)/(fade*1000)); el.volume=v0*(1-k); if(k<1) requestAnimationFrame(f); else { el.pause(); el.src=""; } })();
     }
   }
-  function startBgm(){
-    if(bgmMuted||bgmPlaying) return;
-    const token=++bgmToken; bgmPlaying=true;
-    let c; try{ c=ensure(); if(c.state==="suspended") c.resume(); }catch(e){ bgmPlaying=false; return; }
-    loadBgm().then(buf=>{
-      if(token!==bgmToken||bgmMuted) return;
+  function trackStart(t,fade){
+    if(bgmMuted||t.active) return;
+    const token=++t.token; t.active=true;
+    let c; try{ c=ensure(); if(c.state==="suspended") c.resume(); }catch(e){ t.active=false; return; }
+    loadTrack(t).then(buf=>{
+      if(token!==t.token||bgmMuted) return;
       const g=c.createGain(); g.gain.value=0;
       const src=c.createBufferSource(); src.buffer=buf; src.loop=true; src.connect(g); g.connect(c.destination);
-      const t=c.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(BGM_VOL,t+BGM_FADE_IN);
-      src.start(t);
-      bgmSrc=src; bgmGain=g;
+      const now=c.currentTime; g.gain.setValueAtTime(0,now); g.gain.linearRampToValueAtTime(t.vol,now+fade);
+      src.start(now);
+      t.src=src; t.gain=g;
     }).catch(()=>{
       /* decode/fetch 실패 시 HTMLAudioElement 로 대체 */
-      if(token!==bgmToken||bgmMuted) return;
+      if(token!==t.token||bgmMuted) return;
       try{
-        const el=new Audio(BGM_URL); el.loop=true; el.volume=0; bgmAudioEl=el;
-        el.play().then(()=>{ const t0=performance.now(); (function up(){ if(bgmAudioEl!==el) return; const k=Math.min(1,(performance.now()-t0)/(BGM_FADE_IN*1000)); el.volume=BGM_VOL*k; if(k<1) requestAnimationFrame(up); })(); }).catch(()=>{ bgmPlaying=false; });
-      }catch(e){ bgmPlaying=false; }
+        const el=new Audio(t.url); el.loop=true; el.volume=0; t.el=el;
+        el.play().then(()=>{ const t0=performance.now(); (function up(){ if(t.el!==el) return; const k=Math.min(1,(performance.now()-t0)/(fade*1000)); el.volume=t.vol*k; if(k<1) requestAnimationFrame(up); })(); }).catch(()=>{ t.active=false; });
+      }catch(e){ t.active=false; }
     });
   }
+  function stopBgm(){ trackStop(TRK.lobby,BGM_FADE_OUT); trackStop(TRK.battle,BGM_FADE_OUT); bgmPlaying=false; }
+  function startBgm(){
+    if(bgmMuted||TRK[bgmMode].active) return;
+    bgmPlaying=true; trackStart(TRK[bgmMode],BGM_FADE_IN);
+  }
+  /* 접대 시작/종료 시 두 곡을 서로 크로스페이드. 음소거 중이면 모드만 기억해 두었다가 켤 때 그 곡으로 시작한다. */
+  function setBgmMode(m){
+    if(m!=="lobby"&&m!=="battle") return;
+    if(m===bgmMode) return;
+    const old=bgmMode; bgmMode=m;
+    if(bgmMuted||!bgmPlaying) return;
+    trackStop(TRK[old],BGM_XFADE); trackStart(TRK[m],BGM_XFADE);
+  }
+  /* 접대곡은 전투가 시작되기 전에 미리 조용히 받아 둔다(사용자 제스처 후, 켜져 있을 때만) */
+  function prefetchBattleBgm(){ if(bgmMuted||TRK.battle.buf||TRK.battle.load) return; try{ loadTrack(TRK.battle).catch(()=>{}); }catch(e){} }
   document.addEventListener("visibilitychange",()=>{
     if(!ctx||bgmMuted) return;
-    if(document.hidden){ if(bgmSrc) ctx.suspend().catch(()=>{}); if(bgmAudioEl) bgmAudioEl.pause(); }
-    else { ctx.resume().catch(()=>{}); if(bgmAudioEl) bgmAudioEl.play().catch(()=>{}); }
+    const els=[TRK.lobby.el,TRK.battle.el].filter(Boolean);
+    if(document.hidden){ if(TRK.lobby.src||TRK.battle.src) ctx.suspend().catch(()=>{}); els.forEach(e=>e.pause()); }
+    else { ctx.resume().catch(()=>{}); els.forEach(e=>e.play().catch(()=>{})); }
   });
   return {
     get sfxMuted(){ return sfxMuted; },
@@ -2289,7 +2324,9 @@ const SFX = (() => {
     setSfxMuted(v){ sfxMuted=!!v; },
     setBgmMuted(v){ bgmMuted=!!v; if(bgmMuted) stopBgm(); else startBgm(); },
     unlock(){ ensure(); if(!bgmMuted&&!bgmPlaying) startBgm(); },
-    get bgmPlaying(){ return bgmPlaying; }, get bgmBuffer(){ return bgmBuf; }, get bgmGainValue(){ return bgmGain?bgmGain.gain.value:0; },
+    get bgmPlaying(){ return bgmPlaying; }, get bgmBuffer(){ return TRK.lobby.buf; }, get bgmGainValue(){ const t=TRK[bgmMode]; return t.gain?t.gain.gain.value:0; },
+    get bgmMode(){ return bgmMode; }, bgmTrack(k){ const t=TRK[k]; return {active:t.active,loaded:!!t.buf,dur:t.buf?t.buf.duration:null,gain:t.gain?t.gain.gain.value:0,loop:t.src?t.src.loop:null}; },
+    setBgmMode, prefetchBattleBgm,
     tak, prime, renderTakOffline, get takCount(){ return takCount; },
     startBgm, stopBgm,
     hover(){ tone(740,"sine",.08,.03); },
@@ -2305,6 +2342,23 @@ const SFX = (() => {
     stagger(){ tone(196,"sawtooth",.4,.06); noise(.3,.08,300); },
     emotion(){ [392,523,659,784].forEach((f,i)=>setTimeout(()=>tone(f,"sine",.25,.05), i*80)); },
     /* 손님이 책장으로 흩어질 때: 합성 노이즈로 만든 종이 넘김/바스락 소리 (샘플·외부 음원 없음) */
+    /* 오답: 책이 머리에 떨어지는 둔탁한 "쿵" + 낮게 내려가는 틀린 소리 (합성, 샘플 없음). 약 0.55초 */
+    wrongBonk(){
+      if(sfxMuted) return; const c=ensure(), t0=c.currentTime+.17;
+      const kill=(o,...n)=>o.addEventListener("ended",()=>{ try{ o.disconnect(); n.forEach(x=>x.disconnect()); }catch(e){} });
+      const thud=c.createOscillator(), tg=c.createGain(); thud.type="sine";
+      thud.frequency.setValueAtTime(170,t0); thud.frequency.exponentialRampToValueAtTime(46,t0+.16);
+      tg.gain.setValueAtTime(.0001,t0); tg.gain.linearRampToValueAtTime(.55,t0+.006); tg.gain.exponentialRampToValueAtTime(.0001,t0+.2);
+      thud.connect(tg); tg.connect(c.destination); thud.start(t0); thud.stop(t0+.22); kill(thud,tg);
+      const nb=c.createBuffer(1,Math.floor(c.sampleRate*.08),c.sampleRate), nd=nb.getChannelData(0); for(let i=0;i<nd.length;i++) nd[i]=Math.random()*2-1;
+      const ns=c.createBufferSource(); ns.buffer=nb; const nf=c.createBiquadFilter(); nf.type="lowpass"; nf.frequency.value=520;
+      const ng=c.createGain(); ng.gain.setValueAtTime(.0001,t0); ng.gain.linearRampToValueAtTime(.32,t0+.004); ng.gain.exponentialRampToValueAtTime(.0001,t0+.07);
+      ns.connect(nf); nf.connect(ng); ng.connect(c.destination); ns.start(t0); kill(ns,nf,ng);
+      [[.1,233,.17],[.24,174,.24]].forEach(([dt,f,d])=>{ const o=c.createOscillator(), g=c.createGain(); o.type="triangle";
+        o.frequency.setValueAtTime(f,t0+dt); o.frequency.exponentialRampToValueAtTime(f*.93,t0+dt+d);
+        g.gain.setValueAtTime(.0001,t0+dt); g.gain.linearRampToValueAtTime(.09,t0+dt+.012); g.gain.exponentialRampToValueAtTime(.0001,t0+dt+d);
+        o.connect(g); g.connect(c.destination); o.start(t0+dt); o.stop(t0+dt+d+.03); kill(o,g); });
+    },
     pageScatter(){
       if(sfxMuted) return; const c=ensure(), t0=c.currentTime+.01;
       const out=c.createGain(); out.gain.value=.9; out.connect(c.destination);
@@ -3559,7 +3613,17 @@ function toggleDeckPage(id,opts){
   else if(have>0){ d.pageIds=d.pageIds.filter(x=>x!==id); }       // 한도에 닿으면 한 번 더 눌러 모두 해제
   else if(d.pageIds.length>=DECK_MAX){ toast("덱은 "+DECK_MAX+"장까지입니다"); return; }
   else return;
-  persist(); SFX.click(); renderDeckEditor();
+  persist(); SFX.click();
+  /* 카드를 누르면 위쪽 칸 줄 수·문구 높이가 바뀌어 아래 목록이 통째로 밀린다 → 누른 카드(칸이면 칸 묶음)가 화면에서 있던 자리에 그대로 있도록 보정 */
+  withDeckAnchor(opts&&opts.slot?".deck-slots":`#deck-pool [data-page="${id}"]`,()=>renderDeckEditor());
+}
+function withDeckAnchor(sel,fn){
+  const el=document.querySelector("#scene-deck "+sel), t0=el?el.getBoundingClientRect().top:null;
+  fn();
+  if(t0==null) return;
+  const fix=()=>{ const n=document.querySelector("#scene-deck "+sel), sc=document.querySelector("#scene-deck .page-scroll"); if(!n||!sc) return;
+    const dy=n.getBoundingClientRect().top-t0; if(Math.abs(dy)>0.5) sc.scrollTop+=dy; };
+  fix(); requestAnimationFrame(fix);   // 레이아웃이 안정된 다음 프레임에서 한 번 더
 }
 
 function iconSfx(on){
@@ -3610,6 +3674,7 @@ function showScene(name){
   closeCardInspect();
   if(name!==scene) sceneEpoch++;
   scene=name; FX.setMode(name);
+  SFX.setBgmMode(name==="battle"?"battle":"lobby"); if(name==="lobby") SFX.prefetchBattleBgm();
   $$(".scene").forEach(s=>{
     const on=s.id==="scene-"+name;
     if(on){ s.style.transition=""; s.style.visibility="visible"; s.classList.add("on"); }
@@ -3629,6 +3694,20 @@ function shake(n=8){
   const step=()=>{ i++; el.style.transform=`translate(${(Math.random()*2-1)*n}px,${(Math.random()*2-1)*n}px)`;
     if(i<10) requestAnimationFrame(step); else el.style.transform=""; };
   step();
+}
+/* 오답 연출: 책이 사서 머리에 "콩" 떨어졌다 튕겨 나감 + 짧은 화면 흔들림 + 붉은 테두리 번쩍 + 둔탁한 소리. 전부 CSS/타이머라 해설·진행을 막지 않는다(약 0.56초). */
+const WRONG_BOOK_SVG=`<svg viewBox="0 0 40 32" aria-hidden="true"><path d="M3 6c6-3 12-3 17 1 5-4 11-4 17-1v21c-6-3-12-3-17 1-5-4-11-4-17-1z" fill="#8a2b2b" stroke="#2a0d0d" stroke-width="1.6" stroke-linejoin="round"/><path d="M20 7v21" stroke="#2a0d0d" stroke-width="1.6"/><path d="M6 10c4-1.6 8-1 12 1.4M6 15c4-1.6 8-1 12 1.4M22 11.4c4-2.4 8-3 12-1.4M22 16.4c4-2.4 8-3 12-1.4" stroke="#f3e2c0" stroke-width="1.4" stroke-linecap="round" fill="none"/><circle cx="29" cy="21" r="2.4" fill="none" stroke="#f0c36a" stroke-width="1.3"/><path d="M3 24c6-3 12-3 17 1 5-4 11-4 17-1" stroke="#c9a86a" stroke-width="1.2" fill="none"/></svg>`;
+function wrongFeedback(){
+  const root=$("#shake"); if(!root) return;
+  const lib=$("#fig-lib"); const r=lib?lib.getBoundingClientRect():{left:innerWidth*.2,width:80,top:innerHeight*.5,height:120};
+  const cx=r.left+r.width/2, head=r.top+r.height*.12;
+  const book=document.createElement("div"); book.className="wrong-book"; book.style.left=cx+"px"; book.style.top=head+"px"; book.innerHTML=WRONG_BOOK_SVG;
+  const vig=document.createElement("div"); vig.className="wrong-vig";
+  root.appendChild(vig); root.appendChild(book);
+  root.classList.remove("wrong-shake"); void root.offsetWidth; root.classList.add("wrong-shake");
+  const ch=lib&&lib.querySelector(".char"); if(ch){ ch.classList.remove("bonked"); void ch.offsetWidth; ch.classList.add("bonked"); }
+  SFX.wrongBonk();
+  setTimeout(()=>{ book.remove(); vig.remove(); root.classList.remove("wrong-shake"); ch&&ch.classList.remove("bonked"); },620);
 }
 function flash(a=.35){ const f=$("#flash"); f.style.opacity=a; f.style.transition="none"; requestAnimationFrame(()=>{ f.style.transition="opacity .35s ease"; f.style.opacity=0; }); }
 /* curator stamp punch synced with SFX.tak(): tiny shake + flash + seal ring (non-blocking) */
@@ -3692,6 +3771,7 @@ function renderCredits(){
       <h2 class="gold-title" style="font-size:22px;margin-bottom:8px">크레딧 · 라이선스</h2>
       <p class="gmeta" style="margin-bottom:16px">이 서고의 그림과 글꼴은 아래에 적힌 자유 라이선스(CC0 · SIL OFL) 자료를 사용합니다. 라이브러리 오브 루이나 / 프로젝트문 자산은 포함되어 있지 않습니다.</p>
       <div class="credits-list">
+        <div class="frame" style="padding:14px 16px"><b>접대 배경음 — 큐 양 제공</b>사용자가 직접 올린 곡 · 접대(전투) 중 재생</div>
         <div class="frame" style="padding:14px 16px"><b>cron — Old Parchment Paper</b>CC0 1.0 · 전투 책장 양피지 질감<br><a href="https://opengameart.org/content/old-parchment-paper" target="_blank" rel="noopener">opengameart.org/content/old-parchment-paper</a></div>
         <div class="frame" style="padding:14px 16px"><b>Kenney.nl — Fantasy UI Borders</b>CC0 1.0 · 장식 프레임<br><a href="https://kenney.nl/assets/fantasy-ui-borders" target="_blank" rel="noopener">kenney.nl/assets/fantasy-ui-borders</a></div>
         <div class="frame" style="padding:14px 16px"><b>Kenney.nl — Board Game Icons</b>CC0 1.0 · UI 아이콘<br><a href="https://kenney.nl/assets/board-game-icons" target="_blank" rel="noopener">kenney.nl/assets/board-game-icons</a></div>
@@ -4606,6 +4686,7 @@ function runScene(o){
   rec.ticketsGained=ticketsGained; rec.levelUpMessage=levelMsg; rec.emoUp=emoUp;
   rec.maxLight=Math.min(COMBAT.maxLightCap,COMBAT.baseLight+emotion);
   rec.phase="rolling";
+  if(asked&&!correct) wrongFeedback();
   animateScene(steps, defeated, playerDead, asked&&!correct?{q:o.q,typed:o.typed}:null);
 }
 
@@ -4794,6 +4875,7 @@ function finishReceptionStats(guest, won){
   save.recallStats={...save.recallStats, [guest.id]:st};
 }
 function openResult(){
+  SFX.setBgmMode("lobby");   /* 승리·패배로 접대가 끝나면 접대곡을 내리고 로비곡을 되살린다 */
   const b=$("#rbanner");
   $("#learn-toast")?.classList.remove("on");
   document.querySelector(".battle-stage")?.classList.add("result-on");
@@ -5024,8 +5106,8 @@ function dressDetailHtml(mode){
     const t=giftTotals(save), sp=setProgress(), eqN=equippedGifts(save).length, L=libOf(save), mx=giftMaxTotals();
     return `<div class="dd-head"><div class="gold-title dd-name">${L.name}의 누적 효과</div><span class="pill">착용 ${eqN}/${EGO_GIFT_RULES.slots.length}부위</span></div>
       <div class="dd-lines"><div class="dd-total">${bonusLabel(t)}</div>
-        <div class="dd-sets">${sp.map(x=>`<div class="dd-set${x.done?" done":""}"><span>${GUEST_BY[x.gid]?.concept||x.gid} 세트</span><span class="dd-dots">${Array.from({length:x.total},(_,i)=>`<i class="${i<x.ne?"on":i<x.n?"own":""}"></i>`).join("")}</span><span class="dd-st">${x.done?"활성":x.ne+"/"+x.total+(x.n>x.ne?` (보유 ${x.n})`:"")}</span></div>`).join("")}</div>
-        <div class="gmeta">기프트는 부위(${EGO_GIFT_RULES.slots.join("·")})마다 하나만 착용합니다. 같은 손님의 3종을 모두 착용하면 세트 보너스 체력 +${EGO_GIFT_RULES.setBonus.hp}·흐트러짐 피해 +${Math.round(EGO_GIFT_RULES.setBonus.staggerPct*100)}%. 이론상 최대 ${bonusLabel(mx)}. 아이콘을 끌어 캐릭터에 놓으면 착용, 같은 부위는 교체됩니다.</div></div>`;
+        <div class="dd-sets">${sp.filter(x=>x.ne>0).map(x=>`<div class="dd-set${x.done?" done":""}"><span>${GUEST_BY[x.gid]?.concept||x.gid} 세트</span><span class="dd-dots">${Array.from({length:x.total},(_,i)=>`<i class="${i<x.ne?"on":i<x.n?"own":""}"></i>`).join("")}</span><span class="dd-st">${x.done?"활성":x.ne+"/"+x.total}</span></div>`).join("")||`<div class="gmeta dd-none">착용 중인 세트가 없어요</div>`}</div>
+        <div class="gmeta">부위마다 하나만 착용 · 같은 손님의 3종을 모두 착용하면 세트 보너스(체력 +${EGO_GIFT_RULES.setBonus.hp}, 흐트러짐 피해 +${Math.round(EGO_GIFT_RULES.setBonus.staggerPct*100)}%).<br>아이콘을 캐릭터에 끌어 놓으면 착용, 같은 부위는 교체됩니다.</div></div>`;
   }
   const have=egoOwned(save).includes(g.id), eq=egoEquip(save)[g.slot]===g.id;
   const occ=EGO_BY[egoEquip(save)[g.slot]||""];
@@ -5037,9 +5119,13 @@ function dressDetailHtml(mode){
     <div class="dd-actions"><button class="btn ${eq?"":"primary"}" id="dd-equip" type="button" ${have?"":"disabled"}>${!have?"미획득":eq?"해제":"착용"}</button>
       <button class="btn" id="dd-back" type="button">누적 효과 보기</button></div>`;
 }
+let dressKeepTop=null;
 function renderDress(mode){
   const fx=dressFx&&dressFx.mode===mode?dressFx:null; dressFx=null;
   const outfit=mode==="outfit";
+  /* 같은 탭을 다시 그릴 때(착용·해제·선택) 안쪽 그리드의 스크롤 위치를 잃지 않는다 */
+  const prevWrap=document.querySelector("#scene-shelf .dress.is-"+mode+" .dress-gridwrap");
+  dressKeepTop=prevWrap?prevWrap.scrollTop:null;
   const svgNew=librarianSvg(save,"100%","100%",{uid:"dr",freshGift:fx&&fx.fresh});
   const svgOld=fx&&fx.old?fx.old:"";
   let tiles="", head="";
@@ -5176,7 +5262,8 @@ function setupDressPaging(){
   wrap.addEventListener("scroll",paint,{passive:true}); paint();
   /* 선택한 아이콘이 다른 페이지에 있으면 그 페이지로 */
   const sel=grid.querySelector(".dtile.sel,.dtile.eq");
-  if(sel&&pages>1){ const idx=tiles.indexOf(sel); wrap.scrollTop=Math.floor(idx/6)*(wrap.clientHeight-12+gap); paint(); }
+  if(dressKeepTop!=null){ wrap.scrollTop=dressKeepTop; dressKeepTop=null; paint(); }   /* 다시 그리기 전 위치 복원 */
+  else if(sel&&pages>1){ const idx=tiles.indexOf(sel); wrap.scrollTop=Math.floor(idx/6)*(wrap.clientHeight-12+gap); paint(); }
 }
 function renderShelf(){
   if(shelfTab==="outfit") return renderDress("outfit");
