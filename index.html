@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="hand-fan-20261113g">
+<meta name="build" content="tilefix-20261113h">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -492,16 +492,16 @@ body.slowmo #shake{animation:slo .55s ease}
 .dress-grid.drop-off{outline:2px dashed rgba(255,130,130,.8);outline-offset:4px;border-radius:12px}
 .dress-tip{margin-top:8px;font-size:11px;line-height:1.45;color:var(--parch2,#b9b2a0)}
 .dtile{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1;min-width:0;padding:0;border-radius:12px;border:1px solid var(--line-hi);background:rgba(255,255,255,.07);color:#efe6cf;cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;transition:transform .12s,box-shadow .15s,background .15s}
-.dtile:active{transform:scale(.95)}
+.dtile:active{filter:brightness(1.18)}
 .dtile .dt-ico{width:56%;height:56%;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
 .dress-grid.g2 .dtile .dt-ico{width:50%;height:50%}
-.dtile.sel{box-shadow:0 0 0 2px rgba(255,255,255,.55)}
+.dtile.sel{box-shadow:inset 0 0 0 2px rgba(255,255,255,.6)}
 .dtile.eq{background:rgba(var(--accent-rgb),.22);border-color:var(--accent,#e9c46a);color:#fff3cf}
 .dtile.locked{opacity:.42;cursor:pointer;color:#a9a9b5}.dtile.locked .dt-ico{stroke-dasharray:2 2.4}
 .dtile.drag-src{opacity:.3}
 .dt-lock{position:absolute;right:3px;bottom:3px;width:16px;height:16px;border-radius:50%;background:rgba(10,12,20,.85);display:grid;place-items:center;pointer-events:none}
 .dt-lock svg{width:10px;height:10px;fill:none;stroke:#e9e0c8;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.dt-eq{position:absolute;top:-5px;right:-3px;padding:2px 5px;border-radius:99px;font-size:9px;line-height:1;font-weight:800;background:var(--accent,#e9c46a);color:#1a1408;pointer-events:none}
+.dt-eq{position:absolute;top:4px;right:4px;padding:2px 5px;border-radius:99px;font-size:9px;line-height:1;font-weight:800;background:var(--accent,#e9c46a);color:#1a1408;pointer-events:none}
 .dt-sub{position:absolute;left:0;right:0;bottom:2px;text-align:center;font-size:8.5px;line-height:1;color:rgba(255,255,255,.55);pointer-events:none}
 .dghost{position:fixed;left:0;top:0;width:56px;height:56px;z-index:200;pointer-events:none;border-radius:16px;background:rgba(30,26,16,.92);border:1px solid var(--accent,#e9c46a);color:#fff3cf;display:grid;place-items:center;box-shadow:0 10px 24px rgba(0,0,0,.5);will-change:transform}
 .dghost svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
@@ -1356,7 +1356,7 @@ b,strong{font-weight:700}
 .dc-name{flex:0 0 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .dress-side{display:flex;flex-direction:column;padding:12px 10px 10px;border-radius:var(--r-lg);background:rgba(8,10,18,.55);position:relative;min-width:0}
 .dress-side .dress-head{margin:0 2px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dress-gridwrap{overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;touch-action:pan-y;flex:0 0 auto}
+.dress-gridwrap{box-sizing:border-box;padding:6px;scroll-padding:6px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;touch-action:pan-y;flex:0 0 auto}
 .dress-gridwrap::-webkit-scrollbar{display:none}
 .dress-gridwrap.paged{scroll-snap-type:y mandatory}
 .dress-gridwrap .dtile.snap{scroll-snap-align:start}
@@ -5164,19 +5164,19 @@ function setupDressPaging(){
   const gap=parseFloat(getComputedStyle(grid).rowGap)||10;
   const fit=()=>{
     const th=tiles[0].getBoundingClientRect().height; if(!th) return;
-    wrap.style.height=(th*3+gap*2)+"px"; wrap.style.setProperty("--page-h",(th*3+gap*3)+"px");
+    wrap.style.height=(th*3+gap*2+12)+"px"; wrap.style.setProperty("--page-h",(th*3+gap*3)+"px");
   };
   tiles.forEach((t,i)=>t.classList.toggle("snap",i%6===0));
   fit();
   const pages=Math.ceil(tiles.length/6);
   wrap.classList.toggle("paged",pages>1);
   const paint=()=>{ if(!pg) return; if(pages<2){ pg.innerHTML=""; return; }
-    const ph=wrap.clientHeight+gap, cur=Math.min(pages-1,Math.round(wrap.scrollTop/ph));
+    const ph=wrap.clientHeight-12+gap, cur=Math.min(pages-1,Math.round(wrap.scrollTop/ph));
     pg.innerHTML=Array.from({length:pages},(_,i)=>`<i class="${i===cur?"on":""}"></i>`).join("")+`<span>${cur+1}/${pages}</span>`; };
   wrap.addEventListener("scroll",paint,{passive:true}); paint();
   /* 선택한 아이콘이 다른 페이지에 있으면 그 페이지로 */
   const sel=grid.querySelector(".dtile.sel,.dtile.eq");
-  if(sel&&pages>1){ const idx=tiles.indexOf(sel); wrap.scrollTop=Math.floor(idx/6)*(wrap.clientHeight+gap); paint(); }
+  if(sel&&pages>1){ const idx=tiles.indexOf(sel); wrap.scrollTop=Math.floor(idx/6)*(wrap.clientHeight-12+gap); paint(); }
 }
 function renderShelf(){
   if(shelfTab==="outfit") return renderDress("outfit");
