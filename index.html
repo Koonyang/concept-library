@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261113k">
+<meta name="build" content="library-20261113l">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -1319,6 +1319,8 @@ b,strong{font-weight:700}
 .gcoll b{font-family:var(--display);color:var(--parch);font-variant-numeric:tabular-nums}.gcoll b.ok{color:#7ee2a8}
 .gc-pips{display:inline-flex;gap:3px}.gc-pips i{width:7px;height:7px;border-radius:2px;border:1px solid rgba(var(--accent-rgb),.45);opacity:.6}
 .gc-pips i.on{opacity:1;background:linear-gradient(180deg,#ffd98a,#f0a93c);border-color:transparent}.gc-pips i.on.k{background:linear-gradient(180deg,#ff9aa8,#d9455c)}
+.sheet-coll{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;margin:2px 0 0;font-size:12px;color:var(--parch2)}
+.sheet-coll b{font-family:var(--display);color:var(--parch);font-variant-numeric:tabular-nums}.sheet-coll b.ok{color:#7ee2a8}
 .sc-cells{display:inline-flex;gap:4px}
 .cc-cell{font-style:normal;min-width:22px;height:18px;padding:0 4px;display:inline-grid;place-items:center;border-radius:5px;font:700 9px/1 "Space Grotesk",system-ui;border:1px solid rgba(var(--accent-rgb),.3);color:var(--parch2);opacity:.55}
 .cc-cell.on{opacity:1;color:#1b1306;background:linear-gradient(180deg,#ffd98a,#f0a93c);border-color:transparent}
@@ -1526,7 +1528,7 @@ const EGO_GIFT_RULES = {
   newWeight: 3,                 // 미보유 기프트가 보유 기프트보다 3배 잘 나온다
   /* 몸의 부위. 기프트는 정확히 한 부위에 속하고, 부위당 하나만 착용한다. */
   slots: ["머리","눈","얼굴","목","가슴","손","등","발"],
-  /* 기프트 하나는 아주 작다. */
+  /* 기프트 하나는 아주 작다. 장서복 하나(시작 빛 +1 등)보다 한참 약하게. */
   unit: { hp:1, staggerPct:0.01, dmgPct:0.01 },
   /* 한 손님의 기프트 3종을 모두 착용하면 세트 보너스 (보유가 아니라 착용 기준) */
   setBonus: { hp:2, staggerPct:0.01 }
@@ -1677,24 +1679,58 @@ const COMBAT_PAGES = [
     flavor:"심신상실은 벌하지 않고, 심신미약은 형을 감경할 수 있다."}
 ];
 
-/* 책 소각 풀 — 모든 비기본 책장은 최소 한 손님의 책에서 나온다 (acqAudit가 검사) */
+const KEY_PAGES = [
+  {id:"novice",name:"초보 사서의 장서복",text:"기본 착장. 특별한 효과는 없다.",perk:"none",coat:0},
+  {id:"reading-room",name:"열람실의 장서복",text:"열람의 기율을 입는다. 접대 시작 빛 +1.",perk:"light",coat:1},
+  {id:"midnight",name:"심야 사서",text:"밤을 허비하지 않는 자세. 감정 단계 1로 시작.",perk:"emotion",coat:2},
+  {id:"archivist",name:"소장관의 망토",text:"서고를 지키는 자의 옷. 매 턴 빛 회복 +1.",perk:"recover",coat:3},
+  {id:"classical-robe",name:"고전주의 재판관의 법복",text:"합리의 저울을 입는다. 최대 체력 +10.",perk:"hp10",coat:4},
+  {id:"panopticon-coat",name:"파놉티콘 감시관의 외투",text:"모든 곳을 보는 눈. 흐트러짐 피해 +10%.",perk:"stagger10",coat:5}
+];
+
+/* 책 소각 풀 — 모든 비기본 책장/핵심 책장은 최소 한 손님의 책에서 나온다 (acqAudit가 검사) */
 const BOOK_POOLS = {
-  beccaria:[{k:"page",id:"crime-and-punishment",w:10},{k:"page",id:"anti-torture",w:10},{k:"page",id:"prevention-not-revenge",w:6}],
-  "three-conditions":[{k:"page",id:"certainty-brand",w:10},{k:"page",id:"swift-verdict",w:10},{k:"page",id:"proportion-scale",w:6}],
-  bentham:[{k:"page",id:"hedonic-calculus",w:10},{k:"page",id:"panopticon-gaze",w:10},{k:"page",id:"greatest-happiness",w:6}],
-  legality:[{k:"page",id:"statute-clause",w:10},{k:"page",id:"statutory-sentence",w:10},{k:"page",id:"crime-and-punishment",w:4}],
-  deterrence:[{k:"page",id:"marginal-brake",w:8},{k:"page",id:"catch-chance",w:8},{k:"page",id:"certainty-brand",w:4}],
-  limits:[{k:"page",id:"equal-assumption",w:10},{k:"page",id:"prefrontal-warning",w:6},{k:"page",id:"article-ten",w:4},{k:"page",id:"marginal-brake",w:3}],
-  pomodoro:[{k:"page",id:"underline",w:10},{k:"page",id:"heavy-tome",w:10}],
-  "active-recall":[{k:"page",id:"repeat-line",w:10},{k:"page",id:"underline",w:5}],
-  "spaced-repetition":[{k:"page",id:"blank-fill",w:10},{k:"page",id:"heavy-tome",w:5}],
-  metacognition:[{k:"page",id:"night-study",w:8},{k:"page",id:"repeat-line",w:5},{k:"page",id:"apex",w:3}]
+  beccaria:[{k:"page",id:"crime-and-punishment",w:10},{k:"page",id:"anti-torture",w:10},{k:"page",id:"prevention-not-revenge",w:6},{k:"key",id:"classical-robe",w:4}],
+  "three-conditions":[{k:"page",id:"certainty-brand",w:10},{k:"page",id:"swift-verdict",w:10},{k:"page",id:"proportion-scale",w:6},{k:"key",id:"classical-robe",w:4}],
+  bentham:[{k:"page",id:"hedonic-calculus",w:10},{k:"page",id:"panopticon-gaze",w:10},{k:"page",id:"greatest-happiness",w:6},{k:"key",id:"panopticon-coat",w:4}],
+  legality:[{k:"page",id:"statute-clause",w:10},{k:"page",id:"statutory-sentence",w:10},{k:"page",id:"crime-and-punishment",w:4},{k:"key",id:"classical-robe",w:4}],
+  deterrence:[{k:"page",id:"marginal-brake",w:8},{k:"page",id:"catch-chance",w:8},{k:"page",id:"certainty-brand",w:4},{k:"key",id:"panopticon-coat",w:4}],
+  limits:[{k:"page",id:"equal-assumption",w:10},{k:"page",id:"prefrontal-warning",w:6},{k:"page",id:"article-ten",w:4},{k:"page",id:"marginal-brake",w:3},{k:"key",id:"panopticon-coat",w:3},{k:"key",id:"classical-robe",w:3}],
+  pomodoro:[{k:"page",id:"underline",w:10},{k:"page",id:"heavy-tome",w:10},{k:"key",id:"reading-room",w:5}],
+  "active-recall":[{k:"page",id:"repeat-line",w:10},{k:"page",id:"underline",w:5},{k:"key",id:"reading-room",w:5}],
+  "spaced-repetition":[{k:"page",id:"blank-fill",w:10},{k:"page",id:"heavy-tome",w:5},{k:"key",id:"midnight",w:5}],
+  metacognition:[{k:"page",id:"night-study",w:8},{k:"page",id:"repeat-line",w:5},{k:"page",id:"apex",w:3},{k:"key",id:"archivist",w:4}]
 };
 const BOOK_RULES = { recallOne:0.65, firstClear:1, pityGuarantee:2, newMul:3, dupMul:0.5, burnDraws:1 };
 const DECK_MAX_COPIES = 2;
 
+const SLOTS = ["책갈피","장식","깃펜","동반자","서고","호칭"];
+const RARITY_ORDER = ["N","R","SR","SSR"];
+const THEMES = [
+  ...["잉크","양피지","양초","먼지","창가","인덱스","제본","쪽수"].map(theme=>({theme,rarity:"N"})),
+  ...["금박","심야","먹물","단풍","바다","서리"].map(theme=>({theme,rarity:"R"})),
+  ...["달빛","벚꽃","석양","별빛"].map(theme=>({theme,rarity:"SR"})),
+  ...["은하","황금"].map(theme=>({theme,rarity:"SSR"}))
+];
+const SLOT_NOUN = {
+  N:{책갈피:"책갈피",장식:"단추",깃펜:"연필",동반자:"참새",서고:"열람실",호칭:"수강생"},
+  R:{책갈피:"장식띠",장식:"견장",깃펜:"만년필",동반자:"고양이",서고:"창가 서고",호칭:"탐구가"},
+  SR:{책갈피:"봉랍",장식:"장서복",깃펜:"장서 깃펜",동반자:"부엉이",서고:"옥상 서고",호칭:"정복자"},
+  SSR:{책갈피:"금빛 책갈피",장식:"망토",깃펜:"성검필",동반자:"서고의 용",서고:"성역",호칭:"전설"}
+};
+const COSMETIC_ITEMS = [];
+for (const slot of SLOTS) {
+  THEMES.forEach((entry, index) => {
+    const noun = SLOT_NOUN[entry.rarity][slot];
+    const name = slot==="호칭" ? `「${entry.theme} ${noun}」` : `${entry.theme} ${noun}`;
+    COSMETIC_ITEMS.push({ id:`${slot}-${entry.theme}`, name, slot, rarity:entry.rarity, seed:index + SLOTS.indexOf(slot)*20 });
+  });
+}
+const COLLECTION_TOTAL = COSMETIC_ITEMS.length;
 const STARTER_PAGES = COMBAT_PAGES.filter(p=>p.starter).map(p=>p.id);
 const PAGE_BY = Object.fromEntries(COMBAT_PAGES.map(p=>[p.id,p]));
+const KEY_BY = Object.fromEntries(KEY_PAGES.map(p=>[p.id,p]));
+const ITEM_BY = Object.fromEntries(COSMETIC_ITEMS.map(p=>[p.id,p]));
 const GUEST_BY = Object.fromEntries(WEAK_POINTS.map(p=>[p.id,p]));
 
 const LEVEL_UP_MESSAGES = [
@@ -1709,6 +1745,7 @@ const $$ = (s, el=document) => [...el.querySelectorAll(s)];
 const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
 const pick = a => a[Math.floor(Math.random()*a.length)];
 const xpNeeded = lv => 60+(lv-1)*30;
+function keyPerk(s){ return KEY_BY[s.equippedKeyId]||KEY_PAGES[0]; }
 function emptyEgoEquip(){ return Object.fromEntries(EGO_GIFT_RULES.slots.map(sl=>[sl,null])); }
 /* ---- 사서별 기프트: save.librarians[id].gifts = {owned:[], equipped:{부위:id}} ---- */
 const LIB_DEFAULT_ID="kyu";
@@ -1790,10 +1827,16 @@ function bonusLabel(t){
   if(t.sets) parts.push("세트 "+t.sets+"개 활성");
   return parts.length?parts.join(" · "):"아직 누적된 효과가 없습니다.";
 }
-function effectiveMaxHp(s){ return s.maxHp+giftTotals(s).hp; }
-function startLight(s){ return Math.min(COMBAT.maxLightCap, COMBAT.baseLight+giftTotals(s).startLight); }
-function startEmotion(s){ return giftTotals(s).startEmotion; }
-function lightRegen(s){ return COMBAT.lightPerTurn+giftTotals(s).lightRegen; }
+function withKeyMods(t,s){
+  const p=keyPerk(s).perk, o=Object.assign({},t);
+  if(p==="hp10") o.hp=(o.hp||0)+10;
+  if(p==="stagger10") o.staggerPct=Math.round(((o.staggerPct||0)+0.10)*1000)/1000;
+  return o;
+}
+function effectiveMaxHp(s){ return s.maxHp+withKeyMods(giftTotals(s),s).hp; }
+function startLight(s){ return Math.min(COMBAT.maxLightCap, COMBAT.baseLight+(keyPerk(s).perk==="light"?1:0)+giftTotals(s).startLight); }
+function startEmotion(s){ return (keyPerk(s).perk==="emotion"?1:0)+giftTotals(s).startEmotion; }
+function lightRegen(s){ return COMBAT.lightPerTurn+(keyPerk(s).perk==="recover"?1:0)+giftTotals(s).lightRegen; }
 function weaknessLabel(w){ return w===1?"낮음":w===2?"보통":"높음"; }
 /*ENGINE-START*/
 /* ===== Library-of-Ruina-style combat engine (pure functions, no DOM) =====
@@ -2255,7 +2298,7 @@ const SFX = (() => {
     },
     lose(){ tone(196,"sine",.4,.06); setTimeout(()=>tone(147,"triangle",.5,.05),200); },
     book(){ tone(196,"triangle",.3,.05); tone(392,"sine",.4,.04); },
-    equip(kind){ if(kind==="off"){ tone(392,"triangle",.14,.04); setTimeout(()=>tone(262,"sine",.18,.035),70); return; } noise(.08,.03,2400); tone(523,"triangle",.14,.05); setTimeout(()=>tone(784,"sine",.2,.05),80); setTimeout(()=>tone(1046,"sine",.28,.04),170); if(kind==="swap") setTimeout(()=>tone(659,"triangle",.3,.04),240); }
+    equip(kind){ if(kind==="off"){ tone(392,"triangle",.14,.04); setTimeout(()=>tone(262,"sine",.18,.035),70); return; } noise(.08,.03,2400); tone(523,"triangle",.14,.05); setTimeout(()=>tone(784,"sine",.2,.05),80); setTimeout(()=>tone(1046,"sine",.28,.04),170); if(kind==="outfit"||kind==="swap") setTimeout(()=>tone(659,"triangle",.3,.04),240); }
   };
 })();
 
@@ -2323,7 +2366,37 @@ function candleSvg(){
   </svg><div class="flame"></div><div class="glow"></div>`;
 }
 const OUTFITS={
-  novice:{coat:["#2a3144","#161b27","#0a0c12"],cape:["#2a3148","#0d1018"],trim:"#c4a35a",decor:()=>"",hat:()=>""}
+  novice:{coat:["#2a3144","#161b27","#0a0c12"],cape:["#2a3148","#0d1018"],trim:"#c4a35a",decor:()=>"",hat:()=>""},
+  "reading-room":{coat:["#2b6a66","#14403f","#08201f"],cape:["#1d4a4a","#07191a"],trim:"#8fe0cc",
+    decor:()=>`<path d="M104 172 L112 338 L128 338 L124 176 Z M176 172 L168 338 L152 338 L156 176 Z" fill="#8fe0cc" opacity=".28"/>
+      <path d="M150 176 V252 L158 244 L166 252 V176 Z" fill="#e8c46a" stroke="#fff0b8" stroke-width=".6"/>
+      <circle cx="112" cy="204" r="9" fill="#ffe9a8" opacity=".25"/><circle cx="112" cy="204" r="4.4" fill="#ffe9a8" stroke="#8f6b2a" stroke-width=".8"/>
+      <path d="M100 292 H180" stroke="#8fe0cc" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>`,
+    hat:()=>`<rect x="126" y="86" width="28" height="8" rx="2" fill="#e8d5b0" stroke="#8fe0cc" stroke-width=".8"/><path d="M131 90 H149" stroke="#8f6b2a" stroke-width="1"/>`},
+  midnight:{coat:["#4a3a9a","#231a58","#0a0724"],cape:["#2e2470","#0a0828"],trim:"#c7b8ff",
+    decor:u=>`<path d="M148 196 a17 17 0 1 0 0 34 a13 15 0 1 1 0 -34z" fill="#e3dcff" stroke="#c7b8ff" stroke-width=".8"/>
+      <g fill="#fff6c8"><circle cx="112" cy="300" r="2"><animate attributeName="opacity" values="1;.3;1" dur="2.4s" repeatCount="indefinite"/></circle><circle cx="168" cy="320" r="2.4"><animate attributeName="opacity" values="1;.3;1" dur="3s" repeatCount="indefinite"/></circle><circle cx="130" cy="332" r="1.6"/><circle cx="156" cy="282" r="1.6"/></g>
+      <g fill="#c7b8ff" opacity=".8"><circle cx="70" cy="300" r="2"/><circle cx="214" cy="290" r="2"/><circle cx="84" cy="360" r="1.6"/><circle cx="200" cy="350" r="1.8"/></g>`,
+    hat:()=>`<path d="M176 88 l3 -9 l3 9 l9 3 l-9 3 l-3 9 l-3 -9 l-9 -3z" fill="#fff6c8" stroke="#c7b8ff" stroke-width=".6"/>`},
+  archivist:{coat:["#8a2a3c","#4a1424","#1a0810"],cape:["#6a1a2a","#16070d"],trim:"#f3d27a",
+    decor:()=>`<path d="M80 176 Q140 150 200 176 L204 196 Q140 172 76 196 Z" fill="#6a1a2a" stroke="#f3d27a" stroke-width="1.2"/>
+      <ellipse cx="94" cy="176" rx="15" ry="7" fill="#f3d27a" stroke="#fff0b8" stroke-width=".7" transform="rotate(-16 94 176)"/>
+      <ellipse cx="186" cy="176" rx="15" ry="7" fill="#f3d27a" stroke="#fff0b8" stroke-width=".7" transform="rotate(16 186 176)"/>
+      <path d="M82 184 v14 M88 186 v14 M94 188 v14 M100 188 v12 M180 188 v12 M186 188 v14 M192 186 v14 M198 184 v14" stroke="#f3d27a" stroke-width="1.4"/>
+      <path d="M104 206 Q140 236 176 206" fill="none" stroke="#f3d27a" stroke-width="1.6"/>
+      <g transform="translate(140 258)"><circle r="8" fill="none" stroke="#f3d27a" stroke-width="2"/><path d="M0 8 V30 M0 20 H8 M0 28 H6" stroke="#f3d27a" stroke-width="2.4" stroke-linecap="round"/></g>`,
+    hat:()=>`<path d="M172 90 Q198 62 192 30 Q180 56 168 80 Z" fill="#c43c52" stroke="#f3d27a" stroke-width=".8"/><circle cx="170" cy="92" r="3.4" fill="#f3d27a"/>`},
+  "classical-robe":{coat:["#ddd5c0","#a79e84","#5a5440"],cape:["#6e6850","#26231a"],trim:"#e6c866",
+    decor:()=>`<path d="M112 176 L140 232 L168 176 Z" fill="#f4efe2" stroke="#e6c866" stroke-width=".8"/>
+      <path d="M128 182 l12 14 l12 -14" fill="none" stroke="#bdb49a" stroke-width="1.2"/>
+      <g transform="translate(140 262)" stroke="#8f6b2a" stroke-width="1.6" fill="none"><path d="M-16 0H16M0 -8V16"/><path d="M-16 0l-6 12h12zM16 0l-6 12h12z" fill="#e6c866"/></g>
+      <circle cx="140" cy="236" r="2.4" fill="#e6c866"/><circle cx="140" cy="300" r="2.4" fill="#e6c866"/>`,
+    hat:()=>`<path d="M108 98 Q98 130 108 156 Q106 124 114 100 Z M172 98 Q182 130 172 156 Q174 124 166 100 Z" fill="#f4efe2" stroke="#bdb49a" stroke-width=".8"/>`},
+  "panopticon-coat":{coat:["#7a5224","#43290e","#170d05"],cape:["#4a3216","#120b05"],trim:"#ffcf6a",
+    decor:()=>`<path d="M96 176 L112 160 H168 L184 176 L176 198 H104 Z" fill="#2a1a08" stroke="#ffcf6a" stroke-width="1"/>
+      <g transform="translate(140 246)"><path d="M-22 0 Q0 -18 22 0 Q0 18 -22 0Z" fill="#1a0f05" stroke="#ffcf6a" stroke-width="1.4"/><circle r="6" fill="#ffcf6a"/><circle r="2.4" fill="#1a0f05"/></g>
+      <g stroke="#ffcf6a" stroke-width=".9" opacity=".6"><path d="M140 246 L96 300 M140 246 L184 300 M140 246 L140 310"/></g>`,
+    hat:()=>`<circle cx="140" cy="76" r="8" fill="#ffe08a" stroke="#ffcf6a" stroke-width=".8"/><circle cx="140" cy="76" r="14" fill="#ffe08a" opacity=".18"/>`}
 };
 function giftSpriteLayers(s,fresh){
   const a="#c4a35a", l="#e6d3a3";
@@ -2362,8 +2435,14 @@ function giftSpriteLayers(s,fresh){
   return equippedGifts(s).map(g=>`<g class="gs${fresh&&fresh.id===g.id?(fresh.swap?" fresh swap":" fresh"):""}" data-gift="${g.id}" data-slot="${g.slot}">${art[g.art]||""}</g>`).join("");
 }
 function librarianSvg(save, w=320, h=480, o={}){
-  const u=o.uid||"lb", O=OUTFITS.novice;
-  return `<svg viewBox="0 0 280 440" width="${w}" height="${h}" role="img" aria-label="사서 큐 양">
+  const key=(KEY_BY[o.keyId||save.equippedKeyId]||KEY_PAGES[0]);
+  const u=o.uid||"lb", O=OUTFITS[key.id]||OUTFITS.novice;
+  const title=ITEM_BY[save.equipped["호칭"]||""];
+  const bird=ITEM_BY[save.equipped["동반자"]||""];
+  const pen=ITEM_BY[save.equipped["깃펜"]||""];
+  const mark=ITEM_BY[save.equipped["책갈피"]||""];
+  const deco=ITEM_BY[save.equipped["장식"]||""];
+  return `<svg viewBox="0 0 280 440" width="${w}" height="${h}" role="img" aria-label="사서 큐 양 · ${key.name}" data-outfit="${key.id}">
     <defs>
       <linearGradient id="lib-robe-${u}" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#3a445c"/><stop offset="45%" stop-color="#1a2130"/><stop offset="100%" stop-color="#0a0c12"/>
@@ -2400,13 +2479,16 @@ function librarianSvg(save, w=320, h=480, o={}){
     <rect x="128" y="240" width="24" height="16" rx="2" fill="url(#lib-gold-${u})" stroke="#f3e6c0" stroke-width=".6"/>
     <circle cx="140" cy="198" r="2.6" fill="#e6d3a3"/><circle cx="140" cy="218" r="2.6" fill="#e6d3a3"/>
     ${O.decor(u)}
+    ${mark?`<path d="M126 252 L140 300 L154 252 Z" fill="#e6d3a3" stroke="#8f6b2a" stroke-width=".6"/>`:""}
+    ${deco?`<circle cx="140" cy="268" r="7" fill="none" stroke="#e6d3a3" stroke-width="1.4"/>`:""}
     <path d="M96 176 Q68 250 86 330" fill="none" stroke="#1a2130" stroke-width="16" stroke-linecap="round"/>
     <path d="M96 176 Q68 250 86 330" fill="none" stroke="#c4a35a" stroke-width="1.2" opacity=".7"/>
     <path d="M184 176 Q212 250 194 330" fill="none" stroke="#1a2130" stroke-width="16" stroke-linecap="round"/>
     <path d="M184 176 Q212 250 194 330" fill="none" stroke="#c4a35a" stroke-width="1.2" opacity=".7"/>
     <ellipse cx="84" cy="336" rx="9" ry="7" fill="#1c2230" stroke="#c4a35a" stroke-width=".9"/>
     <ellipse cx="196" cy="336" rx="9" ry="7" fill="#1c2230" stroke="#c4a35a" stroke-width=".9"/>
-    ${`<g transform="translate(186 250)"><rect x="0" y="0" width="38" height="48" fill="#1a140c" stroke="#c4a35a" stroke-width="1.2"/>
+    ${pen?`<g transform="translate(200 248) rotate(16)"><rect x="0" y="0" width="5" height="62" rx="1.5" fill="url(#lib-gold-${u})"/><path d="M0 62 L2.5 78 L5 62 Z" fill="#e6d3a3"/><path d="M1 8 Q8 20 2 36" fill="none" stroke="#8f6b2a" stroke-width="1"/></g>`:
+      `<g transform="translate(186 250)"><rect x="0" y="0" width="38" height="48" fill="#1a140c" stroke="#c4a35a" stroke-width="1.2"/>
        <rect x="0" y="0" width="7" height="48" fill="#8f6b2a"/>
        <path d="M12 12 H32 M12 20 H32 M12 28 H26" stroke="#e6d3a3" stroke-width="1.1"/></g>`}
     <path d="M108 166 Q140 192 172 166 Q176 148 140 142 Q104 148 108 166 Z" fill="#161b27" stroke="#e6d3a3" stroke-width="1.3"/>
@@ -2421,8 +2503,15 @@ function librarianSvg(save, w=320, h=480, o={}){
     <ellipse cx="153" cy="112" rx="3.4" ry="2.2" fill="#f3e6c0"><animate attributeName="opacity" values="1;.55;1" dur="2.8s" begin="0.4s" repeatCount="indefinite"/></ellipse>
     <path d="M134 122 Q140 127 146 122" fill="none" stroke="#8f6b2a" stroke-width="1"/>
     <path d="M110 92 Q120 78 130 90" fill="none" stroke="#c4a35a" stroke-width="1" opacity=".5"/>
+    ${bird?`<g transform="translate(52 348)">
+      <ellipse cx="22" cy="14" rx="20" ry="10" fill="#1a140c" stroke="#c4a35a" stroke-width="1"/>
+      <circle cx="34" cy="10" r="8" fill="#c4a35a"/>
+      <circle cx="36" cy="8" r="1.6" fill="#1a140c"/>
+      <path d="M40 10 L50 6" stroke="#e6d3a3" stroke-width="1.6"/>
+      <path d="M6 16 Q0 8 10 4" fill="none" stroke="#8f6b2a" stroke-width="1.2"/>
+    </g>`:""}
     ${giftSpriteLayers(save,o.freshGift)}
-    <text x="140" y="28" text-anchor="middle" fill="#e6d3a3" font-size="13" letter-spacing="0.8" font-family="Pretendard Variable, Pretendard, Space Grotesk, sans-serif" font-weight="700">「초보 사서」</text>
+    <text x="140" y="28" text-anchor="middle" fill="#e6d3a3" font-size="13" letter-spacing="0.8" font-family="Pretendard Variable, Pretendard, Space Grotesk, sans-serif" font-weight="700">${title?title.name:"「초보 사서」"}</text>
   </svg>`;
 }
 const GUEST_ARCHETYPES = ["knight","scholar","beast","puppet","fixer","mage"];
@@ -2833,6 +2922,18 @@ function dieSvg(type, value, broken){
     ${broken?`<path d="M12 12 L52 52 M52 12 L12 52" stroke="#c45c4a" stroke-width="2.6"/>`:""}
   </svg>`;
 }
+function glyphSvg(item, muted=false, size=40){
+  const col = muted?"#3a4150": item.rarity==="SSR"?"#e6d3a3":item.rarity==="SR"?"#c4a35a":item.rarity==="R"?"#8f6b2a":"#9aa3b2";
+  const body = {
+    "책갈피":`<path d="M16 6 H34 V38 L25 31 L16 38 Z" fill="${col}" stroke="#1a140c" stroke-width=".6"/>`,
+    "장식":`<path d="M10 14 H38 L34 40 H14 Z M18 14 V8 H30 V14" fill="${col}"/><circle cx="24" cy="26" r="5" fill="#0b0e16"/>`,
+    "깃펜":`<path d="M22 4 H26 L28 34 L24 46 L20 34 Z" fill="${col}"/><path d="M22 10 Q34 22 24 34" fill="none" stroke="#1a140c" stroke-width="1"/>`,
+    "동반자":`<g fill="${col}"><ellipse cx="22" cy="30" rx="13" ry="8"/><circle cx="30" cy="22" r="7"/><path d="M36 22 L44 16" stroke="${col}" stroke-width="2"/></g>`,
+    "서고":`<g fill="${col}"><rect x="8" y="20" width="8" height="20"/><rect x="18" y="12" width="8" height="28"/><rect x="28" y="16" width="8" height="24"/></g>`,
+    "호칭":`<path d="M24 4 L28 16 H40 L30 24 L34 38 L24 30 L14 38 L18 24 L8 16 H20 Z" fill="${col}"/>`
+  }[item.slot]||"";
+  return `<svg viewBox="0 0 48 48" width="${size}" height="${size}" style="opacity:${muted?.4:1}">${body}</svg>`;
+}
 
 /* ---------- background + FX canvas ---------- */
 const FX = (() => {
@@ -3023,9 +3124,9 @@ function shownBookCount(s,gid){ return bookMaxed(s,gid)?0:bookCount(s,gid); }
 function totalBooks(s){ return Object.keys(s.bookCounts||{}).reduce((a,g)=>a+shownBookCount(s,g),0); }
 function addBooks(s,gid,n){ if(n>0) s.bookCounts={...(s.bookCounts||{}),[gid]:bookCount(s,gid)+n}; return n; }
 function rollRecallBooks(rng){ return (rng||Math.random)()<BOOK_RULES.recallOne?1:2; }
-function entryName(e){ return (PAGE_BY[e.id]||{}).name; }
+function entryName(e){ return e.k==="page"?(PAGE_BY[e.id]||{}).name:(KEY_BY[e.id]||{}).name; }
 function entryOwned(s,e){
-  return {count:ownedCount(s,e.id),cap:DECK_MAX_COPIES};
+  return e.k==="page"?{count:ownedCount(s,e.id),cap:DECK_MAX_COPIES}:{count:(s.unlockedKeyIds||[]).includes(e.id)?1:0,cap:1};
 }
 /* 가중치: 미보유 ×3 (연속으로 새 책장을 못 얻을수록 추가 가산), 보유 1장이면 ×0.5, 상한이면 제외.
    pityGuarantee번 연속 중복이면 미보유 책장만 나온다. */
@@ -3042,8 +3143,10 @@ function poolEntries(s,gid){
   return list;
 }
 function grantEntry(s,e){
-  s.pageCounts={...(s.pageCounts||{}),[e.id]:Math.min(DECK_MAX_COPIES,ownedCount(s,e.id)+1)};
-  if(!s.unlockedPageIds.includes(e.id)) s.unlockedPageIds=[...s.unlockedPageIds,e.id];
+  if(e.k==="page"){
+    s.pageCounts={...(s.pageCounts||{}),[e.id]:Math.min(DECK_MAX_COPIES,ownedCount(s,e.id)+1)};
+    if(!s.unlockedPageIds.includes(e.id)) s.unlockedPageIds=[...s.unlockedPageIds,e.id];
+  } else if(!s.unlockedKeyIds.includes(e.id)) s.unlockedKeyIds=[...s.unlockedKeyIds,e.id];
 }
 function burnBookOnce(s,gid,rng){
   if(bookCount(s,gid)<1) return {ok:false,why:"책이 없다"};
@@ -3064,8 +3167,9 @@ function sourcesOf(kind,id){
 function acqAudit(){
   const orphans=[];
   COMBAT_PAGES.forEach(p=>{ if(!p.starter&&!sourcesOf("page",p.id).length) orphans.push("page:"+p.id); });
+  KEY_PAGES.forEach(k=>{ if(k.id!=="novice"&&!sourcesOf("key",k.id).length) orphans.push("key:"+k.id); });
   const bad=[];
-  Object.entries(BOOK_POOLS).forEach(([gid,l])=>{ if(!GUEST_BY[gid]) bad.push("guest:"+gid); l.forEach(e=>{ if(!PAGE_BY[e.id]) bad.push(gid+":"+e.id); }); });
+  Object.entries(BOOK_POOLS).forEach(([gid,l])=>{ if(!GUEST_BY[gid]) bad.push("guest:"+gid); l.forEach(e=>{ if(!(e.k==="page"?PAGE_BY[e.id]:KEY_BY[e.id])) bad.push(gid+":"+e.id); }); });
   return {orphans,bad,ok:!orphans.length&&!bad.length};
 }
 /* 구버전 저장 이전: 책 상태(shelved/read/burned)는 모두 책 1권으로 환산 → 아무것도 잃지 않는다 */
@@ -3086,10 +3190,11 @@ function migrateAcq(s,r){
 function defaultSave(){
   return {
     hp:COMBAT.playerStartHp, maxHp:COMBAT.playerStartHp, level:1, xp:0,
-    questionsAnswered:0,
+    questionsAnswered:0, ownedIds:[],
+    equipped:{책갈피:null,장식:null,깃펜:null,동반자:null,서고:null,호칭:null},
     conqueredIds:[], conceptStats:{}, receptionsWon:0,
     books:{}, bookCounts:{}, pageCounts:{}, bookPity:{}, acqV:2,
-    unlockedPageIds:[...STARTER_PAGES],
+    unlockedPageIds:[...STARTER_PAGES], unlockedKeyIds:["novice"], equippedKeyId:"novice",
     muted:false, sfxMuted:false, bgmMuted:true,
     decks:[], activeDeckId:"deck-1",
     librarians:{[LIB_DEFAULT_ID]:mkLibrarian(LIB_DEFAULT_ID,"큐 양")}, activeLibrarianId:LIB_DEFAULT_ID, libV:2,
@@ -3102,8 +3207,9 @@ function loadSave(){
     if(r&&typeof r==="object"){
       const d=defaultSave();
       const s={...d,...r};
-      /* 가챠·장서복(코디) 제거 — 옛 저장의 관련 필드는 조용히 버린다(팝업·보상 없음). 외형은 기본 + 에고 기프트. */
-      ["equipped","ownedIds","ticketsSpent","pullsSinceSr","pullsSinceSsr","unlockedKeyIds","equippedKeyId"].forEach(k=>{ delete s[k]; });
+      s.equipped={...d.equipped,...(r.equipped||{})};
+      /* 뽑기 제거 — 뽑기권/천장 필드만 조용히 버린다. 핵심 책장·장서복·장신구 데이터는 그대로 유지. */
+      ["ticketsSpent","pullsSinceSr","pullsSinceSsr"].forEach(k=>{ delete s[k]; });
       if(!r.libV||!r.librarians) migrateLibrarians(s,r);
       sanitizeLibrarians(s);
       s.recallStats=r.recallStats&&typeof r.recallStats==="object"?r.recallStats:{};
@@ -3113,6 +3219,11 @@ function loadSave(){
       s.pageCounts=r.pageCounts&&typeof r.pageCounts==="object"?r.pageCounts:{};
       s.bookPity=r.bookPity&&typeof r.bookPity==="object"?r.bookPity:{};
       s.unlockedPageIds=Array.isArray(r.unlockedPageIds)?r.unlockedPageIds:[...STARTER_PAGES];
+      s.unlockedKeyIds=Array.isArray(r.unlockedKeyIds)?r.unlockedKeyIds.filter(id=>KEY_BY[id]):["novice"];
+      if(!s.unlockedKeyIds.includes("novice")) s.unlockedKeyIds.unshift("novice");
+      if(!KEY_BY[s.equippedKeyId]||!s.unlockedKeyIds.includes(s.equippedKeyId)) s.equippedKeyId="novice";
+      s.ownedIds=Array.isArray(r.ownedIds)?r.ownedIds.filter(id=>ITEM_BY[id]):[];
+      Object.keys(s.equipped).forEach(sl=>{ if(s.equipped[sl]&&!s.ownedIds.includes(s.equipped[sl])) s.equipped[sl]=null; });
       if(!r.acqV) migrateAcq(s,r);
       s.decks=Array.isArray(r.decks)?r.decks:[];
       s.activeDeckId=r.activeDeckId||"deck-1";
@@ -3231,7 +3342,7 @@ function waxHtml(r){ r=r||"N"; return `<span class="wax rar-${r}" title="희귀�
 function paperLayers(){ return `<div class="paper-fiber"></div><div class="paper-stain"></div>`; }
 /* 정답/오답에 따른 주사위 변화 미리보기 — 실제 전투 공식(playerDieRange/guestDieRange)을 그대로 쓴다 */
 function previewCtx(){
-  const t=giftTotals(save);
+  const t=withKeyMods(giftTotals(save),save);
   const rec=reception;
   if(!rec) return {rec:null,dieMin:t.dieMin||0,isKey:false,emotion:0};
   return {rec,dieMin:t.dieMin||0,isKey:!!(rec.intent&&rec.intent.big&&rec.g.stag<=0),emotion:rec.emotion||0};
@@ -3645,7 +3756,7 @@ function renderLobby(){
       <div class="col frame portrait-box">${cornerHtml()}
         <div class="portrait-frame"><div class="pf-ring">${librarianSvg(save)}</div></div>
         <div class="pf-plate"><div class="pname gold-title">사서 큐 양</div>
-        <div class="gmeta">Lv.${save.level} · 에고 기프트 ${equippedGifts(save).length}/${EGO_GIFT_RULES.slots.length}</div></div>
+        <div class="gmeta">${keyPerk(save).name}</div></div>
         <div class="bonus-sum" style="margin-top:8px;width:100%">${bonusLabel(giftTotals(save))}</div>
       </div>
       <div class="col mid">
@@ -3684,8 +3795,20 @@ function renderLobby(){
 }
 function xBtn(id,label){ return `<button class="x-btn" ${id?`id="${id}" `:""}type="button" aria-label="${label||"닫기"}"><span class="x-ico"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2 12 12M12 2 2 12"/></svg></span></button>`; }
 function guestCollHtml(g){
-  const pool=poolEntries(save,g.id), got=pool.filter(e=>e.count>0).length;
-  return `<div class="gcoll" aria-label="책장 ${got}/${pool.length}"><span>책장 <b>${got}/${pool.length}</b></span><span class="gc-pips">${pool.map(e=>`<i class="${e.count>0?"on":""}"></i>`).join("")}</span></div>`;
+  const pool=poolEntries(save,g.id);
+  const pages=pool.filter(e=>e.k==="page"), keys=pool.filter(e=>e.k==="key");
+  const got=pages.filter(e=>e.count>0).length, keyOk=keys.some(e=>e.count>0);
+  const label=`책장 ${got}/${pages.length}${keys.length?` · 핵심 ${keyOk?"✓":"—"}`:""}`;
+  return `<div class="gcoll" aria-label="${label}"><span>책장 <b>${got}/${pages.length}</b>${keys.length?` · 핵심 <b class="${keyOk?"ok":""}">${keyOk?"✓":"—"}</b>`:""}</span><span class="gc-pips">${pool.map(e=>`<i class="${e.count>0?"on":""}${e.k==="key"?" k":""}"></i>`).join("")}</span></div>`;
+}
+function sheetCollHtml(g){
+  const pool=poolEntries(save,g.id);
+  const pages=pool.filter(e=>e.k==="page"), keys=pool.filter(e=>e.k==="key");
+  const got=pages.filter(e=>e.count>0).length;
+  const cell=e=>{ const pg=e.k==="page"?PAGE_BY[e.id]:null; const tag=e.k==="key"?"핵":(pg.rarity||"N"); return `<i class="cc-cell ${e.count>0?"on":""} ${e.k==="key"?"k":""}" title="${entryName(e)}">${tag}</i>`; };
+  return `<div class="sheet-coll" aria-label="책장 수집 ${got}/${pages.length}${keys.length?`, 핵심 책장 ${keys.some(e=>e.count>0)?"보유":"미보유"}`:""}">
+    <span class="sc-lab">책장 <b>${got}/${pages.length}</b></span>${keys.length?`<span class="sc-lab">핵심 <b class="${keys.some(e=>e.count>0)?"ok":""}">${keys.some(e=>e.count>0)?"✓":"—"}</b></span>`:""}
+    <span class="sc-cells">${pool.map(cell).join("")}</span></div>`;
 }
 function guestSheetHtml(g){
   if(!g) return "";
@@ -3871,7 +3994,7 @@ function beginReception(guestId){
 let inspectState={timer:0,hoverTimer:0,press:false,suppressClick:false,pageId:null,reason:null};
 
 function cardInspectHtml(page){
-  const t=giftTotals(save);
+  const t=withKeyMods(giftTotals(save),save);
   const dieMin=t.dieMin||0;
   const dies=(page.dice||[]).map(d=>{
     const pv=myDiePreview(d);
@@ -4416,7 +4539,7 @@ function finishAnswer(correct,q,isKey,typed){
 
 function runScene(o){
   const rec=reception, guest=GUEST_BY[rec.guestId], page=o.page, asked=!!o.q, correct=!!o.correct;
-  const gt=giftTotals(save);
+  const gt=withKeyMods(giftTotals(save),save);
   const gDice=rec.g.stag>0?null:(rec.intent?rec.intent.dice:null);
   const pDice=(page&&rec.p.stag===0)?page.dice:null;
   rec.lastCorrect=correct; rec.crit=asked&&o.isKey&&correct; rec.lastKey=!!o.isKey; rec.lastQ=o.q||null;
@@ -4820,10 +4943,18 @@ function renderShelfBooks(){
 }
 
 
-/* ---------- 에고 기프트 : 캐릭터 미리보기 + 픽토그램 + 드래그 장착 ---------- */
-let shelfTab="books"; /* 도서관 하위 탭: deck | books | gifts */
-const dressSel={gifts:null};
+/* ---------- 장서복(핵심 책장) / 에고 기프트 : 캐릭터 미리보기 + 픽토그램 + 드래그 장착 ---------- */
+let shelfTab="books";
+const dressSel={outfit:null,gifts:null};
 let dressFx=null;
+const KEY_ICON={
+  novice:`<path d="M8 3 4 7v14h16V7l-4-4"/><path d="M8 3q4 5 8 0M12 8v13"/>`,
+  "reading-room":`<path d="M3 5h7q2 0 2 2 0-2 2-2h7v14h-7q-2 0-2 2 0-2-2-2H3z"/><path d="M12 7v12"/>`,
+  midnight:`<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/><path d="M18 3v4M16 5h4"/>`,
+  archivist:`<path d="M3 18 5 7l5 5 2-7 2 7 5-5 2 11z"/><path d="M4 21h16"/>`,
+  "classical-robe":`<path d="M12 4v16M6 20h12M5 7h14"/><path d="M5 7l-3 7a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z"/>`,
+  "panopticon-coat":`<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v4M12 17v4"/>`
+};
 const GIFT_ICON={
   hourglass:`<path d="M6 3h12M6 21h12M7 3c0 6 5 6 5 9s-5 3-5 9M17 3c0 6-5 6-5 9s5 3 5 9"/>`,
   crest:`<path d="M12 3 20 11l-8 10L4 11z"/><path d="M12 8v8"/>`,
@@ -4863,12 +4994,14 @@ function dTileHtml(id,iconPath,{locked,equipped,sel,label,sub}){
     ${locked?`<span class="dt-lock">${lockSvg}</span>`:""}${equipped?`<span class="dt-eq" aria-hidden="true">착용</span>`:""}${sub?`<span class="dt-sub">${sub}</span>`:""}</button>`;
 }
 function shelfTabsHtml(){
-  return `<div class="shelf-tabs" role="tablist" aria-label="도서관 메뉴">${[["deck","덱 편성"],["books","책"],["gifts","에고 기프트"]].map(([k,l])=>
+  return `<div class="shelf-tabs" role="tablist" aria-label="도서관 메뉴">${[["deck","덱 편성"],["books","책"],["outfit","장서복"],["gifts","에고 기프트"]].map(([k,l])=>
     `<button class="shelf-tab${shelfTab===k?" on":""}" role="tab" aria-selected="${shelfTab===k}" data-stab="${k}" type="button">${l}</button>`).join("")}</div>`;
 }
 function bindShelfTabs(){
   $$("[data-stab]").forEach(b=>b.onclick=()=>{ if(shelfTab===b.dataset.stab) return; shelfTab=b.dataset.stab; SFX.click(); renderShelf(); const sc=$("#scene-shelf .page-scroll"); if(sc) sc.scrollTop=0; });
 }
+const KEY_PERK_TEXT={none:"특별한 효과 없음",light:"접대 시작 빛 +1",emotion:"감정 단계 1로 시작",recover:"매 턴 빛 회복 +1",hp10:"최대 체력 +10",stagger10:"흐트러짐 피해 +10%"};
+const KEY_LOOK={novice:"기본 · 남색 외투","reading-room":"청록 외투 · 책갈피 띠 · 독서등",midnight:"남보라 외투 · 초승달 · 별무리 망토",archivist:"진홍 외투 · 금 견장 · 열쇠 문장 · 깃털 모자","classical-robe":"상아색 법복 · 흰 목장식 · 저울 문장 · 재판관 가발","panopticon-coat":"갈색 외투 · 높은 칼라 · 감시의 눈 문장 · 탐조등"};
 function giftPerkText(g){
   const u=EGO_GIFT_RULES.unit, t={};
   for(const [k,n] of Object.entries(g.perk||{})) t[k]=(u[k]||1)*n;
@@ -4882,6 +5015,19 @@ function setProgress(){
   });
 }
 function dressDetailHtml(mode){
+  if(mode==="outfit"){
+    const id=dressSel.outfit||save.equippedKeyId, k=KEY_BY[id]||KEY_PAGES[0];
+    const un=save.unlockedKeyIds.includes(k.id), eq=save.equippedKeyId===k.id;
+    return `<div class="dd-head"><div class="gold-title dd-name">${un?k.name:"????"}</div>
+        <span class="pill">${eq?"착용 중":un?"보유":"잠김"}</span></div>
+      <div class="dd-lines">
+        <div><b>능력</b> ${KEY_PERK_TEXT[k.perk]||"—"}</div>
+        <div><b>외형</b> ${KEY_LOOK[k.id]||""}</div>
+        <div class="gmeta">${un?k.text:"아직 열리지 않은 장서복입니다."}</div>
+        ${un?"":`<div class="src">획득처 · ${sourceLine("key",k.id)}</div>`}
+      </div>
+      <div class="dd-actions"><button class="btn ${eq?"":"primary"}" id="dd-equip" type="button" ${!un||eq?"disabled":""}>${eq?"착용 중":un?"이 장서복 착용":"미획득"}</button></div>`;
+  }
   const gid=dressSel.gifts, g=EGO_BY[gid];
   if(!g){
     const t=giftTotals(save), sp=setProgress(), eqN=equippedGifts(save).length, L=libOf(save), mx=giftMaxTotals();
@@ -4903,30 +5049,37 @@ function dressDetailHtml(mode){
 let dressKeepTop=null;
 function renderDress(mode){
   const fx=dressFx&&dressFx.mode===mode?dressFx:null; dressFx=null;
+  const outfit=mode==="outfit";
   /* 같은 탭을 다시 그릴 때(착용·해제·선택) 안쪽 그리드의 스크롤 위치를 잃지 않는다 */
   const prevWrap=document.querySelector("#scene-shelf .dress.is-"+mode+" .dress-gridwrap");
   dressKeepTop=prevWrap?prevWrap.scrollTop:null;
   const svgNew=librarianSvg(save,"100%","100%",{uid:"dr",freshGift:fx&&fx.fresh});
   const svgOld=fx&&fx.old?fx.old:"";
-  const owned=egoOwned(save).length;
-  const head=`${libOf(save).name}의 기프트 <b>${owned}/${EGO_GIFTS.length}</b>`;
-  const tiles=EGO_GIFTS.map(g=>dTileHtml(g.id,GIFT_ICON[g.art]||GIFT_ICON.orb,{locked:!egoOwned(save).includes(g.id),equipped:egoEquip(save)[g.slot]===g.id,sel:dressSel.gifts===g.id,label:g.name,sub:g.slot})).join("");
+  let tiles="", head="";
+  if(outfit){
+    head=`장서복 · 핵심 책장 <b>${save.unlockedKeyIds.length}/${KEY_PAGES.length}</b>`;
+    tiles=KEY_PAGES.map(k=>dTileHtml(k.id,KEY_ICON[k.id]||KEY_ICON.novice,{locked:!save.unlockedKeyIds.includes(k.id),equipped:save.equippedKeyId===k.id,sel:(dressSel.outfit||save.equippedKeyId)===k.id,label:k.name})).join("");
+  } else {
+    const owned=egoOwned(save).length;
+    head=`${libOf(save).name}의 기프트 <b>${owned}/${EGO_GIFTS.length}</b>`;
+    tiles=EGO_GIFTS.map(g=>dTileHtml(g.id,GIFT_ICON[g.art]||GIFT_ICON.orb,{locked:!egoOwned(save).includes(g.id),equipped:egoEquip(save)[g.slot]===g.id,sel:dressSel.gifts===g.id,label:g.name,sub:g.slot})).join("");
+  }
   const sc=$("#scene-shelf");
   sc.innerHTML=`<div class="topbar">${hudStats()}</div>
     <div class="page-scroll">
     ${shelfTabsHtml()}
-    <div class="dress is-gifts">
+    <div class="dress ${outfit?"is-outfit":"is-gifts"}">
       <div class="dress-top">
         <div class="dress-char frame" id="dress-char" aria-label="사서 미리보기 — 아이콘을 여기로 끌어 놓으면 착용합니다">${cornerHtml()}
           <div class="dress-head dc-head">외형 미리보기</div>
-          <div class="dc-stage" id="dc-stage">${svgOld?`<div class="dc-old">${svgOld}</div>`:""}<div class="dc-new">${svgNew}</div>${fx?`<div class="dc-flash"></div>`:""}</div>
+          <div class="dc-stage" id="dc-stage">${svgOld?`<div class="dc-old">${svgOld}</div>`:""}<div class="dc-new${fx&&outfit?" morph":""}">${svgNew}</div>${fx?`<div class="dc-flash"></div>`:""}</div>
           <div class="dc-drop" aria-hidden="true">여기에 놓아 착용</div>
-          <div class="dc-name">사서 큐 양</div>
+          <div class="dc-name" title="${outfit?(KEY_BY[save.equippedKeyId]||KEY_PAGES[0]).name:""}">사서 큐 양${outfit?` · ${(KEY_BY[save.equippedKeyId]||KEY_PAGES[0]).name}`:""}</div>
         </div>
         <div class="dress-side frame">${cornerHtml()}<div class="dress-head">${head}</div>
           <div class="dress-gridwrap"><div class="dress-grid g2" id="dress-grid" role="list">${tiles}</div></div>
           <div class="dress-foot"><div class="dress-pg" id="dress-pg" aria-hidden="true"></div>
-          <div class="dress-tip">길게 누르거나 왼쪽으로 끌어 착용 · 착용 아이콘을 밖으로 끌면 해제</div></div></div>
+          <div class="dress-tip">${outfit?"길게 누르거나 왼쪽으로 끌어 착용 · 눌러서 자세히":"길게 누르거나 왼쪽으로 끌어 착용 · 착용 아이콘을 밖으로 끌면 해제"}</div></div></div>
       </div>
       <div class="dress-detail frame" id="dress-detail">${cornerHtml()}${dressDetailHtml(mode)}</div>
     </div></div>
@@ -4934,6 +5087,13 @@ function renderDress(mode){
   bindNav(); bindShelfTabs(); bindDress(mode);
 }
 function oldPreviewHtml(){ const h=$("#dress-char .dc-new")?.innerHTML||""; return h.replace(/-dr(?=["')])/g,"-dro"); }
+function equipKey(id){
+  const k=KEY_BY[id]; if(!k||!save.unlockedKeyIds.includes(id)||save.equippedKeyId===id) return;
+  const old=oldPreviewHtml();
+  save.equippedKeyId=id; dressSel.outfit=null; persist(); SFX.equip("outfit");
+  dressFx={mode:"outfit",old,fresh:null};
+  renderShelf();
+}
 function equipGift(id,on){
   const g=EGO_BY[id]; if(!g||!egoOwned(save).includes(id)) return;
   const E=egoEquip(save);
@@ -4945,10 +5105,10 @@ function equipGift(id,on){
   persist(); renderShelf();
 }
 function bindDress(mode){
-  const key="gifts";
+  const outfit=mode==="outfit", key=outfit?"outfit":"gifts";
   const stage=$("#dress-char"), grid=$("#dress-grid");
   const eqBtn=$("#dd-equip");
-  if(eqBtn) eqBtn.onclick=()=>equipGift(dressSel.gifts);
+  if(eqBtn) eqBtn.onclick=()=>{ if(outfit) equipKey(dressSel.outfit||save.equippedKeyId); else equipGift(dressSel.gifts); };
   const back=$("#dd-back"); if(back) back.onclick=()=>{ dressSel.gifts=null; renderShelf(); };
   let suppress=false;
   const over=(x,y)=>{ const r=stage.getBoundingClientRect(); return x>=r.left-8&&x<=r.right+8&&y>=r.top-8&&y<=r.bottom+8; };
@@ -4956,7 +5116,7 @@ function bindDress(mode){
     t.addEventListener("click",()=>{
       if(suppress){ suppress=false; return; }
       const id=t.dataset.t;
-      dressSel[key]=dressSel[key]===id?null:id; SFX.click(); renderShelf();
+      dressSel[key]=(dressSel[key]===id&&!outfit)?null:id; SFX.click(); renderShelf();
     });
     t.addEventListener("contextmenu",e=>e.preventDefault());
     t.addEventListener("pointerdown",e=>{
@@ -4968,8 +5128,8 @@ function bindDress(mode){
       let ghost=null, dragging=false, held=false, dead=false, lpT=0;
       const startDrag=(cx,cy)=>{
         dragging=true; suppress=true; document.body.classList.add("dressing");
-        ghost=document.createElement("div"); ghost.className="dghost"; ghost.innerHTML=`<svg viewBox="0 0 24 24">${GIFT_ICON[EGO_BY[id].art]||""}</svg>`;
-        document.body.appendChild(ghost); t.classList.add("drag-src"); stage.classList.add("can-drop"); if(equipped) grid.classList.add("can-off");
+        ghost=document.createElement("div"); ghost.className="dghost"; ghost.innerHTML=`<svg viewBox="0 0 24 24">${(outfit?KEY_ICON[id]:GIFT_ICON[EGO_BY[id].art])||""}</svg>`;
+        document.body.appendChild(ghost); t.classList.add("drag-src"); stage.classList.add("can-drop"); if(equipped&&!outfit) grid.classList.add("can-off");
         ghost.style.transform=`translate(${cx-28}px,${cy-28}px) scale(1.08)`;
       };
       /* 터치: 길게 누르면 끌기 모드(스크롤 잠금), 아니면 세로는 스크롤, 왼쪽 가로 끌기는 바로 착용 */
@@ -4988,7 +5148,7 @@ function bindDress(mode){
         }
         ghost.style.transform=`translate(${ev.clientX-28}px,${ev.clientY-28}px) scale(1.08)`;
         stage.classList.toggle("drop-on",over(ev.clientX,ev.clientY));
-        if(equipped) grid.classList.toggle("drop-off",!over(ev.clientX,ev.clientY));
+        if(equipped&&!outfit) grid.classList.toggle("drop-off",!over(ev.clientX,ev.clientY));
         ev.preventDefault();
       };
       const end=ev=>{
@@ -5001,7 +5161,8 @@ function bindDress(mode){
         ghost&&ghost.remove(); t.classList.remove("drag-src"); stage.classList.remove("can-drop","drop-on"); grid.classList.remove("can-off","drop-off");
         setTimeout(()=>{ suppress=false; },0);
         if(ev.type==="pointercancel") return;
-        if(inside) equipGift(id,true);
+        if(outfit){ if(inside) equipKey(id); }
+        else if(inside) equipGift(id,true);
         else if(equipped) equipGift(id,false);
       };
       window.addEventListener("pointermove",move,{passive:false}); window.addEventListener("pointerup",end); window.addEventListener("pointercancel",end);
@@ -5032,7 +5193,8 @@ function setupDressPaging(){
   else if(sel&&pages>1){ const idx=tiles.indexOf(sel); wrap.scrollTop=Math.floor(idx/6)*(wrap.clientHeight-12+gap); paint(); }
 }
 function renderShelf(){
-  if(shelfTab!=="books"&&shelfTab!=="gifts"&&shelfTab!=="deck") shelfTab="books";
+  if(shelfTab!=="books"&&shelfTab!=="gifts"&&shelfTab!=="deck"&&shelfTab!=="outfit") shelfTab="books";
+  if(shelfTab==="outfit") return renderDress("outfit");
   if(shelfTab==="gifts") return renderDress("gifts");
   if(shelfTab==="deck") return renderShelfDeck();
   return renderShelfBooks();
@@ -5067,8 +5229,8 @@ function showBurnOverlay(gid,n,cards){
   $("#burn-ov")?.remove();
   const ov=document.createElement("div");
   ov.id="burn-ov"; ov.className="burn-ov"; ov.setAttribute("role","dialog"); ov.setAttribute("aria-label","책 소각 결과");
-  const order={SSR:1,SR:2,R:3,N:4};
-  const info=c=>{ const pg=PAGE_BY[c.id]; const tag=(pg&&pg.rarity)||"N"; return {tag,cls:tag}; };
+  const order={key:0,SSR:1,SR:2,R:3,N:4};
+  const info=c=>{ const pg=c.k==="page"?PAGE_BY[c.id]:null; const tag=c.k==="key"?"핵심":((pg&&pg.rarity)||"N"); return {tag,cls:c.k==="key"?"key":tag}; };
   const sorted=[...cards].sort((a,b)=>(order[info(a).tag]??9)-(order[info(b).tag]??9));
   ov.innerHTML=`<button class="burn-x" type="button" aria-label="닫기">✕</button>
     <div class="burn-in">
@@ -5078,7 +5240,7 @@ function showBurnOverlay(gid,n,cards){
         <span class="bk-tag t-${f.cls}">${f.tag}</span>
         ${c.isNew?'<span class="burn-new">NEW</span>':'<span class="burn-dup">중복</span>'}
         <div class="burn-nm">${c.name}</div>
-        <div class="burn-meta">전투 책장${c.n>1?` <b class="burn-n">×${c.n}</b>`:""}</div>
+        <div class="burn-meta">${c.k==="key"?"핵심 책장":"전투 책장"}${c.n>1?` <b class="burn-n">×${c.n}</b>`:""}</div>
       </div>`; }).join("")}</div>
       <div class="burn-hint">아무 곳이나 눌러 닫기</div>
     </div>`;
@@ -5139,10 +5301,10 @@ function boot(){
     save, transit, showScene, renderLobby, renderBattle, renderShelf, renderTitle,
     beginReception, selectBook, answer, answerShort, choosePage, SFX, takPunch, showWin, showLose, engine:{COMBAT,TIER,ATK_TYPES,mkUnit,resolveScene,guestCombat,planIntent,expectedDamage,checkShort,keyQsOf,WEAK_POINTS,COMBAT_PAGES,PAGE_BY,hitUnit,playerDieRange,guestDieRange,playerStaggerMax,FLAT_RESIST,getRec(){return reception;}},
     gx:{guestSvg,GX_VARIANTS,GX_VLABEL,GX_LABEL,gxAttack,gxExFlash,gxPick,GUEST_ART},
-    data:{EGO_GIFTS,WEAK_POINTS,COMBAT_PAGES,FLOORS,KEY_QUESTIONS},
+    data:{EGO_GIFTS,KEY_PAGES,COSMETIC_ITEMS,WEAK_POINTS,COMBAT_PAGES,FLOORS,KEY_QUESTIONS},
     acq:{bookMaxed,shownBookCount,BOOK_POOLS,BOOK_RULES,poolEntries,burnBookOnce,addBooks,bookCount,totalBooks,ownedCount,deckLimit,DECK_MIN,DECK_MAX,sourcesOf,acqAudit,migrateAcq,rollRecallBooks,loadSave,defaultSave,SAVE_KEY},
     setGifts(owned,equipped){ const L=libOf(save); L.gifts.owned=[...owned]; L.gifts.equipped={...emptyEgoEquip(),...(equipped||{})}; persist(); },
-    gifts:{effectiveMaxHp,libOf,giftTotals,giftMaxTotals,activeSets,rollEgoGift,migrateLibrarians,sanitizeLibrarians,equipGift,egoOwned,egoEquip,EGO_GIFT_RULES,loadSave,SAVE_KEY},
+    gifts:{withKeyMods,effectiveMaxHp,libOf,giftTotals,giftMaxTotals,activeSets,rollEgoGift,migrateLibrarians,sanitizeLibrarians,equipGift,egoOwned,egoEquip,EGO_GIFT_RULES,loadSave,SAVE_KEY},
     toggleDeckPage, currentQuestion, setShelfTab(t){ shelfTab=t; },
     setScene(n){ showScene(n); if(n==="lobby")renderLobby(); if(n==="battle")renderBattle(); if(n==="shelf")renderShelf(); if(n==="title")renderTitle(); if(n==="deck")renderDeckEditor(); if(n==="credits")renderCredits(); },
     debugPhotos(){ return FX.debugPhotos(); },
