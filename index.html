@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261113l">
+<meta name="build" content="library-20261117a">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -1354,6 +1354,132 @@ b,strong{font-weight:700}
 .dd-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dd-head .gold-title{min-width:0}
 .dress-char .dc-stage svg{max-height:100%}
+
+/* =====================================================================
+   LANDSCAPE PHONES — 가로 모드 (높이가 낮은 가로 화면). 세로 화면 규칙은 그대로.
+   ===================================================================== */
+:root{--safe-left:env(safe-area-inset-left, 0px);--safe-right:env(safe-area-inset-right, 0px);--rail-w:0px}
+@media (orientation:landscape) and (max-height:500px){
+  :root{--rail-w:68px;--audio-top:6px;--audio-btn:30px;--nav-h:0px;--panel-pad-bottom:calc(14px + var(--safe-bottom));
+        --inspect-top:44px;--inspect-bottom:12px}
+  #audio-toggles{top:var(--audio-top);right:calc(8px + var(--safe-right))}
+  #audio-toggles .btn,#audio-toggles button{width:30px;height:30px}
+  /* ---- 하단 내비 → 왼쪽 세로 레일 ---- */
+  .botnav{top:0;bottom:0;left:0;right:auto;width:calc(var(--rail-w) + var(--safe-left));flex-direction:column;justify-content:center;align-items:stretch;
+    gap:10px;padding:10px 8px calc(10px + var(--safe-bottom)) calc(8px + var(--safe-left));
+    background:linear-gradient(90deg,rgba(7,8,13,.96) 0%,rgba(7,8,13,.9) 70%,transparent 100%)}
+  .botnav .btn{flex:0 0 auto;max-width:none;width:100%;min-width:0;height:48px;padding:0 2px;font-size:12px;border-radius:12px}
+  .botnav.away{transform:translateX(-120%)}
+  #scene-lobby,.panel-scene{padding:6px calc(10px + var(--safe-right)) 0 calc(var(--rail-w) + var(--safe-left) + 8px)}
+  #scene-lobby{padding-bottom:calc(8px + var(--safe-bottom))}
+  .topbar{padding:0 84px 4px 0;min-height:calc(var(--audio-top) + var(--audio-btn));gap:4px 8px}
+  .page-scroll{padding-bottom:var(--panel-pad-bottom)}
+  /* ---- 로비: 왼쪽 층 정보, 오른쪽 손님 목록 ---- */
+  .lobby-grid{flex:1 1 auto;min-height:0}
+  .floor-nav{gap:4px}
+  .fn-arrow{width:36px!important;height:36px!important;flex:0 0 36px!important}
+  .fn-name{font-size:15px!important}
+  .fn-count{font-size:10px}
+  .fn-dots{margin:2px auto 4px}
+  .floor-swipe{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:10px}
+  .floor-hero{height:auto!important;min-height:0}
+  .floor-hero .cap{right:auto!important;left:0;bottom:0;top:auto;max-width:100%}
+  .guests{min-height:0;overflow-y:auto;gap:8px}
+  .guest-card{padding:6px 8px}
+  .guest-card svg{width:52px;height:64px}
+  /* ---- 손님 정보 시트: 오른쪽 패널 ---- */
+  .guest-sheet{left:auto;right:calc(8px + var(--safe-right));top:calc(var(--audio-top) + var(--audio-btn) + 6px);bottom:8px;width:min(560px,64vw);max-height:none;border-radius:var(--r-lg);
+    border:1px solid var(--line-hi);transform:translateX(calc(100% + 24px));padding:0 14px calc(12px + var(--safe-bottom))}
+  .guest-sheet.on{transform:none}
+  .sheet-handle{display:none}
+  /* ---- 도서관 하위 탭 ---- */
+  .shelf-tabs{margin:0 0 8px;padding:3px}
+  .shelf-tab{padding:7px 6px;font-size:12px}
+  /* ---- 장서복 / 에고 기프트: 미리보기 · 그리드 · 상세를 가로로 ---- */
+  .dress{max-width:none;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:10px;align-items:stretch}
+  .dress-top{--tile:clamp(52px,calc((100dvh - 178px) / 3),92px);grid-template-columns:minmax(0,1fr) auto;gap:10px}
+  .dress-side .dress-grid.g2{grid-template-columns:repeat(2,var(--tile));gap:8px;justify-content:center}
+  .dress-side{padding:8px 8px 6px}
+  .dress-char{padding:8px 8px 6px}
+  .dress-tip{display:none}
+  .dress-detail{margin-top:0;min-height:0;padding:12px 14px}
+  .dd-actions{margin-top:8px}.dd-actions .btn{padding:9px 10px}
+  .dd-lines{font-size:12px;gap:3px}
+  /* ---- 덱 편집기: 더 넓은 그리드 ---- */
+  #deck-pool.item-grid{grid-template-columns:repeat(auto-fill,minmax(122px,1fr));gap:8px}
+  .deck-slots{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+  /* ---- 책 소각 결과 ---- */
+  .burn-ov{padding:10px calc(14px + var(--safe-right)) 10px calc(14px + var(--safe-left))}
+  .burn-cards{grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px}
+  .burn-card{padding:20px 10px 10px}
+  .burn-title{font-size:24px!important;margin:2px 0 8px!important}
+  .burn-hint{margin-top:8px!important}
+  /* ---- 결과 카드: 두 단 ---- */
+  .result-banner.on{padding:8px calc(var(--audio-btn,36px) * 2 + 26px + var(--safe-right)) 8px calc(12px + var(--safe-left))}
+  .rb-card{width:min(94vw,760px);padding:14px 18px;display:grid;grid-template-columns:200px minmax(0,1fr);column-gap:18px;align-items:center;text-align:center}
+  .rb-card>*{grid-column:2}
+  .rb-card>.rb-eyebrow,.rb-card>.rb-book,.rb-card>.rb-title{grid-column:1;justify-self:center}
+  .rb-card>.rb-eyebrow{grid-row:1}.rb-card>.rb-book{grid-row:2;margin:6px 0 0}.rb-card>.rb-title{grid-row:3;font-size:21px;margin:4px 0 0}
+  .rb-card.lose>.rb-title{grid-row:2}
+  .rb-card>.rb-msg{grid-row:1;align-self:end;margin:0}
+  .rb-card .rb-book svg{width:60px;height:76px}
+  .rb-gift{margin-top:8px;padding:8px 10px}
+  .rb-actions{margin-top:10px}.rb-actions .btn{padding:10px 8px}.rb-actions .btn.primary{padding:11px 8px}
+  .rb-card .expl{margin-top:8px;max-height:44vh;overflow:auto}
+
+  /* ---- 전투: 무대가 주인공. 위는 얇은 HUD, 양옆에 인물(무대 폭의 ~1/6), 가운데 아래에 손패 ---- */
+  #scene-battle{--fig-h:min(calc((100vw - var(--safe-left) - var(--safe-right)) * .167 / .66), calc(100dvh - 140px));--feet:22px;--plate-h:22px}
+  .hud-top{top:6px;left:calc(8px + var(--safe-left));right:calc(84px + var(--safe-right));gap:8px;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
+  .turnchip{grid-column:2;order:0;margin:0!important;font-size:11px;line-height:1.25;white-space:nowrap}
+  .bars{padding:5px 9px 6px}
+  .bars .bar-lab{font-size:10px!important;line-height:1.2}
+  .bars .bar-lab[style]{margin-top:2px!important}
+  .bars .bar{height:7px}
+  .fighter{width:calc(var(--fig-h) * .66)}
+  .fighter.librarian{left:calc(2% + var(--safe-left))}
+  .fighter.guest{right:calc(2% + var(--safe-right))}
+  .char-plate{font-size:10px;line-height:12px}
+  .emo-chip{top:-22px;padding:2px 7px}
+  .intent{right:calc(100% + 6px);left:auto;bottom:auto;top:-4px;transform:none;max-width:min(30vw,230px);padding:4px 8px}
+  .hand{left:calc(var(--fig-h) * .66 + 3% + var(--safe-left));right:calc(var(--fig-h) * .66 + 3% + var(--safe-right));bottom:calc(16px + var(--safe-bottom));height:min(40dvh,146px)}
+  .hand .cc{width:84px;height:122px}
+  .lightchip{left:calc(var(--fig-h) * .66 + 3% + var(--safe-left));bottom:auto;top:calc(100% - min(40dvh,146px) - 46px)}
+  .pilebox{right:calc(var(--fig-h) * .66 + 3% + var(--safe-right));bottom:auto;top:calc(100% - min(40dvh,146px) - 46px)}
+  .pass-btn{bottom:auto;top:calc(100% - min(40dvh,146px) - 50px)}
+  .clash,.clash-zone{top:calc(50% - 20px)}
+  .state-note{top:52px}
+  .learn-toast{left:calc(var(--fig-h) * .66 + 4%);right:auto;width:min(380px,46vw);bottom:auto;top:56px}
+  /* 문제: 무대 위 가운데, 지문 왼쪽 · 보기 2×2 오른쪽 — 스크롤 없이 */
+  .qpanel{left:50%;top:50px;bottom:auto;transform:translateX(-50%);width:min(760px,calc(100% - 24px - var(--safe-left) - var(--safe-right)));
+    max-height:calc(100% - 58px);overflow:auto;padding:10px 12px}
+  .qpanel #qinner{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);column-gap:12px;align-items:center}
+  .qpanel #qinner>h4{grid-column:1/-1;margin-bottom:6px}
+  .qpanel .prompt{font-size:14px;line-height:1.5;margin:0}
+  .qpanel .qopts{grid-template-columns:1fr 1fr;gap:6px}
+  .qpanel .qopts button{padding:8px 10px;font-size:12.5px;line-height:1.35}
+  .qpanel.short #qinner{display:block}
+  .qpanel.short .prompt{margin-bottom:8px}
+  .qpanel.short{top:calc(var(--audio-top) + var(--audio-btn) + 4px)}
+  .card-inspect{padding:44px 8px 10px}
+  .ci-card{max-height:100%;overflow:auto}
+
+  /* 책 탭: 책 그림 왼쪽, 수량·소각 버튼 오른쪽 */
+  #scene-shelf .page-scroll>h2.gold-title{display:none}
+  #scene-shelf .page-scroll>p.gmeta{margin-bottom:6px!important;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bk-slide{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px 22px;padding:12px 16px}
+  .bk-art svg{width:72px;height:90px}
+  .bk-note,.bk-result{flex:0 0 100%;margin-top:0}
+  .fn-arrow-sp{width:36px;flex:0 0 36px}
+  .burn-in{max-width:min(720px,94vw)}
+  .burn-cards{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  /* 책장 자세히: 가로형 카드 */
+  .ci-card,.ci-card.paper{width:min(820px,96vw);display:grid;grid-template-columns:170px minmax(0,1fr);column-gap:16px;align-items:start;padding:14px 16px!important}
+  .ci-l{grid-column:1;grid-row:1;text-align:center}.ci-r{grid-column:2;grid-row:1;min-width:0;columns:2;column-gap:16px}
+  .ci-r>*{break-inside:avoid}.ci-r>.ci-dies{margin-top:0}.ci-art svg,.ci-art .ico{width:44px;height:44px}.ci-hint{grid-column:1/-1;margin-top:6px}
+  .ci-art{margin:0 0 4px!important}.ci-name{margin:0 0 8px!important}
+  .ci-dies{margin:0 0 8px}.ci-text{margin:2px 0 6px;font-size:13px;line-height:1.55}.ci-flavor{margin:4px 0 6px;font-size:12px;line-height:1.5}
+  .ci-sec{margin-top:6px;padding-top:6px}
+}
 </style>
 </head>
 <body>
@@ -4018,17 +4144,17 @@ function cardInspectHtml(page){
   if(t.staggerPct) mods.push(`흐트러짐 피해 +${Math.round(t.staggerPct*100)}%`);
   if(t.lightRegen) mods.push(`빛 회복 +${t.lightRegen}`);
   return `${cornerHtml()}
-    <div class="ci-art">${dieMark((page.dice[0]||{}).type,64)}</div>
+    <div class="ci-l"><div class="ci-art">${dieMark((page.dice[0]||{}).type,64)}</div>
     <h3 class="ci-name">${page.name}</h3>
     <div class="ci-meta">
       <span class="pill">${ico("light",12)} 빛 ${page.cost}</span>
       <span class="pill">${ico("emotion",12)} ${page.emotion?`감정 ${page.emotion}+`:"감정 조건 없음"}</span>
-    </div>
-    <div class="ci-dies">${dies||`<div class="gmeta">주사위 없음</div>`}</div>${vsHtml}
+    </div></div>
+    <div class="ci-r"><div class="ci-dies">${dies||`<div class="gmeta">주사위 없음</div>`}</div>${vsHtml}
     <p class="ci-text">${page.text}</p>
     ${page.flavor?`<p class="ci-flavor">${page.flavor}</p>`:""}
     <div class="ci-sec"><div class="lab">조건</div><div class="gmeta">${conds.join(" · ")}</div></div>
-    <div class="ci-sec"><div class="lab">장착 기프트 보정</div><div class="gmeta">${mods.length?mods.join(" · "):"이 책장에 적용되는 기프트 보정이 없습니다."}</div></div>
+    <div class="ci-sec"><div class="lab">장착 기프트 보정</div><div class="gmeta">${mods.length?mods.join(" · "):"이 책장에 적용되는 기프트 보정이 없습니다."}</div></div></div>
     <div class="ci-hint">손을 떼면 닫힙니다</div>`;
 }
 function openCardInspect(pageId){
@@ -4120,7 +4246,8 @@ function layoutHand(){
   const cs=[...hand.children].filter(c=>c.classList.contains("cc")); const n=cs.length; if(!n) return;
   cs.forEach(c=>{ c.style.margin="0"; c.style.transform="none"; });
   const cw=cs[0].offsetWidth, ch=cs[0].offsetHeight, W=hand.clientWidth;
-  const rotStep=n<2?0:Math.min(7,44/(n-1));
+  const land=matchMedia("(orientation:landscape) and (max-height:500px)").matches;   // 가로: 부채꼴을 얕게 → 카드가 화면 아래로 잘리지 않게
+  const rotStep=n<2?0:Math.min(land?3.2:7,(land?20:44)/(n-1)), dip=land?.7:1.2;
   const amax=(n-1)/2*rotStep*Math.PI/180;
   const pad=Math.ceil(ch*Math.sin(amax)/2+cw*(1-Math.cos(amax))/2)+9;   // 기울어진 바깥 카드의 모서리까지 화면 안에
   const avail=W-2*pad;
@@ -4131,7 +4258,7 @@ function layoutHand(){
   cs.forEach((c,i)=>{
     c.style.margin=`0 ${(step-cw)/2}px`;
     const ang=(i-(n-1)/2)*rotStep;
-    c._base=`rotate(${ang}deg) translateY(${Math.abs(ang)*1.2}px)`;
+    c._base=`rotate(${ang}deg) translateY(${Math.abs(ang)*dip}px)`;
     c.style.transform=c._base; c.style.zIndex=i; c._z=i;
     c.classList.remove("hot");
   });
@@ -4809,7 +4936,7 @@ function showWin(){
     const L=libOf(save,libIds[k]);
     if(d&&!d.dup) return `<div class="rb-gift"><span class="rb-gift-ico">${ico("gift",22)}</span>
       <div class="rb-gift-tx"><span class="rb-gift-lab">${L.name}의 에고 기프트 획득</span><b>${d.item.name}</b><small>${d.item.slot} · ${giftPerkText(d.item)}</small></div></div>`;
-    if(d) return `<div class="rb-gift none"><span class="rb-gift-ico">${ico("gift",22)}</span><div class="rb-gift-tx"><span class="rb-gift-lab">이미 가진 기프트</span><b>${d.item.name}</b><small>능력은 쌓이지 않는다 · 뽑기권 +${EGO_GIFT_RULES.dupTickets}</small></div></div>`;
+    if(d) return `<div class="rb-gift none"><span class="rb-gift-ico">${ico("gift",22)}</span><div class="rb-gift-tx"><span class="rb-gift-lab">이미 가진 기프트</span><b>${d.item.name}</b><small>중복이라 아무것도 얻지 못했다</small></div></div>`;
     return rec.isRecall?`<div class="rb-gift none"><span class="rb-gift-ico">${ico("gift",22)}</span><div class="rb-gift-tx"><b>이번 회상에서는 기프트가 떨어지지 않았다</b><small>다시 회상하면 다시 기회가 있다.</small></div></div>`:"";
   }).join("");
   b.innerHTML=`<div class="rb-card frame">
@@ -4821,7 +4948,7 @@ function showWin(){
     ${bookRow}
     ${giftRow}
     <div class="rb-actions">
-      <button class="btn primary" id="btn-toshelf">책장으로</button>
+      <button class="btn primary" id="btn-toshelf">도서관으로</button>
       <button class="btn" id="btn-nextg">다음 손님</button>
       <button class="btn" id="btn-lobby">층으로</button>
     </div></div>`;
@@ -5286,6 +5413,26 @@ renderDeckEditor=withScroll("scene-deck",renderDeckEditor);
 renderShelf=withScroll("scene-shelf",renderShelf);
 renderLobby=withScroll("scene-lobby",renderLobby);
 
+
+/* ---------- 회전/창 크기 변경: 상태는 그대로 두고 배치만 다시 ---------- */
+(function(){
+  let t=0, last=innerWidth+"x"+innerHeight;
+  const relayout=()=>{
+    const key=innerWidth+"x"+innerHeight; if(key===last) return; last=key;
+    try{
+      if(scene==="battle"&&reception){
+        layoutHand();
+        const g=GUEST_BY[reception.guestId]; if(g) paintBattleFloor($("#arena-bg"),g.floorId);
+      } else if(scene==="shelf"){
+        const w=$(".dress-gridwrap"); if(w) dressKeepTop=w.scrollTop;
+        renderShelf();
+      } else if(scene==="lobby"){ renderLobby(); }
+      else if(scene==="deck"){ renderDeckEditor(); }
+    }catch(e){ console.warn(e); }
+  };
+  addEventListener("resize",()=>{ clearTimeout(t); t=setTimeout(relayout,120); });
+  addEventListener("orientationchange",()=>{ clearTimeout(t); t=setTimeout(relayout,220); });
+})();
 /* ---------- boot ---------- */
 function boot(){
   ensureScenes();
