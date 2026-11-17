@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118e">
+<meta name="build" content="library-20261118g">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -1595,6 +1595,11 @@ b,strong{font-weight:700}
   .botnav,.botnav.away{padding-top:calc(var(--bm-h) + 12px);gap:6px}
   .botnav .btn{height:44px}
 }
+
+/* ===== 책 소각 결과: 책장 카드 가운데 정렬 ===== */
+.burn-cards{display:flex!important;flex-wrap:wrap;justify-content:center;align-items:stretch;gap:12px}
+.burn-card{flex:0 1 190px;min-width:130px;max-width:210px}
+@media (orientation:landscape) and (max-height:500px){ .burn-cards{gap:8px} .burn-card{flex-basis:170px} }
 </style>
 </head>
 <body>
