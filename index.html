@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118i">
+<meta name="build" content="library-20261118j">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -2081,11 +2081,103 @@ const $$ = (s, el=document) => [...el.querySelectorAll(s)];
 const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
 const pick = a => a[Math.floor(Math.random()*a.length)];
 const xpNeeded = lv => 60+(lv-1)*30;
-function keyPerk(s){ return KEY_BY[s.equippedKeyId]||KEY_PAGES[0]; }
+function keyPerk(s){
+  /* 활성(없으면 첫) 사서의 장서복 = 핵심 책장. 옛 필드 equippedKeyId는 활성 사서의 별칭으로 동기화된다. */
+  if(s&&s.librarians) syncLibs(s);
+  const L=s&&s.librarians&&(s.librarians[s.activeLibrarianId]||s.librarians[(s.party||[])[0]]||s.librarians[LIB_DEFAULT_ID]);
+  return KEY_BY[L&&L.keyPage]||KEY_BY[s&&s.equippedKeyId]||KEY_PAGES[0];
+}
 function emptyEgoEquip(){ return Object.fromEntries(EGO_GIFT_RULES.slots.map(sl=>[sl,null])); }
 /* ---- 사서별 기프트: save.librarians[id].gifts = {owned:[], equipped:{부위:id}} ---- */
 const LIB_DEFAULT_ID="kyu";
-function mkLibrarian(id,name){ return {id,name,gifts:{owned:[],equipped:emptyEgoEquip()},pity:{}}; }
+function mkLibrarian(id,name){ return {id,name,keyPage:null,deckId:null,gifts:{owned:[],equipped:emptyEgoEquip()},pity:{}}; }
+/* ---- 사서 여러 명 (다대다 전투 준비) ----
+   save.librarians[id].keyPage = 입은 장서복(핵심 책장) id, .deckId = 쓰는 덱 id.
+   옛 필드 save.equippedKeyId / save.activeDeckId 는 활성 사서(activeLibrarianId, 기본 kyu)의 별칭으로 계속 동기화된다.
+   해금: 장서복 5개 → 2번째(lib2), 10개 → 3번째(lib3). 저장하지 않고 unlockedKeyIds.length 로 계산.
+   save.party = 접대에 나가는 사서 id 순서 (slot 0..2). */
+const LIB_ORDER=[LIB_DEFAULT_ID,"lib2","lib3"];
+const LIB_UNLOCK_AT=[0,5,10];
+const LIB_NAMES={kyu:"큐 양",lib2:"두 번째 사서",lib3:"세 번째 사서"};
+const PARTY_MAX=3;
+function libUnlockedCount(s){ const n=((s&&s.unlockedKeyIds)||[]).length; return LIB_UNLOCK_AT.filter(t=>n>=t).length; }
+function libNextAt(s){ const c=libUnlockedCount(s); return c<LIB_UNLOCK_AT.length?LIB_UNLOCK_AT[c]:null; }
+function libUnlockedIds(s){ return LIB_ORDER.slice(0,libUnlockedCount(s)); }
+function libActive(s){ return s.librarians[s.activeLibrarianId]||s.librarians[LIB_DEFAULT_ID]; }
+/* 옛 필드(활성 사서의 별칭) ↔ 사서별 필드 맞추기 + 해금된 사서 만들기 + 중복 장서복·없는 덱·파티 정리. 여러 번 불러도 안전. */
+function syncLibs(s){
+  if(!s||typeof s!=="object") return s;
+  s.librarians=s.librarians&&typeof s.librarians==="object"?s.librarians:{};
+  const unlocked=libUnlockedIds(s);
+  for(const id of unlocked) if(!s.librarians[id]) s.librarians[id]=mkLibrarian(id,LIB_NAMES[id]||id);
+  if(!s.librarians[s.activeLibrarianId]) s.activeLibrarianId=LIB_DEFAULT_ID;
+  const keys=new Set(s.unlockedKeyIds||[]), decks=new Set((s.decks||[]).map(d=>d.id));
+  const A=libActive(s);
+  /* 옛 필드가 바뀌었으면(기존 UI가 equippedKeyId/activeDeckId를 직접 씀) 활성 사서에게 반영, 겹치면 상대와 맞바꿈 */
+  if(s.equippedKeyId&&KEY_BY[s.equippedKeyId]&&A.keyPage!==s.equippedKeyId){
+    const other=Object.values(s.librarians).find(L=>L!==A&&L.keyPage===s.equippedKeyId);
+    if(other) other.keyPage=A.keyPage&&KEY_BY[A.keyPage]?A.keyPage:null;
+    A.keyPage=s.equippedKeyId;
+  }
+  if(s.activeDeckId&&A.deckId!==s.activeDeckId) A.deckId=s.activeDeckId;
+  /* 정리: 열린 장서복만, 한 장서복은 한 사서만 (활성 사서 우선) */
+  const worn=new Set();
+  for(const L of [A,...Object.values(s.librarians).filter(L=>L!==A)]){
+    if(L.keyPage===undefined) L.keyPage=null;
+    if(L.deckId===undefined) L.deckId=null;
+    if(L.keyPage&&(!KEY_BY[L.keyPage]||!keys.has(L.keyPage)||worn.has(L.keyPage))) L.keyPage=null;
+    if(L.keyPage) worn.add(L.keyPage);
+    if(L.deckId&&decks.size&&!decks.has(L.deckId)) L.deckId=null;
+  }
+  if(!A.keyPage){ const free=["novice",...(s.unlockedKeyIds||[])].find(k=>KEY_BY[k]&&keys.has(k)&&!worn.has(k)); if(free) A.keyPage=free; }
+  if(!A.deckId&&decks.size) A.deckId=(s.decks||[])[0].id;
+  if(A.keyPage) s.equippedKeyId=A.keyPage;
+  if(A.deckId) s.activeDeckId=A.deckId;
+  const pool=new Set(unlocked);
+  let party=Array.isArray(s.party)?[...new Set(s.party)].filter(id=>pool.has(id)&&s.librarians[id].keyPage):[];
+  party=party.slice(0,Math.min(PARTY_MAX,unlocked.length));
+  if(!party.length) party=[LIB_DEFAULT_ID];
+  s.party=party;
+  return s;
+}
+function libsList(s){
+  syncLibs(s);
+  return libUnlockedIds(s).map(id=>{ const L=s.librarians[id]; return {id,name:L.name,keyPage:L.keyPage,deckId:L.deckId,slot:s.party.indexOf(id),active:id===s.activeLibrarianId}; });
+}
+function libsKeyOf(s,libId){ syncLibs(s); const L=s.librarians[libId||s.activeLibrarianId]; return L&&L.keyPage?(KEY_BY[L.keyPage]||null):null; }
+/* 장서복 입히기: 다른 사서가 입고 있으면 서로 맞바꿈. 맞바꿀 때 상대가 빈 손이 되면 막는다. keyId=null 은 활성이 아닌 사서의 벗기. */
+function libsEquipKey(s,libId,keyId){
+  syncLibs(s);
+  if(!libUnlockedIds(s).includes(libId)) return {ok:false,reason:"locked-librarian"};
+  const L=s.librarians[libId], A=libActive(s);
+  if(keyId==null){
+    if(L===A) return {ok:false,reason:"active-needs-key"};
+    if(s.party.includes(libId)) return {ok:false,reason:"party-needs-key"};
+    L.keyPage=null; if(s===save) persist(); return {ok:true,swappedWith:null};
+  }
+  if(!KEY_BY[keyId]||!(s.unlockedKeyIds||[]).includes(keyId)) return {ok:false,reason:"locked-key"};
+  if(L.keyPage===keyId) return {ok:true,swappedWith:null};
+  const other=Object.values(s.librarians).find(o=>o!==L&&o.keyPage===keyId);
+  if(other&&!L.keyPage) return {ok:false,reason:"swap-empty"};
+  if(other) other.keyPage=L.keyPage;
+  L.keyPage=keyId;
+  if(A.keyPage) s.equippedKeyId=A.keyPage;
+  if(s===save) persist();
+  return {ok:true,swappedWith:other?other.id:null};
+}
+/* 파티 정하기: 열린 사서만, 중복 없이, 1~min(3, 열린 수)명, 모두 장서복을 입고 있어야 함. */
+function libsSetParty(s,ids){
+  syncLibs(s);
+  if(!Array.isArray(ids)||!ids.length) return {ok:false,reason:"empty"};
+  if(new Set(ids).size!==ids.length) return {ok:false,reason:"duplicate"};
+  const unlocked=libUnlockedIds(s);
+  if(ids.length>Math.min(PARTY_MAX,unlocked.length)) return {ok:false,reason:"too-many"};
+  if(ids.some(id=>!unlocked.includes(id))) return {ok:false,reason:"locked-librarian"};
+  if(ids.some(id=>!s.librarians[id].keyPage)) return {ok:false,reason:"no-key"};
+  s.party=[...ids];
+  if(s===save) persist();
+  return {ok:true,party:[...s.party]};
+}
 function libOf(s,id){
   s.librarians=s.librarians||{};
   const k=id||s.activeLibrarianId||LIB_DEFAULT_ID;
@@ -3545,7 +3637,7 @@ function defaultSave(){
     unlockedPageIds:[...STARTER_PAGES], unlockedKeyIds:["novice"], equippedKeyId:"novice",
     muted:false, sfxMuted:false, bgmMuted:true,
     decks:[], activeDeckId:"deck-1",
-    librarians:{[LIB_DEFAULT_ID]:mkLibrarian(LIB_DEFAULT_ID,"큐 양")}, activeLibrarianId:LIB_DEFAULT_ID, libV:2,
+    librarians:{[LIB_DEFAULT_ID]:mkLibrarian(LIB_DEFAULT_ID,"큐 양")}, activeLibrarianId:LIB_DEFAULT_ID, libV:2, party:[LIB_DEFAULT_ID],
     recallStats:{},
     moon:null, moonChunk:0
   };
@@ -3581,10 +3673,10 @@ function loadSave(){
       s.moon=(mo&&typeof mo==="object"&&/^\d{4}-\d{2}-\d{2}$/.test(mo.date||""))?{date:mo.date,reveal:Math.max(0,mo.reveal|0),replay:Math.max(0,mo.replay|0),used:!!mo.used}:null;
       s.moonChunk=Number.isFinite(r.moonChunk)&&r.moonChunk>=0?Math.floor(r.moonChunk):0;
       if(!(s.moonLast&&typeof s.moonLast==="object")) delete s.moonLast;
-      return ensureDecks(s);
+      return syncLibs(ensureDecks(s));
     }
   }catch(e){}
-  return ensureDecks(defaultSave());
+  return syncLibs(ensureDecks(defaultSave()));
 }
 /* 구버전(전역 egoOwned/egoEquipped) → 사서별 기프트. 보유는 모두 유지, 같은 부위에 겹치면 먼저 장착된 것만 착용. */
 function migrateLibrarians(s,r){
@@ -3600,7 +3692,7 @@ function sanitizeLibrarians(s){
   s.librarians=s.librarians&&typeof s.librarians==="object"?s.librarians:{};
   if(!s.librarians[LIB_DEFAULT_ID]) s.librarians[LIB_DEFAULT_ID]=mkLibrarian(LIB_DEFAULT_ID,"큐 양");
   for(const [k,L] of Object.entries(s.librarians)){
-    L.id=L.id||k; L.name=L.name||k; L.pity=L.pity&&typeof L.pity==="object"?L.pity:{};
+    L.id=L.id||k; L.name=L.name||k; if(L.keyPage===undefined) L.keyPage=null; if(L.deckId===undefined) L.deckId=null; L.pity=L.pity&&typeof L.pity==="object"?L.pity:{};
     L.gifts=L.gifts||{owned:[],equipped:{}};
     L.gifts.owned=[...new Set((L.gifts.owned||[]).filter(id=>EGO_BY[id]))];
     const e=emptyEgoEquip(); for(const sl of EGO_GIFT_RULES.slots){ const id=(L.gifts.equipped||{})[sl]; if(id&&EGO_BY[id]&&EGO_BY[id].slot===sl&&L.gifts.owned.includes(id)) e[sl]=id; }
@@ -3609,7 +3701,7 @@ function sanitizeLibrarians(s){
   if(!s.librarians[s.activeLibrarianId]) s.activeLibrarianId=LIB_DEFAULT_ID;
   return s;
 }
-function persist(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
+function persist(){ try{ syncLibs(save); }catch(e){} try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
 
 const DECK_MIN=6, DECK_MAX=20;   /* 덱은 6~20장 (기존 6장 덱도 그대로 유효) */
 const DECK_SIZE=DECK_MIN;
@@ -5956,6 +6048,7 @@ function boot(){
     toggleDeckPage, currentQuestion, setShelfTab(t){ shelfTab=t; },
     setScene(n){ showScene(n); if(n==="lobby")renderLobby(); if(n==="battle")renderBattle(); if(n==="shelf")renderShelf(); if(n==="title")renderTitle(); if(n==="deck")renderDeckEditor(); if(n==="credits")renderCredits(); if(n==="moon")Moon.render(); },
     moon:Moon,
+    libs:{unlockedCount:libUnlockedCount,nextAt:libNextAt,list:libsList,equipKey:libsEquipKey,setParty:libsSetParty,keyOf:libsKeyOf,sync:syncLibs,UNLOCK_AT:LIB_UNLOCK_AT,ORDER:LIB_ORDER,PARTY_MAX},
     debugPhotos(){ return FX.debugPhotos(); },
     openDeckEditor, renderDeckEditor, isDeckReady, activeDeck, ownedPageIds,
     giveAllPages(){ save.unlockedPageIds=COMBAT_PAGES.map(p=>p.id); ensureDecks(save); persist(); },
