@@ -4,10 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261117a">
+<meta name="build" content="library-20261117b">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
+<link rel="manifest" href="manifest.json">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect fill='%2307080d' width='64' height='64'/%3E%3Cpath fill='%23c4a35a' d='M18 50 V22 Q32 12 46 22 V50 L32 42 Z'/%3E%3C/svg%3E">
 <style>
 :root{
@@ -3791,6 +3792,35 @@ function ensureScenes(){
     <section class="scene panel-scene" id="scene-credits"></section>`;
 }
 
+/* ---------- 가로 모드 기본: 입장 탭에서 전체 화면 + 가로 고정 (안 되면 조용히 무시) ---------- */
+const Landscape=(()=>{
+  let wanted=false;
+  const mobile=()=>{ try{ return matchMedia("(pointer:coarse)").matches; }catch(e){ return false; } };
+  const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement||null;
+  function lock(){
+    try{
+      const o=screen.orientation;
+      if(o&&typeof o.lock==="function"){ const p=o.lock("landscape"); if(p&&p.catch) p.catch(()=>{}); }
+    }catch(e){}
+  }
+  function enter(){
+    wanted=true;
+    if(!mobile()) return;               // 데스크톱: 전체 화면으로 바꾸지 않는다
+    try{
+      const d=document.documentElement;
+      if(fsEl()){ lock(); return; }
+      const req=d.requestFullscreen||d.webkitRequestFullscreen;
+      if(!req){ lock(); return; }        // iOS Safari 등: 그냥 넘어간다
+      const p=req.call(d,{navigationUI:"hide"});
+      if(p&&p.then) p.then(lock,()=>lock()); else lock();
+    }catch(e){ lock(); }
+  }
+  const onFs=()=>{ if(wanted&&fsEl()) lock(); };
+  document.addEventListener("fullscreenchange",onFs);
+  document.addEventListener("webkitfullscreenchange",onFs);
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden) onFs(); });
+  return {enter,lock,get wanted(){return wanted;}};
+})();
 function renderTitle(){
   $("#scene-title").innerHTML=`
     <div class="candles l">${candleSvg()}</div>
@@ -3802,7 +3832,7 @@ function renderTitle(){
     <div class="tag">예시 데이터 · 취약점이 손님이 되어 서고를 찾는다</div>
     <button class="btn primary enter" id="btn-enter">입장하기</button>
     <button class="credits-link" id="btn-credits" type="button">크레딧</button>`;
-  $("#btn-enter").onclick=()=>{ SFX.unlock(); SFX.click(); SFX.startBgm(); transit("lobby", ()=>renderLobby()); };
+  $("#btn-enter").onclick=()=>{ Landscape.enter(); SFX.unlock(); SFX.click(); SFX.startBgm(); transit("lobby", ()=>renderLobby()); };
   $("#btn-credits").onclick=()=>{ SFX.click(); transit("credits",()=>renderCredits()); };
 }
 function renderCredits(){
