@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118k">
+<meta name="build" content="library-20261118l">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -1601,6 +1601,22 @@ b,strong{font-weight:700}
 .burn-cards{display:flex!important;flex-wrap:wrap;justify-content:center;align-items:stretch;gap:12px}
 .burn-card{flex:0 1 190px;min-width:130px;max-width:210px}
 @media (orientation:landscape) and (max-height:500px){ .burn-cards{gap:8px} .burn-card{flex-basis:170px} }
+/* 장서복 탭 사서 고르기 */
+.lib-pick{flex:0 0 auto;margin:0 0 6px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.lp-row{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.lp-row::-webkit-scrollbar{display:none}
+.lp-chip{position:relative;flex:0 0 auto;min-height:30px;padding:0 10px;border-radius:99px;border:1px solid rgba(var(--accent-rgb),.35);background:rgba(20,22,34,.8);color:var(--parch2,#b9b2a0);font:700 11.5px/1 inherit;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.lp-chip.on{color:#1a1408;background:var(--gold,#e9c46a);border-color:var(--gold,#e9c46a)}
+.lp-chip .lp-in{position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:99px;background:#7fd38a;box-shadow:0 0 0 2px rgba(8,10,18,.9)}
+.lp-lock{cursor:default;opacity:.55;width:30px;padding:0}.lp-lock svg{width:13px;height:13px}
+.lp-party{flex:0 0 auto;min-height:28px;padding:0 9px;border-radius:8px;border:1px dashed rgba(255,255,255,.25);background:transparent;color:var(--parch2,#b9b2a0);font:700 11px/1 inherit;cursor:pointer;white-space:nowrap}
+.lp-party.on{border-style:solid;border-color:#7fd38a;color:#a9e8b1}
+.lp-party.nope{animation:lpNope .35s}
+@keyframes lpNope{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.lp-foot{display:flex;align-items:center;gap:6px;min-width:0}
+.lp-prog{flex:1 1 auto;min-width:0;font-size:10.5px;color:var(--parch2,#b9b2a0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:2px}.lp-prog b{color:#e9c46a}
+.lp-foot{flex-wrap:wrap;row-gap:3px}.lp-prog{flex-basis:auto}
+@media (orientation:landscape) and (max-height:500px){.lib-pick{margin-bottom:4px;gap:3px}.lp-row{gap:4px}.lp-chip{min-height:26px;padding:0 7px;font-size:11px}.lp-party{min-height:24px;padding:0 7px}.lp-lock{width:22px;padding:0}.lp-lock svg{width:11px;height:11px}}
 </style>
 </head>
 <body>
@@ -5955,6 +5971,36 @@ function dressDetailHtml(mode){
       <button class="btn" id="dd-back" type="button">누적 효과 보기</button></div>`;
 }
 let dressKeepTop=null;
+/* ---- 장서복 탭 사서 고르기: 사서 칩 + 해금 진행 + 접대 출전 토글 ---- */
+const LIB_SHORT={kyu:"큐 양",lib2:"사서 2",lib3:"사서 3"};
+function libShort(id){ return LIB_SHORT[id]||(save.librarians[id]&&save.librarians[id].name)||id; }
+function libPickHtml(){
+  syncLibs(save);
+  const list=libsList(save), next=libNextAt(save), have=save.unlockedKeyIds.length, many=list.length>1;
+  const chips=list.map(L=>`<button class="lp-chip${L.active?" on":""}" type="button" data-lib="${L.id}" aria-pressed="${L.active}" title="${L.name}">${libShort(L.id)}${L.slot>=0&&many?`<i class="lp-in" aria-label="접대 출전"></i>`:""}</button>`).join("");
+  const lock=next!=null?`<span class="lp-chip lp-lock" aria-label="다음 사서 잠김">${lockSvg}</span>`:"";
+  const prog=next!=null?`장서복 <b>${have}/${next}</b> · 다음 사서`:`사서 모두 해금`;
+  const A=list.find(L=>L.active);
+  const party=many&&A?`<button class="lp-party${A.slot>=0?" on":""}" type="button" id="lp-party" aria-pressed="${A.slot>=0}">${A.slot>=0?"접대 출전":"대기"}</button>`:"";
+  return `<div class="lib-pick"><div class="lp-row">${chips}${lock}</div><div class="lp-foot"><span class="lp-prog">${prog}</span>${party}</div></div>`;
+}
+function pickLibrarian(id){
+  syncLibs(save);
+  if(id===save.activeLibrarianId||!libUnlockedIds(save).includes(id)) return;
+  const L=save.librarians[id];
+  save.activeLibrarianId=id; save.equippedKeyId=L.keyPage; save.activeDeckId=L.deckId;
+  syncLibs(save); dressSel.outfit=null; dressSel.gifts=null;
+  persist(); SFX.click(); renderShelf();
+}
+function toggleParty(){
+  syncLibs(save);
+  const id=save.activeLibrarianId, cur=save.party||[];
+  const ids=cur.includes(id)?cur.filter(x=>x!==id):[...cur,id].sort((a,b)=>LIB_ORDER.indexOf(a)-LIB_ORDER.indexOf(b));
+  const r=libsSetParty(save,ids);
+  const b=$("#lp-party");
+  if(!r.ok){ if(b){ b.classList.remove("nope"); void b.offsetWidth; b.classList.add("nope"); } return; }
+  SFX.click(); renderShelf();
+}
 function renderDress(mode){
   const fx=dressFx&&dressFx.mode===mode?dressFx:null; dressFx=null;
   const outfit=mode==="outfit";
@@ -5966,7 +6012,7 @@ function renderDress(mode){
   let tiles="", head="";
   if(outfit){
     head=`장서복 · 핵심 책장 <b>${save.unlockedKeyIds.length}/${KEY_PAGES.length}</b>`;
-    tiles=KEY_PAGES.map(k=>dTileHtml(k.id,KEY_ICON[k.id]||KEY_ICON.novice,{locked:!save.unlockedKeyIds.includes(k.id),equipped:save.equippedKeyId===k.id,sel:(dressSel.outfit||save.equippedKeyId)===k.id,label:k.name})).join("");
+    tiles=KEY_PAGES.map(k=>dTileHtml(k.id,KEY_ICON[k.id]||KEY_ICON.novice,{locked:!save.unlockedKeyIds.includes(k.id),equipped:save.equippedKeyId===k.id,sel:(dressSel.outfit||save.equippedKeyId)===k.id,label:k.name,sub:(()=>{ const o=Object.values(save.librarians).find(L=>L.id!==save.activeLibrarianId&&L.keyPage===k.id&&libUnlockedIds(save).includes(L.id)); return o?libShort(o.id)+" 착용":""; })()})).join("");
   } else {
     const owned=egoOwned(save).length;
     head=`${libOf(save).name}의 기프트 <b>${owned}/${EGO_GIFTS.length}</b>`;
@@ -5979,10 +6025,10 @@ function renderDress(mode){
     <div class="dress ${outfit?"is-outfit":"is-gifts"}">
       <div class="dress-top">
         <div class="dress-char frame" id="dress-char" aria-label="사서 미리보기 — 아이콘을 여기로 끌어 놓으면 착용합니다">${cornerHtml()}
-          <div class="dress-head dc-head">외형 미리보기</div>
+          ${libPickHtml()}
           <div class="dc-stage" id="dc-stage">${svgOld?`<div class="dc-old">${svgOld}</div>`:""}<div class="dc-new${fx&&outfit?" morph":""}">${svgNew}</div>${fx?`<div class="dc-flash"></div>`:""}</div>
           <div class="dc-drop" aria-hidden="true">여기에 놓아 착용</div>
-          <div class="dc-name" title="${outfit?(KEY_BY[save.equippedKeyId]||KEY_PAGES[0]).name:""}">사서 큐 양${outfit?` · ${(KEY_BY[save.equippedKeyId]||KEY_PAGES[0]).name}`:""}</div>
+          <div class="dc-name" title="${outfit?(KEY_BY[save.equippedKeyId]||KEY_PAGES[0]).name:""}">${save.activeLibrarianId===LIB_DEFAULT_ID?"사서 큐 양":libShort(save.activeLibrarianId)}${outfit?` · ${(KEY_BY[save.equippedKeyId]||KEY_PAGES[0]).name}`:""}</div>
         </div>
         <div class="dress-side frame">${cornerHtml()}<div class="dress-head">${head}</div>
           <div class="dress-gridwrap"><div class="dress-grid g2" id="dress-grid" role="list">${tiles}</div></div>
@@ -5993,6 +6039,8 @@ function renderDress(mode){
     </div></div>
     ${botNav("shelf")}`;
   bindNav(); bindShelfTabs(); bindDress(mode);
+  $$(".lp-chip[data-lib]",sc).forEach(b=>b.onclick=()=>pickLibrarian(b.dataset.lib));
+  const pb=$("#lp-party"); if(pb) pb.onclick=toggleParty;
 }
 function oldPreviewHtml(){ const h=$("#dress-char .dc-new")?.innerHTML||""; return h.replace(/-dr(?=["')])/g,"-dro"); }
 function equipKey(id){
