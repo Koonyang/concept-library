@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118a">
+<meta name="build" content="library-20261118b">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -1484,6 +1484,83 @@ b,strong{font-weight:700}
 /* guest list portraits: always centered in their frame */
 .guest-card .bust{display:flex!important;align-items:center;justify-content:center}
 .guest-card .bust>svg,.guest-card .bust>.bust-art{margin:auto;flex:0 0 auto}
+/* ===== 달의 계시 ===== */
+.botnav .btn.moon-lit{overflow:visible}
+.botnav .btn.moon-lit:after{content:"";display:block;bottom:auto;left:auto;position:absolute;top:7px;right:9px;width:7px;height:7px;border-radius:50%;background:#cfd6ff;
+  box-shadow:0 0 0 2px rgba(10,12,22,.85),0 0 10px rgba(190,200,255,.9);animation:moonDot 2.2s ease-in-out infinite;pointer-events:none}
+@keyframes moonDot{0%,100%{opacity:.75;transform:scale(1)}50%{opacity:1;transform:scale(1.25)}}
+#scene-moon{padding:8px calc(14px + var(--safe-right,0px)) calc(12px + var(--safe-bottom)) calc(14px + var(--safe-left,0px));gap:10px;
+  background:radial-gradient(120% 70% at 50% -10%,rgba(142,139,255,.18),transparent 60%),radial-gradient(60% 50% at 50% 110%,rgba(207,214,255,.07),transparent 70%),linear-gradient(180deg,rgba(6,7,14,.86),rgba(8,9,18,.93))}
+.moon-head{display:flex;align-items:center;gap:10px;flex:0 0 auto;min-height:calc(var(--audio-top) + var(--audio-btn));padding-right:96px}
+.moon-head .x-btn{flex:0 0 auto}
+.moon-ttl{display:flex;align-items:center;gap:8px;min-width:0;font-family:var(--display);font-size:15px;color:#e8ebff;white-space:nowrap}
+.moon-ttl svg{flex:0 0 auto}
+.moon-sub{font-size:12px;color:var(--parch2);font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--line)}
+.moon-sub:empty{display:none}
+.moon-timer{display:flex;align-items:center;gap:10px;flex:0 0 auto;font-family:var(--display);font-size:12px;color:var(--parch2)}
+.moon-tbar{flex:1;height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.moon-tbar i{display:block;height:100%;width:100%;transform-origin:0 50%;border-radius:99px;background:linear-gradient(90deg,#8e8bff,#cfd6ff);box-shadow:0 0 10px rgba(170,180,255,.6)}
+.moon-timer.low .moon-tbar i{background:linear-gradient(90deg,#ff7a68,#ffc857);box-shadow:0 0 10px rgba(255,122,104,.6)}
+.moon-tnum{min-width:38px;text-align:right}.moon-tnum b,.moon-ok b{color:#fff}
+.moon-ok{color:var(--hp)}
+.moon-skip{font-size:12px;padding:6px 10px;border-radius:10px;border:1px solid var(--line-hi);color:var(--parch)}
+.moon-body{flex:1 1 auto;min-height:0;width:100%;max-width:980px;margin:0 auto}
+.moon-quiz{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:12px}
+.moon-qcard{position:relative;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px;text-align:center;overflow:hidden;
+  border-radius:var(--r-lg);border:1px solid rgba(207,214,255,.18);background:linear-gradient(180deg,rgba(207,214,255,.07),rgba(255,255,255,.01)),var(--glass);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 10px 30px rgba(0,0,0,.35)}
+.moon-qcard.bonk{animation:moonBonk .32s .16s ease-out both}
+@keyframes moonBonk{0%,100%{transform:none}30%{transform:scale(.97,.94);border-color:rgba(255,122,104,.7)}}
+.moon-pos{position:absolute;top:10px;left:12px;font-size:11px;color:var(--parch2);padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
+.moon-prompt{font-family:var(--display);font-weight:700;color:#fff;line-height:1.15;max-width:100%;overflow-wrap:anywhere;letter-spacing:-.02em;text-shadow:0 0 24px rgba(170,180,255,.35)}
+.moon-qcard.en .moon-prompt{font-size:clamp(30px,9vw,52px)}
+.moon-qcard.ko .moon-prompt{font-size:clamp(24px,7vw,40px)}
+.moon-ask{font-size:12px;color:var(--parch2)}
+.moon-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.moon-opt{position:relative;min-height:64px;padding:10px 12px 10px 30px;border-radius:var(--r-md);border:1px solid var(--line-hi);background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.025)),rgba(14,17,30,.72);
+  color:var(--parch);font-size:16px;font-weight:600;line-height:1.25;display:flex;align-items:center;justify-content:center;text-align:center;transition:background .12s,border-color .12s,transform .08s;min-width:0}
+.moon-opts.en .moon-opt{font-family:var(--display);font-size:17px}
+.moon-opt span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.moon-opt i{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-style:normal;font-size:10px;color:var(--parch2);opacity:.6;font-family:var(--display)}
+.moon-opt:active{transform:scale(.97)}
+@media (hover:hover){.moon-opt:hover{border-color:rgba(207,214,255,.55);background:rgba(207,214,255,.08)}}
+.moon-opt.ok{border-color:var(--hp);background:rgba(95,211,162,.18);color:#fff;box-shadow:0 0 16px rgba(95,211,162,.35)}
+.moon-opt.bad{border-color:var(--blood);background:rgba(255,122,104,.18);color:#fff}
+.moon-opt:disabled{cursor:default}
+.moon-intro,.moon-bridge,.moon-result{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center}
+.moon-hero{position:relative;display:flex;align-items:center;justify-content:center}
+.moon-hero:before{content:"";position:absolute;inset:-30%;border-radius:50%;background:radial-gradient(circle,rgba(207,214,255,.22),transparent 65%)}
+.moon-hero svg{position:relative}
+.moon-art.wane{filter:brightness(.8)}
+.moon-introtext{display:flex;flex-direction:column;align-items:center;gap:10px;max-width:420px}
+.moon-big{font-size:26px}
+.moon-stats{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.moon-stats span{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-family:var(--display);padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--line)}
+.moon-note{font-size:12px;line-height:1.55}.moon-note em{font-style:normal;opacity:.7}
+.moon-go{min-width:180px}
+.moon-acts{display:flex;gap:10px}
+.moon-res{display:flex;gap:10px;width:100%}
+.moon-row{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 14px;border-radius:var(--r-md);border:1px solid var(--line);background:rgba(255,255,255,.04)}
+.moon-lab{font-size:11px;color:var(--parch2)}
+.moon-num{font-family:var(--display);font-size:26px;color:#fff}.moon-num small{font-size:14px;color:var(--parch2);font-weight:600}
+@media (max-width:860px) and (orientation:portrait){.moon-opt{min-height:80px}.moon-quiz{gap:10px}}
+@media (min-width:861px){
+  #scene-moon{padding:14px 28px 24px}
+  .moon-quiz{grid-template-rows:minmax(0,1fr) auto;max-height:640px;align-self:center}
+  .moon-opt{min-height:84px;font-size:18px}
+}
+@media (orientation:landscape) and (max-height:500px){
+  #scene-moon{padding:4px calc(10px + var(--safe-right,0px)) calc(8px + var(--safe-bottom)) calc(10px + var(--safe-left,0px));gap:6px}
+  .moon-head{padding-right:84px}
+  .moon-quiz{grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:10px;max-height:none}
+  .moon-opts{grid-template-rows:1fr 1fr;gap:8px}
+  .moon-opt{min-height:0;font-size:15px}
+  .moon-qcard.en .moon-prompt{font-size:clamp(26px,5vw,44px)}
+  .moon-qcard.ko .moon-prompt{font-size:clamp(20px,3.8vw,32px)}
+  .moon-intro,.moon-bridge,.moon-result{flex-direction:row;gap:36px}
+  .moon-introtext{gap:8px}
+  .moon-big{font-size:22px}
+}
 </style>
 </head>
 <body>
@@ -1525,6 +1602,8 @@ b,strong{font-weight:700}
     </radialGradient>
   </defs>
 </svg>
+<script src="assets/data/moon-words.sample.js"></script>
+<script src="assets/data/moon-words.js" onerror="this.remove()"></script>
 <script>
 /* ============================================================
  * 개념의 서고 — 데이터 (나중에 FLOORS / WEAK_POINTS 만 교체)
@@ -3328,7 +3407,8 @@ function defaultSave(){
     muted:false, sfxMuted:false, bgmMuted:true,
     decks:[], activeDeckId:"deck-1",
     librarians:{[LIB_DEFAULT_ID]:mkLibrarian(LIB_DEFAULT_ID,"큐 양")}, activeLibrarianId:LIB_DEFAULT_ID, libV:2,
-    recallStats:{}
+    recallStats:{},
+    moon:null, moonChunk:0
   };
 }
 function loadSave(){
@@ -3357,6 +3437,11 @@ function loadSave(){
       if(!r.acqV) migrateAcq(s,r);
       s.decks=Array.isArray(r.decks)?r.decks:[];
       s.activeDeckId=r.activeDeckId||"deck-1";
+      /* 달의 계시: 없거나 깨진 값은 조용히 초기화 */
+      const mo=r.moon;
+      s.moon=(mo&&typeof mo==="object"&&/^\d{4}-\d{2}-\d{2}$/.test(mo.date||""))?{date:mo.date,reveal:Math.max(0,mo.reveal|0),replay:Math.max(0,mo.replay|0),used:!!mo.used}:null;
+      s.moonChunk=Number.isFinite(r.moonChunk)&&r.moonChunk>=0?Math.floor(r.moonChunk):0;
+      if(!(s.moonLast&&typeof s.moonLast==="object")) delete s.moonLast;
       return ensureDecks(s);
     }
   }catch(e){}
@@ -3780,6 +3865,7 @@ function renderAll(){
   else if(scene==="lobby") renderLobby();
   else if(scene==="battle") renderBattle();
   else if(scene==="shelf") renderShelf();
+  else if(scene==="moon") Moon.render();
   paintAudioButtons();
 }
 
@@ -3792,7 +3878,8 @@ function ensureScenes(){
     <section class="scene" id="scene-battle"></section>
     <section class="scene panel-scene" id="scene-shelf"></section>
     <section class="scene panel-scene" id="scene-deck"></section>
-    <section class="scene panel-scene" id="scene-credits"></section>`;
+    <section class="scene panel-scene" id="scene-credits"></section>
+    <section class="scene panel-scene" id="scene-moon"></section>`;
 }
 
 /* ---------- 가로 모드 기본: 입장 탭에서 전체 화면 + 가로 고정 (안 되면 조용히 무시) ---------- */
@@ -3863,8 +3950,9 @@ function hudStats(){
     <span class="hudstat">${ico("book",11)} ${totalBooks(save)}권</span>`;
 }
 function botNav(active){
-  const items=[["lobby","접대"],["shelf","도서관"]];
-  return `<nav class="botnav">${items.map(([id,lb])=>`<button class="btn ${active===id?"primary":""}" data-go="${id}">${lb}</button>`).join("")}</nav>`;
+  const items=[["lobby","접대"],["shelf","도서관"],["moon","계시"]];
+  const lit=Moon.navLit();
+  return `<nav class="botnav">${items.map(([id,lb])=>`<button class="btn ${active===id?"primary":""}${id==="moon"&&lit?" moon-lit":""}" data-go="${id}"${id==="moon"?` aria-label="달의 계시${lit?" (오늘 아직 안 함)":""}"`:""}>${lb}</button>`).join("")}</nav>`;
 }
 
 function floorIndex(){ return Math.max(0,FLOORS.findIndex(f=>f.id===floorId)); }
@@ -4088,6 +4176,7 @@ function bindNav(){
   $$("[data-go]").forEach(b=>b.onclick=()=>{
     SFX.click();
     const go=b.dataset.go;
+    if(go==="moon"){ Moon.open(); return; }
     transit(go, ()=>{
       if(go==="lobby") renderLobby();
       if(go==="shelf") renderShelf();
@@ -5467,6 +5556,211 @@ renderLobby=withScroll("scene-lobby",renderLobby);
   addEventListener("orientationchange",()=>{ clearTimeout(t); t=setTimeout(relayout,220); });
 })();
 /* ---------- boot ---------- */
+/* ============================================================
+ * 달의 계시 / 달의 재현시 — 하루 1회 영단어 스피드 퀴즈 (4지선다 탭)
+ * 계시: 오늘 분량(MOON_PER_DAY) × MOON_SEC_PER_WORD 초. 단어→뜻 / 뜻→단어 섞어서.
+ * 재현시: 계시에서 틀리거나 못 푼 단어만, 같은 단어당 시간. 건너뛰기 가능.
+ * 끝나면 save.moon = {date, reveal, replay, used:false} (보너스 계산·used 처리는 전투 쪽)
+ * ============================================================ */
+const MOON_PER_DAY=30;          // 하루 단어 수 — 여기 하나만 바꾸면 된다
+const MOON_SEC_PER_WORD=2.5;    // 단어당 제한 시간(초)
+const MOON_OK_MS=170, MOON_BAD_MS=650;  // 정답/오답 표시 시간 (이동 중엔 타이머 멈춤)
+const Moon=(()=>{
+  let nowFn=()=>new Date();
+  const fmt=(()=>{ try{ return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}); }catch(e){ return null; } })();
+  function today(){
+    const d=nowFn();
+    if(fmt){ const p={}; fmt.formatToParts(d).forEach(x=>p[x.type]=x.value); return `${p.year}-${p.month}-${p.day}`; }
+    const k=new Date(d.getTime()+9*3600e3); return k.toISOString().slice(0,10);
+  }
+  /* 실제 단어(assets/data/moon-words.js → window.MOON_WORDS)가 있으면 그것, 없으면(404) 예시(moon-words.sample.js) */
+  const isSample=()=>!(Array.isArray(window.MOON_WORDS)&&window.MOON_WORDS.length);
+  const words=()=>(isSample()?(Array.isArray(window.MOON_WORDS_SAMPLE)?window.MOON_WORDS_SAMPLE:[]):window.MOON_WORDS).filter(x=>x&&x.w&&x.m);
+  const doneToday=()=>!!(save.moon&&save.moon.date===today());
+  const chunkCount=()=>Math.max(1,Math.ceil(words().length/MOON_PER_DAY));
+  function todaysWords(){
+    const all=words(); if(!all.length) return [];
+    const ci=((save.moonChunk|0)%chunkCount()+chunkCount())%chunkCount();
+    let set=all.slice(ci*MOON_PER_DAY,(ci+1)*MOON_PER_DAY);
+    // 마지막 묶음이 모자라면 처음부터 채운다 (중복 없이)
+    for(let i=0;set.length<Math.min(MOON_PER_DAY,all.length);i++) if(!set.includes(all[i])) set.push(all[i]);
+    return set;
+  }
+  function buildQ(word,dir){
+    const all=words(), key=dir==="w2m"?"m":"w";
+    const seen=new Set([word[key]]);
+    const pick=pool=>shuffle(pool).filter(x=>{ if(seen.has(x[key])) return false; seen.add(x[key]); return true; });
+    let d=pick(all.filter(x=>x!==word&&x.pos===word.pos)).slice(0,3);
+    if(d.length<3) d=d.concat(pick(all.filter(x=>x!==word&&x.pos!==word.pos)).slice(0,3-d.length));
+    const opts=shuffle([word,...d]);
+    return {word,dir,prompt:dir==="w2m"?word.w:word.m,options:opts.map(x=>x[key]),correctIndex:opts.indexOf(word)};
+  }
+  function buildRound(list){
+    // 방향 반반 섞기 (각 문제마다 무작위 + 최소 한쪽씩 보장)
+    const dirs=list.map((_,i)=>i%2?"w2m":"m2w"); const sd=shuffle(dirs);
+    return shuffle(list).map((w,i)=>buildQ(w,sd[i]));
+  }
+  /* ---- 상태 ---- */
+  let st=null, raf=0, advT=0;
+  const timeLeft=()=>{ if(!st) return 0; const used=st.used+(st.runFrom?performance.now()-st.runFrom:0); return Math.max(0,st.limit-used); };
+  function startRound(kind,list){
+    cancelAnimationFrame(raf); clearTimeout(advT);
+    const prev=st||{};
+    st={kind,qs:buildRound(list),i:0,correct:0,wrong:[],limit:list.length*MOON_SEC_PER_WORD*1000,used:0,runFrom:0,
+        reveal:prev.reveal, revealTotal:prev.revealTotal, wrongFromReveal:prev.wrongFromReveal, phase:"quiz", lock:false};
+    render(); st.runFrom=performance.now(); tick();
+  }
+  function tick(){
+    if(!st||st.phase!=="quiz") return;
+    const left=timeLeft(), bar=$("#moon-timebar"), num=$("#moon-time");
+    if(bar) bar.style.transform=`scaleX(${(left/st.limit).toFixed(4)})`;
+    if(num) num.textContent=(left/1000).toFixed(left<10000?1:0);
+    const wrap=$(".moon-timer"); if(wrap) wrap.classList.toggle("low",left<5000);
+    if(left<=0){ endRound(); return; }
+    raf=requestAnimationFrame(tick);
+  }
+  function pause(){ if(st&&st.runFrom){ st.used+=performance.now()-st.runFrom; st.runFrom=0; } }
+  function resume(){ if(st&&!st.runFrom&&st.phase==="quiz"){ st.runFrom=performance.now(); } }
+  function answer(idx){
+    if(!st||st.phase!=="quiz"||st.lock) return;
+    const q=st.qs[st.i]; if(!q) return;
+    st.lock=true; pause();
+    const ok=idx===q.correctIndex;
+    const btns=$$("#scene-moon [data-mopt]");
+    btns.forEach((b,i)=>{ b.disabled=true; if(i===q.correctIndex) b.classList.add("ok"); else if(i===idx) b.classList.add("bad"); });
+    if(ok){ st.correct++; SFX.click(); }
+    else { st.wrong.push(q.word); moonBonk(); }
+    const sc=$("#moon-score"); if(sc) sc.textContent=st.correct;
+    advT=setTimeout(()=>{ if(!st) return; st.i++; st.lock=false; if(st.i>=st.qs.length) endRound(); else { paintQ(); resume(); } }, ok?MOON_OK_MS:MOON_BAD_MS);
+  }
+  function moonBonk(){
+    SFX.wrongBonk();
+    const root=$("#shake"), card=$("#moon-qcard");
+    if(root){ root.classList.remove("wrong-shake"); void root.offsetWidth; root.classList.add("wrong-shake"); setTimeout(()=>root.classList.remove("wrong-shake"),520); }
+    if(card&&root){
+      const r=card.getBoundingClientRect(), R=root.getBoundingClientRect();
+      const book=document.createElement("div"); book.className="wrong-book"; book.style.left=(r.left-R.left+r.width/2)+"px"; book.style.top=(r.top-R.top+14)+"px"; book.innerHTML=WRONG_BOOK_SVG;
+      root.appendChild(book); setTimeout(()=>book.remove(),600);
+      card.classList.remove("bonk"); void card.offsetWidth; card.classList.add("bonk");
+    }
+  }
+  function endRound(){
+    cancelAnimationFrame(raf); clearTimeout(advT); pause();
+    // 시간 초과로 못 푼 단어는 틀린 것으로 (재현시에 다시 나온다)
+    for(let j=st.i;j<st.qs.length;j++) st.wrong.push(st.qs[j].word);
+    if(st.kind==="reveal"){
+      st.reveal=st.correct; st.revealTotal=st.qs.length; st.wrongFromReveal=st.wrong.slice();
+      if(st.wrong.length){ st.phase="bridge"; render(); }
+      else finish(0);
+    } else finish(st.correct);
+  }
+  function finish(replay){
+    const total=st.revealTotal, wrongN=(st.wrongFromReveal||[]).length;
+    save.moon={date:today(),reveal:st.reveal|0,replay:replay|0,used:false};
+    save.moonChunk=((save.moonChunk|0)+1)%chunkCount();
+    save.moonLast={date:save.moon.date,total,replayTotal:wrongN,replayDone:st.kind==="replay"};
+    persist();
+    st.phase="result"; SFX.book(); render();
+  }
+  function skipReplay(){ if(!st||st.phase==="result") return; cancelAnimationFrame(raf); clearTimeout(advT); pause(); finish(st.kind==="replay"?st.correct:0); }
+  function open(){
+    cancelAnimationFrame(raf); clearTimeout(advT);
+    st=doneToday()?{phase:"result",kind:"view"}:{phase:"intro"};
+    transit("moon",()=>render());
+  }
+  function close(){ cancelAnimationFrame(raf); clearTimeout(advT); pause(); st=null; transit("lobby",()=>renderLobby()); }
+  /* ---- 화면 ---- */
+  const CLOCK=`<svg class="ico" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9.5 2.5h5"/></svg>`;
+  const E=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const POS={v:"동사",n:"명사",adj:"형용사",adv:"부사",prep:"전치사",conj:"접속사"};
+  function moonSvg(s=64,cls=""){ return `<svg class="moon-art ${cls}" viewBox="0 0 64 64" width="${s}" height="${s}" aria-hidden="true"><defs><radialGradient id="mg${s}" cx="38%" cy="34%" r="70%"><stop offset="0" stop-color="#fbf5e4"/><stop offset=".6" stop-color="#d9d2c0"/><stop offset="1" stop-color="#8f8a9e"/></radialGradient></defs><circle cx="32" cy="32" r="22" fill="url(#mg${s})"/><circle cx="24" cy="38" r="4.6" fill="#000" opacity=".08"/><circle cx="37" cy="22" r="2.4" fill="#000" opacity=".07"/><circle cx="42" cy="41" r="1.7" fill="#000" opacity=".07"/><circle cx="32" cy="32" r="27" fill="none" stroke="#cfd6ff" stroke-opacity=".28" stroke-width="1"/></svg>`; }
+  function head(title,sub){
+    return `<div class="moon-head">
+      <button class="x-btn moon-x" id="moon-close" type="button" aria-label="접대로 돌아가기"><span class="x-ico"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2 12 12M12 2 2 12"/></svg></span></button>
+      <div class="moon-ttl">${moonSvg(22)}<b>${title}</b>${sub?`<span class="moon-sub">${sub}</span>`:""}</div>
+    </div>`;
+  }
+  function paintQ(){
+    const q=st.qs[st.i]; if(!q) return;
+    const card=$("#moon-qcard"), grid=$("#moon-opts");
+    $("#moon-idx").textContent=`${st.i+1}/${st.qs.length}`;
+    card.className="moon-qcard "+(q.dir==="w2m"?"en":"ko");
+    card.dataset.dir=q.dir;
+    card.innerHTML=`<span class="moon-pos">${E(POS[q.word.pos]||q.word.pos||"")}</span>
+      <div class="moon-prompt">${E(q.prompt)}</div>
+      <div class="moon-ask">${q.dir==="w2m"?"뜻을 고르세요":"단어를 고르세요"}</div>`;
+    grid.className="moon-opts "+(q.dir==="w2m"?"ko":"en");
+    grid.innerHTML=q.options.map((o,i)=>`<button class="moon-opt" type="button" data-mopt="${i}"><i>${i+1}</i><span>${E(o)}</span></button>`).join("");
+    $$("[data-mopt]",grid).forEach(b=>b.onpointerdown=b.onclick=e=>{ e.preventDefault(); answer(+b.dataset.mopt); });
+  }
+  function render(){
+    const el=$("#scene-moon"); if(!el||!st) return;
+    const all=words();
+    if(st.phase==="intro"){
+      const set=todaysWords(), ci=(save.moonChunk|0)%chunkCount();
+      const f=set[0], l=set[set.length-1], wrapped=set.length>1&&all.indexOf(l)<all.indexOf(f);
+      const ids=!set.length?"":(f.id&&l.id?(wrapped?`${f.id}부터`:`${f.id}–${l.id}`):`${ci*MOON_PER_DAY+1}번부터`);
+      el.innerHTML=`${head("달의 계시")}
+        <div class="moon-body moon-intro">
+          <div class="moon-hero">${moonSvg(96,"big")}</div>
+          <div class="moon-introtext">
+            <div class="moon-big gold-title">오늘의 계시</div>
+            <div class="moon-stats"><span>${ico("book",12)} ${set.length}단어</span><span>${CLOCK} ${Math.round(set.length*MOON_SEC_PER_WORD)}초</span><span>${E(ids)}</span></div>
+            <div class="gmeta moon-note">맞힌 만큼 오늘 첫 접대의 에고 기프트 확률이 올라가요.${isSample()?" <em>(예시 단어)</em>":""}</div>
+            ${set.length?`<button class="btn primary moon-go" id="moon-start" type="button">계시 시작</button>`:`<div class="gmeta">단어 목록이 아직 없어요.</div>`}
+          </div>
+        </div>`;
+      const s=$("#moon-start"); if(s) s.onclick=()=>{ SFX.click(); st=null; startRound("reveal",todaysWords()); };
+    } else if(st.phase==="quiz"){
+      const rp=st.kind==="replay";
+      el.innerHTML=`${head(rp?"달의 재현시":"달의 계시", `<span id="moon-idx"></span>`)}
+        <div class="moon-timer"><div class="moon-tbar"><i id="moon-timebar"></i></div><span class="moon-tnum"><b id="moon-time"></b>s</span><span class="moon-ok">✓ <b id="moon-score">${st.correct}</b></span>${rp?`<button class="moon-skip" id="moon-skip" type="button">건너뛰기</button>`:""}</div>
+        <div class="moon-body moon-quiz ${rp?"replay":""}">
+          <div class="moon-qcard" id="moon-qcard"></div>
+          <div class="moon-opts" id="moon-opts"></div>
+        </div>`;
+      paintQ();
+      const sk=$("#moon-skip"); if(sk) sk.onclick=()=>{ SFX.click(); skipReplay(); };
+    } else if(st.phase==="bridge"){
+      const k=st.wrongFromReveal.length;
+      el.innerHTML=`${head("달의 계시")}
+        <div class="moon-body moon-bridge">
+          <div class="moon-hero">${moonSvg(72,"wane")}</div>
+          <div class="moon-introtext">
+            <div class="moon-row"><span class="moon-lab">계시</span><b class="moon-num">${st.reveal}<small>/${st.revealTotal}</small></b></div>
+            <div class="moon-big gold-title">달의 재현시</div>
+            <div class="gmeta moon-note">틀린 ${k}단어만 한 번 더. 재현시는 절반만 쳐요.</div>
+            <div class="moon-acts"><button class="btn" id="moon-skip" type="button">건너뛰기</button><button class="btn primary moon-go" id="moon-replay" type="button">재현시 시작</button></div>
+          </div>
+        </div>`;
+      $("#moon-replay").onclick=()=>{ SFX.click(); startRound("replay",st.wrongFromReveal); };
+      $("#moon-skip").onclick=()=>{ SFX.click(); skipReplay(); };
+    } else {
+      const m=save.moon||{reveal:0,replay:0}, L=save.moonLast&&save.moonLast.date===m.date?save.moonLast:null;
+      const tot=L?L.total:MOON_PER_DAY, rk=L?L.replayTotal:0;
+      el.innerHTML=`${head("달의 계시")}
+        <div class="moon-body moon-result">
+          <div class="moon-hero">${moonSvg(84,"big")}</div>
+          <div class="moon-introtext">
+            <div class="moon-big gold-title">오늘의 계시 완료</div>
+            <div class="moon-res">
+              <div class="moon-row"><span class="moon-lab">계시 맞힘</span><b class="moon-num" id="moon-r-reveal">${m.reveal}<small>/${tot}</small></b></div>
+              <div class="moon-row"><span class="moon-lab">재현시 맞힘</span><b class="moon-num" id="moon-r-replay">${rk?`${m.replay}<small>/${rk}</small>`:`—`}</b></div>
+            </div>
+            <div class="gmeta moon-note">${m.used?"오늘 첫 접대에 이미 적용됐어요.":"오늘 첫 접대에 적용돼요."} 내일 다시 떠요.</div>
+            <button class="btn primary moon-go" id="moon-done" type="button">접대로</button>
+          </div>
+        </div>`;
+      $("#moon-done").onclick=()=>{ SFX.click(); close(); };
+    }
+    const x=$("#moon-close"); if(x) x.onclick=()=>{ SFX.click(); close(); };
+  }
+  document.addEventListener("keydown",e=>{ if(scene!=="moon"||!st||st.phase!=="quiz") return; const n=+e.key; if(n>=1&&n<=4) answer(n-1); });
+  const navLit=()=>!doneToday()&&words().length>0;
+  return {today,todaysWords,buildQ,buildRound,doneToday,open,close,render,answer,skipReplay,navLit,words,isSample,
+    get state(){return st;}, setNow(f){ nowFn=f||(()=>new Date()); }, startRound, endRound, timeLeft};
+})();
+
 function boot(){
   ensureScenes();
   FX.init();
@@ -5486,7 +5780,8 @@ function boot(){
     setGifts(owned,equipped){ const L=libOf(save); L.gifts.owned=[...owned]; L.gifts.equipped={...emptyEgoEquip(),...(equipped||{})}; persist(); },
     gifts:{withKeyMods,effectiveMaxHp,libOf,giftTotals,giftMaxTotals,activeSets,rollEgoGift,migrateLibrarians,sanitizeLibrarians,equipGift,egoOwned,egoEquip,EGO_GIFT_RULES,loadSave,SAVE_KEY},
     toggleDeckPage, currentQuestion, setShelfTab(t){ shelfTab=t; },
-    setScene(n){ showScene(n); if(n==="lobby")renderLobby(); if(n==="battle")renderBattle(); if(n==="shelf")renderShelf(); if(n==="title")renderTitle(); if(n==="deck")renderDeckEditor(); if(n==="credits")renderCredits(); },
+    setScene(n){ showScene(n); if(n==="lobby")renderLobby(); if(n==="battle")renderBattle(); if(n==="shelf")renderShelf(); if(n==="title")renderTitle(); if(n==="deck")renderDeckEditor(); if(n==="credits")renderCredits(); if(n==="moon")Moon.render(); },
+    moon:Moon,
     debugPhotos(){ return FX.debugPhotos(); },
     openDeckEditor, renderDeckEditor, isDeckReady, activeDeck, ownedPageIds,
     giveAllPages(){ save.unlockedPageIds=COMBAT_PAGES.map(p=>p.id); ensureDecks(save); persist(); },
