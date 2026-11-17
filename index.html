@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118l">
+<meta name="build" content="library-20261118m">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -968,7 +968,7 @@ b,strong{font-weight:700}
 .battle-stage.result-on .hud-top,.battle-stage.result-on .hand,.battle-stage.result-on .fighter,
 .battle-stage.result-on .clash,.battle-stage.result-on .clash-zone,.battle-stage.result-on .logbox,
 .battle-stage.result-on .pass-btn,.battle-stage.result-on .qpanel{opacity:0!important;visibility:hidden!important;pointer-events:none!important;transition:opacity .25s}
-.battle-stage.multi .pass-btn{bottom:auto;top:calc(52px + env(safe-area-inset-top,0px))} /* 다대다: 합 진행 버튼은 무대 위쪽 가운데 (UI 담당이 다시 잡을 자리) */
+
 .result-banner{position:absolute;inset:0;left:0;top:0;transform:none;z-index:30;display:none;text-align:center}
 .result-banner.on{display:flex;align-items:center;justify-content:center;padding:calc(var(--audio-top,10px) + var(--audio-btn,36px) + 8px) 14px 16px;
   background:rgba(6,8,16,.8);-webkit-backdrop-filter:blur(16px) saturate(1.1);backdrop-filter:blur(16px) saturate(1.1);
@@ -1617,6 +1617,14 @@ b,strong{font-weight:700}
 .lp-prog{flex:1 1 auto;min-width:0;font-size:10.5px;color:var(--parch2,#b9b2a0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:2px}.lp-prog b{color:#e9c46a}
 .lp-foot{flex-wrap:wrap;row-gap:3px}.lp-prog{flex-basis:auto}
 @media (orientation:landscape) and (max-height:500px){.lib-pick{margin-bottom:4px;gap:3px}.lp-row{gap:4px}.lp-chip{min-height:26px;padding:0 7px;font-size:11px}.lp-party{min-height:24px;padding:0 7px}.lp-lock{width:22px;padding:0}.lp-lock svg{width:11px;height:11px}}
+/* 다대다 무대 화면 (UI) — 문제 칸은 무대 아래, 합 진행은 오른쪽 아래, 피해 숫자는 작게 */
+.battle-stage.multi .qpanel:not(.short){top:auto!important;bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;max-height:46%;overflow-y:auto}
+.battle-stage.multi .pass-btn{position:absolute;left:auto!important;top:auto!important;transform:none!important;right:calc(10px + env(safe-area-inset-right,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:55;
+  min-width:86px;min-height:44px;padding:0 16px;border-radius:12px;font-weight:800;letter-spacing:.02em;color:#1a1408;background:linear-gradient(180deg,#f2d488,#c9a24e);border:1px solid #ffe6a8;box-shadow:0 6px 18px rgba(0,0,0,.5),0 0 0 3px rgba(233,196,106,.18)}
+.battle-stage.multi .pass-btn:active{transform:translateY(1px)!important}
+@media (orientation:portrait){.battle-stage.multi .pass-btn{bottom:calc(76px + env(safe-area-inset-bottom,0px))}}
+@media (orientation:landscape) and (max-height:500px){.battle-stage.multi .pass-btn{min-height:40px;min-width:78px;bottom:calc(8px + env(safe-area-inset-bottom,0px))}}
+.dmg.mini{font-size:24px}.dmg.mini.stag,.dmg.mini.rec{font-size:17px}.dmg.mini .dtag{font-size:9px}
 </style>
 </head>
 <body>
@@ -5592,6 +5600,7 @@ function mbRefresh(display){
   const tc=$("#mb-turn"); if(tc) tc.innerHTML=`${B.scene}막 · ${mb.guest.concept}`;
   const go=$("#btn-mb-go"); if(go) go.style.display=B.phase==="assign"&&!display?"":"none";
   if(B.phase==="question"&&!display) mbShowQuestion(); else $("#qpanel")?.classList.remove("on","key","short");
+  if(window.BattleStage&&BattleStage.relayout){ BattleStage.relayout(); requestAnimationFrame(()=>BattleStage.relayout&&BattleStage.relayout()); }
 }
 function mbShowQuestion(){
   const pan=$("#qpanel"); if(!pan||!mb.cur) return;
@@ -5620,14 +5629,15 @@ function mbAnswerUI(correct,typed){
     learnToast(`<b>정답 · ${ans}</b>${typed?`<span class="lt-you">내 답 · ${String(typed).replace(/</g,"&lt;")}</span>`:""}${mb.guest.explanation}`,5200); }
   mbRefresh();
 }
-function mbUnitCenter(id){ const el=document.querySelector(`.bs-unit[data-unit="${id}"]`); if(!el) return null; const r=el.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height*.25}; }
+function mbUnitCenter(id){ if(window.BattleStage&&BattleStage.unitPoint){ const p=BattleStage.unitPoint(id); if(p) return p; } const el=document.querySelector(`.bs-unit[data-unit="${id}"]`); if(!el) return null; const r=el.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height*.25}; }
 function mbShowStepEvents(ev,st){
   for(const e of st.events){
     const id=e.target==="P"?ev.ally:ev.enemy, c=mbUnitCenter(id); if(!c) continue;
     const mine=e.target==="G", tag=t=>t&&t!=="보통"?t:"";
-    if(e.kind==="hit"){ if(e.hp) floatNum(c.x,c.y,"-"+e.hp,mine?"hp":"hurt",tag(e.tagHp)); if(e.st) floatNum(c.x,c.y+(e.hp?36:0),"-"+e.st,"stag",tag(e.tagSt)); }
-    else if(e.kind==="stag"){ if(e.st) floatNum(c.x,c.y,"-"+e.st,"stag","방어"); }
-    else if(e.kind==="recover"){ if(e.st) floatNum(c.x,c.y,"+"+e.st,"rec","회피"); }
+    const fn=(x,y,t,k,g)=>{ floatNum(x,y,t,k,g); const d=$("#shake")?.lastElementChild; if(d) d.classList.add("mini"); };
+    if(e.kind==="hit"){ if(e.hp) fn(c.x,c.y,"-"+e.hp,mine?"hp":"hurt",tag(e.tagHp)); if(e.st) fn(c.x+(e.hp?22:0),c.y+(e.hp?24:0),"-"+e.st,"stag",tag(e.tagSt)); }
+    else if(e.kind==="stag"){ if(e.st) fn(c.x,c.y,"-"+e.st,"stag","방어"); }
+    else if(e.kind==="recover"){ if(e.st) fn(c.x,c.y,"+"+e.st,"rec","회피"); }
   }
 }
 function mbRunResolve(instant){
@@ -5650,7 +5660,7 @@ function mbRunResolve(instant){
     const ev=events[k++]; if(ev.kind==="skip") return step();
     const disp={...B,phase:"resolve",units:B.units.map(u=>({...u,...ev.snap[u.id]}))};
     mbRefresh(disp);
-    SFX.dice(); setTimeout(()=>{ SFX.clash(ev.win!=="enemy"); flash(.14); shake(5); ev.steps.forEach(st=>mbShowStepEvents(ev,st)); if(ev.steps.some(s=>s.newStag.length)) SFX.stagger(); },160);
+    SFX.dice(); setTimeout(()=>{ if(my!==mb) return; if(window.BattleStage&&BattleStage.clash) BattleStage.clash(ev); SFX.clash(ev.win!=="enemy"); flash(.14); shake(5); ev.steps.forEach(st=>mbShowStepEvents(ev,st)); if(ev.steps.some(s=>s.newStag.length)) SFX.stagger(); },160);
     setTimeout(step,MB.stepMs);
   };
   mbRefresh({...B,phase:"resolve",units:pre});
