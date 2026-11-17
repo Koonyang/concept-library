@@ -1790,10 +1790,13 @@ const WEAK_POINTS = [
 
 /* 예시: 에고 기프트 수치와 드롭 규칙은 이 상수만 바꿔 조정한다. 개별 기프트는 매우 약하고, 회상으로 쌓이면 의미가 생긴다. */
 const EGO_GIFT_RULES = {
-  dropRateFirstClear: 1,
+  dropRateFirstClear: 0.5,
   dropRateRecall: 0.3,
   pityEvery: 10,                // 몬테카를로 20만 회: 한 손님의 기프트 3종을 모두 모으는 데 평균 약 10.2회(중앙값 9, 90%≤17회)
   newWeight: 3,                 // 미보유 기프트가 보유 기프트보다 3배 잘 나온다
+  moonBonusMax: 0.4,            // 달의 계시 점수비만큼 드롭률에 더함
+  moonFirstCap: 0.9,            // 첫 접대 보정 상한
+  moonRecallCap: 0.7,           // 회상 보정 상한
   /* 몸의 부위. 기프트는 정확히 한 부위에 속하고, 부위당 하나만 착용한다. */
   slots: ["머리","눈","얼굴","목","가슴","손","등","발"],
   /* 기프트 하나는 아주 작다. 장서복 하나(시작 빛 +1 등)보다 한참 약하게. */
@@ -5096,23 +5099,44 @@ function nextTurn(){
 }
 
 
+/* 달의 계시: 오늘 퀴즈 점수비. 순수 함수라 테스트에서 오늘 날짜를 직접 넣을 수 있다. */
+function todaySeoul(){ return new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Seoul"}); }
+function moonBonus(s, todayStr){
+  const m=s&&s.moon;
+  if(!m||typeof m!=="object"||m.used===true) return {ratio:0,active:false};
+  if(m.date!==todayStr) return {ratio:0,active:false};
+  const reveal=Number(m.reveal), replay=Number(m.replay);
+  const a=Number.isFinite(reveal)?Math.max(0,reveal):0;
+  const b=Number.isFinite(replay)?Math.max(0,replay):0;
+  return {ratio:Math.min(30,a+0.5*b)/30, active:true};
+}
+function moonAdjustedRate(isRecall, moon){
+  const R=EGO_GIFT_RULES;
+  let rate=isRecall?R.dropRateRecall:R.dropRateFirstClear;
+  if(moon&&moon.active) rate=Math.min(isRecall?R.moonRecallCap:R.moonFirstCap, rate+R.moonBonusMax*moon.ratio);
+  return rate;
+}
 /* 기프트는 그 접대에 나선 사서에게만 떨어진다. 이미 가진 기프트는 능력이 쌓이지 않는다. */
-function rollEgoGift(guest, isRecall, libId){
+function rollEgoGift(guest, isRecall, libId, moon){
   const L=libOf(save,libId), owned=new Set(L.gifts.owned);
   const pool=EGO_GIFTS.filter(g=>g.guestId===guest.id);
   if(!pool.length) return null;
+  const applied=moon!==undefined?moon:moonBonus(save, todaySeoul());
+  if(applied.active&&save.moon&&save.moon.used!==true){ save.moon.used=true; persist(); }
   L.pity[guest.id]=(L.pity[guest.id]||0)+1;
-  const rate=isRecall?EGO_GIFT_RULES.dropRateRecall:EGO_GIFT_RULES.dropRateFirstClear;
+  const rate=moonAdjustedRate(!!isRecall, applied);
   const pity=EGO_GIFT_RULES.pityEvery && L.pity[guest.id]>=EGO_GIFT_RULES.pityEvery;
-  if(!(Math.random()<rate || pity || (!isRecall && rate>=1))) return null;
+  if(!(Math.random()<rate || pity)) return null;
   const w=pool.map(g=>owned.has(g.id)?1:EGO_GIFT_RULES.newWeight), sum=w.reduce((a,b)=>a+b,0);
   let r=Math.random()*sum, item=pool[0]; for(let i=0;i<pool.length;i++){ if(r<w[i]){ item=pool[i]; break; } r-=w[i]; }
   L.pity[guest.id]=0;
   const dup=owned.has(item.id);
-  if(dup){ return {item,dup:true,libId:L.id,libName:L.name}; }
+  if(dup){ const out={item,dup:true,libId:L.id,libName:L.name}; if(applied.active) out.moon=applied.ratio; return out; }
   L.gifts.owned=[...L.gifts.owned,item.id];
   if(!L.gifts.equipped[item.slot]) L.gifts.equipped[item.slot]=item.id;
-  return {item,dup:false,libId:L.id,libName:L.name};
+  const out={item,dup:false,libId:L.id,libName:L.name};
+  if(applied.active) out.moon=applied.ratio;
+  return out;
 }
 function finishReceptionStats(guest, won){
   const st=ensureRecall(guest.id);
@@ -5136,7 +5160,8 @@ function showWin(){
   const rec=reception, guest=GUEST_BY[rec.guestId];
   finishReceptionStats(guest, true);
   const libIds=rec.librarianIds||[save.activeLibrarianId||LIB_DEFAULT_ID];
-  const drops=libIds.map(id=>rollEgoGift(guest,!!rec.isRecall,id));
+  const moon=moonBonus(save, todaySeoul());
+  const drops=libIds.map(id=>rollEgoGift(guest,!!rec.isRecall,id,moon));
   rec.droppedGift=drops;
   persist();
   const b=openResult();
@@ -5869,7 +5894,7 @@ function boot(){
     data:{EGO_GIFTS,KEY_PAGES,COSMETIC_ITEMS,WEAK_POINTS,COMBAT_PAGES,FLOORS,KEY_QUESTIONS},
     acq:{bookMaxed,shownBookCount,BOOK_POOLS,BOOK_RULES,poolEntries,burnBookOnce,addBooks,bookCount,totalBooks,ownedCount,deckLimit,DECK_MIN,DECK_MAX,sourcesOf,acqAudit,migrateAcq,rollRecallBooks,loadSave,defaultSave,SAVE_KEY},
     setGifts(owned,equipped){ const L=libOf(save); L.gifts.owned=[...owned]; L.gifts.equipped={...emptyEgoEquip(),...(equipped||{})}; persist(); },
-    gifts:{withKeyMods,effectiveMaxHp,libOf,giftTotals,giftMaxTotals,activeSets,rollEgoGift,migrateLibrarians,sanitizeLibrarians,equipGift,egoOwned,egoEquip,EGO_GIFT_RULES,loadSave,SAVE_KEY},
+    gifts:{withKeyMods,effectiveMaxHp,libOf,giftTotals,giftMaxTotals,activeSets,rollEgoGift,migrateLibrarians,sanitizeLibrarians,equipGift,egoOwned,egoEquip,EGO_GIFT_RULES,loadSave,SAVE_KEY,moonBonus,moonAdjustedRate,todaySeoul},
     toggleDeckPage, currentQuestion, setShelfTab(t){ shelfTab=t; },
     setScene(n){ showScene(n); if(n==="lobby")renderLobby(); if(n==="battle")renderBattle(); if(n==="shelf")renderShelf(); if(n==="title")renderTitle(); if(n==="deck")renderDeckEditor(); if(n==="credits")renderCredits(); if(n==="moon")Moon.render(); },
     moon:Moon,
