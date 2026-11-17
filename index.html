@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118b">
+<meta name="build" content="library-20261118d">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -1611,7 +1611,8 @@ b,strong{font-weight:700}
 const FLOORS = [
   { id:"crime", name:"범죄학의 층", subject:"범죄학의 기초", motto:"처벌은 복수가 아니라 예방이라는 오래된 문장들." },
   { id:"memory", name:"기억의 층 · 예시", subject:"학습법 (예시)", motto:"잊힐 때까지 기다리는 책장." },
-  { id:"cognition", name:"인지의 층 · 예시", subject:"학습법 (예시)", motto:"알고 있는지, 아직 모르는지를 보는 창." }
+  { id:"cognition", name:"인지의 층 · 예시", subject:"학습법 (예시)", motto:"알고 있는지, 아직 모르는지를 보는 창." },
+  { id:"criminal-law", name:"형법의 층", subject:"형법", motto:"진실과 공익이 함께 설 때, 적시한 말은 벌하지 않는다." }
 ];
 
 const WEAK_POINTS = [
@@ -1726,6 +1727,25 @@ const WEAK_POINTS = [
       { type:"mc", prompt:"메타인지를 높이는 방법으로 가장 적절한 것은?", options:["내 말로 설명해 보거나 문제로 점검하기","같은 문장만 반복 필사하기","형광펜 색을 더 늘리기","강의 배속만 높이기"], correctIndex:0 },
       { type:"mc", prompt:"공부 후 '아직 무엇을 모르는지' 적는 습관의 효과는?", options:["약점이 드러나 다음 공부를 잡기 쉬워서","시간만 버리는 일이라서","이미 아는 것만 적게 되도록 하려고","성적과는 관계가 없어서"], correctIndex:0 }
     ]
+  },
+  {
+    id:"defamation-truth", floorId:"criminal-law", concept:"명예훼손과 제310조", subject:"형법", weakness:2, archetype:"puppet", palette:"verdant", accessory:"lantern",
+    sourceNote:"형법 · 명예에 관한 죄 (11/18)",
+    explanation:"명예훼손죄(형법 제307조 제1항)의 '사실'은 진실한 사실만 뜻하지 않습니다. 허위라도 행위자가 진실이라고 알고 적시했다면 사실 적시 명예훼손으로 보고, 허위라는 인식은 엄격한 증명의 대상입니다. 판례는 '동성애자'라는 허위 적시와 기소유예·단순 징계 같은 아주 가벼운 처벌 전력 적시는 명예훼손으로 보았지만(O), '돌싱'(과거 혼인 전력) 적시는 명예훼손으로 보지 않았습니다(X). 제310조에 따라 진실성과 공익성이 있으면 위법성이 조각되는데, 입증 책임은 피고인에게 있고 자유로운 증명으로 족합니다(★). 이 조항은 군형법 제64조 제3항(상관 명예훼손)에도 유추적용됩니다(★). 진실이라는 증명이 없어도 진실이라고 믿은 데 상당한 이유가 있으면 위법성이 없고(책임 조각이 아님), 중요한 부분이 사실이면 세부에 약간의 오류가 있어도 허위로 보지 않습니다. 공공의 이익에는 사회 전반뿐 아니라 특정 사회집단의 이익도 들어갑니다.",
+    questions:[
+      { type:"ox", prompt:"명예훼손죄(형법 제307조 제1항)에서 말하는 '사실'은 진실한 사실만을 뜻한다.", options:["O","X"], correctIndex:1 },
+      { type:"mc", prompt:"허위 사실을 적시했지만 행위자는 그것이 진실이라고 알고 있었다. 어떻게 보는가?", options:["허위 사실 적시 명예훼손(제307조 제2항)","사실 적시 명예훼손(제307조 제1항)","고의가 없으므로 언제나 무죄","모욕죄"], correctIndex:1 },
+      { type:"mc", prompt:"적시한 사실이 허위이고 행위자가 그 허위를 알았다는 점은 어떻게 증명해야 하는가?", options:["자유로운 증명으로 족하다","엄격한 증명이 필요하다","피고인의 소명으로 족하다","증명할 필요가 없다"], correctIndex:1 },
+      { type:"ox", prompt:"판례: 사실이 아닌데 다른 사람을 '동성애자'라고 적시하면 명예훼손이 성립한다.", options:["O","X"], correctIndex:0 },
+      { type:"mc", prompt:"판례: 확정된 형이 아닌 기소유예·단순 징계 처분처럼 아주 가벼운 처벌 전력을 적시했다면?", options:["확정된 사실이 아니므로 명예훼손이 아니다","명예훼손이 성립한다","형이 확정된 경우에만 성립한다","가벼운 전력이므로 언제나 무죄다"], correctIndex:1 },
+      { type:"ox", prompt:"판례: 어떤 사람을 '돌싱'(과거 혼인 전력이 있음)이라고 적시한 것만으로 명예훼손이 성립한다.", options:["O","X"], correctIndex:1 },
+      { type:"mc", prompt:"형법 제310조에 따라 위법성이 조각되려면 갖춰야 하는 것은?", options:["진실성과 공익성","진실성과 공연성","공익성과 피해자의 승낙","허위성과 공익성"], correctIndex:0 },
+      { type:"mc", prompt:"제310조의 진실성·공익성은 누가 입증해야 하는가?", options:["검사","피해자","피고인","법원"], correctIndex:2 },
+      { type:"ox", prompt:"형법 제310조는 군형법 제64조 제3항(상관 명예훼손)에도 유추적용된다.", options:["O","X"], correctIndex:0 },
+      { type:"mc", prompt:"진실이라는 증명은 없지만 진실이라고 믿은 데 상당한 이유가 있었다. 판례의 결론은?", options:["책임이 조각된다","형을 감경할 뿐 처벌한다","위법성이 없다(위법성 조각)","구성요건에 해당하지 않는다"], correctIndex:2 },
+      { type:"ox", prompt:"적시한 사실의 중요한 부분이 사실과 맞으면, 세부에 약간의 거짓이나 오류가 있어도 허위로 보지 않는다.", options:["O","X"], correctIndex:0 },
+      { type:"ox", prompt:"제310조의 '공공의 이익'에는 사회 전반의 이익만 해당하고, 특정 사회집단의 이익은 해당하지 않는다.", options:["O","X"], correctIndex:1 }
+    ]
   }
 ];
 
@@ -1802,7 +1822,13 @@ const EGO_GIFTS = [
   { id:"prefrontal-compass", guestId:"limits", name:"전전두엽의 나침반", slot:"머리", art:"compass",
     text:"비용과 이익을 가늠하는 추론의 바늘.", perk:{ staggerPct:1 } },
   { id:"article10-gavel", guestId:"limits", name:"제10조의 판결봉", slot:"목", art:"gavel",
-    text:"심신상실은 벌하지 않고, 심신미약은 형을 감경할 수 있다.", perk:{ dmgPct:1 } }
+    text:"심신상실은 벌하지 않고, 심신미약은 형을 감경할 수 있다.", perk:{ dmgPct:1 } },
+  { id:"truth-public-scale", guestId:"defamation-truth", name:"진실과 공익의 저울", slot:"머리", art:"scale",
+    text:"진실성과 공익성, 두 접시가 함께 차야 위법성이 조각된다.", perk:{ hp:1 } },
+  { id:"defendant-proof-scroll", guestId:"defamation-truth", name:"피고인의 입증 두루마리", slot:"등", art:"scroll",
+    text:"제310조의 입증은 피고인의 몫. 다만 자유로운 증명으로.", perk:{ staggerPct:1 } },
+  { id:"military-64-gavel", guestId:"defamation-truth", name:"군형법 제64조의 판결봉", slot:"목", art:"gavel",
+    text:"제310조는 군형법 제64조 제3항에도 유추적용된다.", perk:{ dmgPct:1 } }
 ];
 const EGO_BY = Object.fromEntries(EGO_GIFTS.map(g=>[g.id,g]));
 
@@ -1885,7 +1911,13 @@ const COMBAT_PAGES = [
   {id:"prefrontal-warning",name:"전전두엽의 경고",cost:3,emotion:3,dice:[{type:"타격",min:6,max:10}],text:"추론이 무너진 곳에 일격이 박힌다.",rarity:"SR",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"limits",
     flavor:"전전두엽이 손상되면 비용과 이익을 따지는 추론이 약해져 억제도 약해진다. 1848년, 게이지처럼."},
   {id:"article-ten",name:"형법 제10조",cost:3,emotion:3,dice:[{type:"방어",min:5,max:9},{type:"타격",min:4,max:7}],text:"조문 한 줄로 받아내고 되돌려 친다.",rarity:"SSR",floorId:"crime",subject:"범죄학의 기초",sourceGuest:"limits",
-    flavor:"심신상실은 벌하지 않고, 심신미약은 형을 감경할 수 있다."}
+    flavor:"심신상실은 벌하지 않고, 심신미약은 형을 감경할 수 있다."},
+  {id:"reasonable-belief",name:"상당한 이유",cost:1,emotion:0,dice:[{type:"방어",min:4,max:8}],text:"진실이라 믿을 만했던 이유로 받아낸다.",rarity:"R",floorId:"criminal-law",subject:"형법",sourceGuest:"defamation-truth",
+    flavor:"진실의 증명이 없어도, 진실이라 믿은 데 상당한 이유가 있었다면 위법성이 없다. 책임이 아니라 위법성이다."},
+  {id:"public-interest",name:"공공의 이익",cost:2,emotion:1,dice:[{type:"참격",min:5,max:8}],text:"사회 전반과 그 안의 한 집단을 위해 벤다.",rarity:"R",floorId:"criminal-law",subject:"형법",sourceGuest:"defamation-truth",
+    flavor:"공공의 이익은 사회 전반만이 아니다. 특정 사회집단의 이익도 공익이다."},
+  {id:"defendant-burden",name:"피고인의 입증",cost:2,emotion:2,dice:[{type:"관통",min:4,max:6},{type:"방어",min:3,max:5}],text:"진실과 공익을 스스로 증명하며 꿰뚫는다.",rarity:"SR",floorId:"criminal-law",subject:"형법",sourceGuest:"defamation-truth",
+    flavor:"제310조, 진실성과 공익성의 입증은 피고인이 진다. 엄격한 증명이 아니라 자유로운 증명으로."}
 ];
 
 const KEY_PAGES = [
@@ -1908,7 +1940,8 @@ const BOOK_POOLS = {
   pomodoro:[{k:"page",id:"underline",w:10},{k:"page",id:"heavy-tome",w:10},{k:"key",id:"reading-room",w:5}],
   "active-recall":[{k:"page",id:"repeat-line",w:10},{k:"page",id:"underline",w:5},{k:"key",id:"reading-room",w:5}],
   "spaced-repetition":[{k:"page",id:"blank-fill",w:10},{k:"page",id:"heavy-tome",w:5},{k:"key",id:"midnight",w:5}],
-  metacognition:[{k:"page",id:"night-study",w:8},{k:"page",id:"repeat-line",w:5},{k:"page",id:"apex",w:3},{k:"key",id:"archivist",w:4}]
+  metacognition:[{k:"page",id:"night-study",w:8},{k:"page",id:"repeat-line",w:5},{k:"page",id:"apex",w:3},{k:"key",id:"archivist",w:4}],
+  "defamation-truth":[{k:"page",id:"reasonable-belief",w:10},{k:"page",id:"public-interest",w:10},{k:"page",id:"defendant-burden",w:6},{k:"key",id:"classical-robe",w:4}]
 };
 const BOOK_RULES = { recallOne:0.65, firstClear:1, pityGuarantee:2, newMul:3, dupMul:0.5, burnDraws:1 };
 const DECK_MAX_COPIES = 2;
@@ -2175,7 +2208,8 @@ const GUEST_COMBAT={
   pomodoro:{names:["알람 울리기","쪼개기 연타","휴식 거부"],bigName:"과집중의 늪",atk:"참격",alt:"관통",bigType:"타격"},
   "active-recall":{names:["다시 읽기의 유혹","형광펜 난사","익숙함의 착각"],bigName:"유창성의 착각",atk:"관통",alt:"참격"},
   "spaced-repetition":{names:["벼락치기 타작","줄 당기기","굳은 자세"],bigName:"몰아치기의 난타",atk:"타격",alt:"참격"},
-  metacognition:{names:["흐릿한 확신","빗나간 점검","마나 장막"],bigName:"아는 척의 소용돌이",atk:"관통",alt:"참격"}
+  metacognition:{names:["흐릿한 확신","빗나간 점검","마나 장막"],bigName:"아는 척의 소용돌이",atk:"관통",alt:"참격"},
+  "defamation-truth":{names:["허위의 소문","가벼운 전력 들추기","진실이라 우기기"],bigName:"입증 책임 떠넘기기",atk:"타격",alt:"참격"}
 };
 const GUEST_SCALE=[0,1,1.2,1.45];
 function guestCombat(g){
@@ -2289,6 +2323,12 @@ const KEY_QUESTIONS={
       options:["다 읽었으니 안다고 느끼고 넘어간다","모르는 부분을 스스로 점검해 계획을 고친다","맞힌 문제만 다시 풀어 본다","어려운 부분은 건너뛰고 쉬운 곳만 반복한다"],correctIndex:1},
     {type:"short",hard:true,prompt:"자신이 무엇을 알고 모르는지 스스로 점검하고 조절하는 사고를 한 단어로 하면?",
       answer:"메타인지",accept:["메타 인지","상위인지","metacognition","메타인지능력"]}
+  ],
+  "defamation-truth":[
+    {type:"mc",hard:true,prompt:"형법 제310조의 진실성·공익성 입증에 관한 설명으로 옳은 것은?",
+      options:["검사가 엄격한 증명으로 입증해야 한다","피고인이 입증해야 하고, 자유로운 증명으로 족하다","피고인이 입증해야 하고, 엄격한 증명이 필요하다","검사가 입증하되, 자유로운 증명으로 족하다"],correctIndex:1},
+    {type:"short",hard:true,prompt:"형법 제310조가 상관 명예훼손(제64조 제3항)에 유추적용되는 법률의 이름은?",
+      answer:"군형법",accept:["군 형법","군형법 제64조 제3항","군형법64조3항","군형법 제64조"]}
   ]
 };
 function keyQsOf(g){
@@ -2926,7 +2966,7 @@ const GX_LABEL={priest:"사제",knight:"기사",machine:"기계"}, GX_VLABEL={ba
 const GX_VARIANTS={priest:["base","ritual","knowledge","chaos"],knight:["base","ritual","chaos"],machine:["base","ritual","chaos"]};
 const GX_CROP={priest:"66 0 148 236",knight:"70 4 140 232",machine:"60 4 160 236"};
 const GUEST_ART={beccaria:["priest","base"],bentham:["priest","ritual"],deterrence:["priest","knowledge"],"active-recall":["priest","knowledge"],metacognition:["priest","chaos"],
-  "three-conditions":["knight","base"],legality:["knight","ritual"],limits:["knight","chaos"],pomodoro:["knight","base"],"spaced-repetition":["machine","base"]};
+  "three-conditions":["knight","base"],legality:["knight","ritual"],limits:["knight","chaos"],pomodoro:["knight","base"],"spaced-repetition":["machine","base"],"defamation-truth":["machine","ritual"]};
 const GX_OF_ARCH={knight:"knight",fixer:"knight",scholar:"priest",mage:"priest",puppet:"machine"};
 function gxPick(g,arch,h){
   const forced=g&&GUEST_ART[g.id];
