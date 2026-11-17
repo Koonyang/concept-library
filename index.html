@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118d">
+<meta name="build" content="library-20261118e">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -1560,6 +1560,40 @@ b,strong{font-weight:700}
   .moon-intro,.moon-bridge,.moon-result{flex-direction:row;gap:36px}
   .moon-introtext{gap:8px}
   .moon-big{font-size:22px}
+}
+
+/* ===== 책갈피 서랍 내비 (가로·세로 공통) ===== */
+:root{--nav-h:0px;--rail-w:0px;--bm-w:34px;--bm-h:46px}
+.bm-btn{position:absolute;top:0;left:calc(10px + var(--safe-left,0px));z-index:24;width:var(--bm-w);height:var(--bm-h);padding:0;
+  display:flex;align-items:flex-start;justify-content:center;padding-top:9px;color:#3a2a10;
+  background:linear-gradient(180deg,#f3d58f,#d9aa52);clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%);
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));transition:height .2s ease,opacity .25s ease,transform .25s ease}
+.bm-btn:before{content:"";position:absolute;inset:-6px -10px -10px -10px}
+.bm-btn svg{width:16px;height:16px;display:block}
+.bm-btn:active,.bm-btn[aria-expanded="true"]{height:calc(var(--bm-h) + 8px)}
+.bm-btn.moon-lit:after{content:"";position:absolute;top:auto;bottom:16px;left:50%;margin-left:-4px;width:8px;height:8px;border-radius:50%;background:#cfd6ff;
+  box-shadow:0 0 0 2px rgba(58,42,16,.9),0 0 10px rgba(190,200,255,.95);animation:moonDot 2.2s ease-in-out infinite;pointer-events:none}
+.nav-scrim{position:absolute;inset:0;z-index:22;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .22s ease}
+.nav-scrim.on{opacity:1;pointer-events:auto}
+.botnav,.botnav.away{position:absolute;top:0;bottom:0;left:0;right:auto;z-index:23;width:calc(184px + var(--safe-left,0px));height:auto;
+  display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;gap:8px;
+  padding:calc(var(--bm-h) + 18px) 12px calc(14px + var(--safe-bottom)) calc(12px + var(--safe-left,0px));
+  background:linear-gradient(90deg,rgba(9,10,17,.98) 0%,rgba(9,10,17,.96) 85%,rgba(9,10,17,.9) 100%);border-right:1px solid rgba(230,211,163,.18);
+  box-shadow:6px 0 24px rgba(0,0,0,.5);transform:translateX(-105%);opacity:1;visibility:hidden;pointer-events:auto;overflow-y:auto;
+  transition:transform .24s cubic-bezier(.2,.8,.2,1),visibility 0s linear .24s}
+.botnav.open{transform:none;visibility:visible;transition:transform .24s cubic-bezier(.2,.8,.2,1),visibility 0s}
+.botnav .btn{flex:0 0 auto;max-width:none;width:100%;min-width:0;height:48px;padding:0 14px;font-size:14px;border-radius:12px;
+  justify-content:flex-start;text-align:left;position:relative}
+.botnav .btn.moon-lit:after{top:50%;right:14px;margin-top:-3.5px}
+.botnav.away ~ .bm-btn{opacity:0;pointer-events:none;transform:translateY(-110%)}
+#scene-lobby,.panel-scene{padding-left:calc(10px + var(--safe-left,0px))}
+.topbar{padding-left:calc(var(--bm-w) + 12px)}
+@media (orientation:landscape) and (max-height:500px){
+  :root{--rail-w:0px;--bm-w:32px;--bm-h:40px}
+  #scene-lobby,.panel-scene{padding-left:calc(8px + var(--safe-left,0px))}
+  .bm-btn{padding-top:7px}
+  .botnav,.botnav.away{padding-top:calc(var(--bm-h) + 12px);gap:6px}
+  .botnav .btn{height:44px}
 }
 </style>
 </head>
@@ -3992,7 +4026,15 @@ function hudStats(){
 function botNav(active){
   const items=[["lobby","접대"],["shelf","도서관"],["moon","계시"]];
   const lit=Moon.navLit();
-  return `<nav class="botnav">${items.map(([id,lb])=>`<button class="btn ${active===id?"primary":""}${id==="moon"&&lit?" moon-lit":""}" data-go="${id}"${id==="moon"?` aria-label="달의 계시${lit?" (오늘 아직 안 함)":""}"`:""}>${lb}</button>`).join("")}</nav>`;
+  return `<nav class="botnav" aria-label="메뉴">${items.map(([id,lb])=>`<button class="btn ${active===id?"primary":""}${id==="moon"&&lit?" moon-lit":""}" data-go="${id}"${id==="moon"?` aria-label="달의 계시${lit?" (오늘 아직 안 함)":""}"`:""}>${lb}</button>`).join("")}</nav>
+    <div class="nav-scrim"></div>
+    <button class="bm-btn${lit?" moon-lit":""}" type="button" aria-label="메뉴 열기${lit?" (오늘 계시 아직 안 함)":""}" aria-expanded="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 4h10M3 8h10M3 12h10"/></svg></button>`;
+}
+function setDrawer(open, root){
+  const sc=root||document;
+  sc.querySelectorAll(".botnav").forEach(n=>n.classList.toggle("open",!!open));
+  sc.querySelectorAll(".nav-scrim").forEach(n=>n.classList.toggle("on",!!open));
+  sc.querySelectorAll(".bm-btn").forEach(b=>b.setAttribute("aria-expanded",open?"true":"false"));
 }
 
 function floorIndex(){ return Math.max(0,FLOORS.findIndex(f=>f.id===floorId)); }
@@ -4213,8 +4255,11 @@ function paintMiniFloor(cv, fid){
 }
 
 function bindNav(){
+  $$(".bm-btn").forEach(b=>b.onclick=()=>{ try{SFX.click();}catch(e){} const open=b.getAttribute("aria-expanded")!=="true"; setDrawer(false); setDrawer(open,b.parentNode); });
+  $$(".nav-scrim").forEach(s=>s.onclick=()=>setDrawer(false));
   $$("[data-go]").forEach(b=>b.onclick=()=>{
     SFX.click();
+    setDrawer(false);
     const go=b.dataset.go;
     if(go==="moon"){ Moon.open(); return; }
     transit(go, ()=>{
@@ -5809,6 +5854,7 @@ function boot(){
   SFX.setBgmMuted(save.bgmMuted!==false); // default off
   bindAudioToggles();
   ["pointerdown","touchend","click","keydown"].forEach(ev=>document.addEventListener(ev,()=>SFX.prime(),{capture:true,passive:true}));
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape") setDrawer(false); });
   renderTitle();
   // debug for screenshots / tests
   window.__studyGame = {
