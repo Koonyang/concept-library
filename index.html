@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118za">
+<meta name="build" content="library-20261118zb">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -974,7 +974,7 @@ b,strong{font-weight:700}
 /* ===== result screen: full-screen scrim + centered glass card ===== */
 .battle-stage.result-on .hud-top,.battle-stage.result-on .hand,.battle-stage.result-on .fighter,
 .battle-stage.result-on .clash,.battle-stage.result-on .clash-zone,.battle-stage.result-on .logbox,
-.battle-stage.result-on .pass-btn,.battle-stage.result-on .qpanel{opacity:0!important;visibility:hidden!important;pointer-events:none!important;transition:opacity .25s}
+.battle-stage.result-on .pass-btn,.battle-stage.result-on #btn-mb-go,.battle-stage.result-on .mb-stat,.battle-stage.result-on .qpanel{opacity:0!important;visibility:hidden!important;pointer-events:none!important;transition:opacity .25s}
 
 .result-banner{position:absolute;inset:0;left:0;top:0;transform:none;z-index:30;display:none;text-align:center}
 .result-banner.on{display:flex;align-items:center;justify-content:center;padding:calc(var(--audio-top,10px) + var(--audio-btn,36px) + 8px) 14px 16px;
@@ -1739,14 +1739,52 @@ b,strong{font-weight:700}
 .lp-prog{flex:1 1 auto;min-width:0;font-size:10.5px;color:var(--parch2,#b9b2a0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:2px}.lp-prog b{color:#e9c46a}
 .lp-foot{flex-wrap:wrap;row-gap:3px}.lp-prog{flex-basis:auto}
 @media (orientation:landscape) and (max-height:500px){.lib-pick{margin-bottom:4px;gap:3px}.lp-row{gap:4px}.lp-chip{min-height:26px;padding:0 7px;font-size:11px}.lp-party{min-height:24px;padding:0 7px}.lp-lock{width:22px;padding:0}.lp-lock svg{width:11px;height:11px}}
-/* 다대다 무대 화면 (UI) — 문제 칸은 무대 아래, 합 진행은 오른쪽 아래, 피해 숫자는 작게 */
+/* 다대다 무대 화면 (UI) — 아래 가운데 손패+개막, 왼쪽 아군·오른쪽 적 상태판, 피해 숫자는 작게 */
 .battle-stage.multi .qpanel:not(.short){top:auto!important;bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;max-height:46%;overflow-y:auto}
-.battle-stage.multi .pass-btn{position:absolute;left:auto!important;top:auto!important;transform:none!important;right:calc(10px + env(safe-area-inset-right,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:55;
-  min-width:86px;min-height:44px;padding:0 16px;border-radius:12px;font-weight:800;letter-spacing:.02em;color:#1a1408;background:linear-gradient(180deg,#f2d488,#c9a24e);border:1px solid #ffe6a8;box-shadow:0 6px 18px rgba(0,0,0,.5),0 0 0 3px rgba(233,196,106,.18)}
-.battle-stage.multi .pass-btn:active{transform:translateY(1px)!important}
-@media (orientation:portrait){.battle-stage.multi .pass-btn{bottom:calc(188px + env(safe-area-inset-bottom,0px))}}
+.battle-stage.multi #btn-mb-go{position:absolute;left:50%;bottom:calc(178px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:56;overflow:visible;
+  min-width:112px;height:40px;padding:0 22px 2px;margin:0;border:0;border-radius:2px;cursor:pointer;color:#3a2610;
+  font-family:var(--display),serif;font-weight:800;font-size:17px;letter-spacing:.18em;line-height:1;
+  background:linear-gradient(180deg,#f7e4b0 0%,#e0b95a 46%,#b8862e 100%);
+  box-shadow:0 0 0 1px #6a4a1c,0 0 0 2px #f6e4b4,0 0 0 3px #8a6428,0 4px 12px rgba(0,0,0,.5);
+  -webkit-tap-highlight-color:transparent;transition:transform .08s ease,filter .08s ease,box-shadow .18s ease}
+.battle-stage.multi #btn-mb-go .go-orn{position:absolute;inset:-6px -8px -4px;width:auto;height:auto;pointer-events:none;overflow:visible}
+.battle-stage.multi #btn-mb-go .go-lab{position:relative;z-index:1}
+.battle-stage.multi #btn-mb-go:not(.ready){color:#4a4030;filter:grayscale(.42) brightness(.74);box-shadow:0 0 0 1px #5a4a30,0 0 0 2px #8a7a55,0 0 0 3px #4a4030,0 2px 6px rgba(0,0,0,.4)}
+.battle-stage.multi #btn-mb-go.ready{box-shadow:0 0 0 1px #6a4a1c,0 0 0 2px #f6e4b4,0 0 0 3px #8a6428,0 4px 12px rgba(0,0,0,.5),0 0 16px rgba(236,186,104,.55);animation:mbGoGlow 1.8s ease-in-out infinite}
+@keyframes mbGoGlow{50%{box-shadow:0 0 0 1px #6a4a1c,0 0 0 2px #fff3c8,0 0 0 3px #8a6428,0 4px 12px rgba(0,0,0,.5),0 0 22px rgba(255,220,130,.85)}}
+.battle-stage.multi #btn-mb-go:active{transform:translateX(-50%) translateY(2px);filter:brightness(.96);animation:none;transition-duration:.06s}
+@media (prefers-reduced-motion:reduce){.battle-stage.multi #btn-mb-go.ready{animation:none}}
+.mb-stat{position:absolute;z-index:54;display:flex;flex-direction:column;gap:2px;box-sizing:border-box;
+  width:196px;max-height:168px;overflow:auto;padding:4px 5px 5px;border-radius:10px;
+  background:rgba(8,10,18,.8);border:1px solid rgba(196,163,90,.4);box-shadow:0 8px 18px rgba(0,0,0,.4);backdrop-filter:blur(5px);
+  -webkit-overflow-scrolling:touch;scrollbar-width:none}
+.mb-stat::-webkit-scrollbar{display:none}
+.mb-stat-ally{left:calc(8px + env(safe-area-inset-left,0px));bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+.mb-stat-enemy{right:calc(8px + env(safe-area-inset-right,0px));bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+.mb-stat-row{display:block;width:100%;margin:0;padding:1px 3px 2px;border:0;border-radius:6px;background:transparent;color:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mb-stat-row:hover,.mb-stat-row:focus-visible{background:rgba(236,186,104,.1)}
+.mb-stat-row.dead{opacity:.42;filter:grayscale(.45)}
+.mb-nm{display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0;font:700 9.5px/1.15 var(--display),system-ui;color:var(--parch,#e8d5b0);letter-spacing:.01em}
+.mb-nm span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mb-nm .st-mark{flex:0 0 auto;padding:0 4px;border-radius:5px;background:#8a3a2a;color:#fff;font:700 8px/14px system-ui;letter-spacing:0}
+.mb-stat-row.is-stag{box-shadow:inset 0 0 0 1px rgba(224,180,58,.55)}
+.mb-meters{display:flex;gap:4px;align-items:center;margin-top:1px}
+.mb-meter{flex:1;min-width:0;display:flex;align-items:center;gap:3px}
+.mb-meter .bar{flex:1;min-width:18px;height:4px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden}
+.mb-meter .bar i{display:block;height:100%;border-radius:2px}
+.mb-meter.hp .bar i{background:#6ebd96}
+.mb-meter.st .bar i{background:#e0b43a}
+.mb-meter b{flex:0 0 auto;font:700 8px/1 system-ui;font-variant-numeric:tabular-nums;color:var(--parch2,#c9b894);letter-spacing:0}
+.battle-stage:has(.qpanel.on) .mb-stat{opacity:0;visibility:hidden;pointer-events:none}
+@media (orientation:portrait){
+  .battle-stage.multi #btn-mb-go{bottom:calc(186px + env(safe-area-inset-bottom,0px));height:38px;font-size:16px}
+  .mb-stat{width:calc(50% - 14px);max-height:136px;bottom:calc(230px + env(safe-area-inset-bottom,0px))}
+}
+@media (orientation:landscape) and (max-height:500px){
+  .battle-stage.multi #btn-mb-go{bottom:calc(142px + env(safe-area-inset-bottom,0px));height:36px;min-width:100px;font-size:15px;letter-spacing:.16em}
+  .mb-stat{width:186px;max-height:148px}
+}
 .bs .hand.bs-fan .card.paper .dice .rng{font-style:normal;font-weight:700;margin-left:2px}
-@media (orientation:landscape) and (max-height:500px){.battle-stage.multi .pass-btn{min-height:40px;min-width:78px;bottom:calc(8px + env(safe-area-inset-bottom,0px))}}
 .dmg.mini{font-size:24px}.dmg.mini.stag,.dmg.mini.rec{font-size:17px}.dmg.mini .dtag{font-size:9px}
 </style>
 </head>
@@ -6020,7 +6058,18 @@ function renderMulti(){
         <div class="qpanel frame" id="qpanel">${cornerHtml()}<div id="qinner"></div></div>
       </div>
       <div class="hud-top"><div class="turnchip" id="mb-turn"></div></div>
-      <button class="btn pass-btn" id="btn-mb-go" type="button">합 진행</button>
+      <aside class="mb-stat mb-stat-ally" id="mb-stat-ally" aria-label="아군 상태"></aside>
+      <aside class="mb-stat mb-stat-enemy" id="mb-stat-enemy" aria-label="적 상태"></aside>
+      <button class="btn-mb-go" id="btn-mb-go" type="button" aria-label="개막">
+        <svg class="go-orn" viewBox="0 0 140 52" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M64 1h12l-6 9z" fill="#c4a35a" stroke="#f3e6c0" stroke-width="1" stroke-linejoin="round"/>
+          <path d="M8 10 Q26 2 34 16" fill="none" stroke="#f3e6c0" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M132 10 Q114 2 106 16" fill="none" stroke="#f3e6c0" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M10 18 Q8 30 12 42" fill="none" stroke="#d4aa4e" stroke-width="1.1" stroke-linecap="round"/>
+          <path d="M130 18 Q132 30 128 42" fill="none" stroke="#d4aa4e" stroke-width="1.1" stroke-linecap="round"/>
+        </svg>
+        <span class="go-lab">개막</span>
+      </button>
     </div>`;
   paintBattleFloor($("#arena-bg"), mb.guest.floorId);
   if(window.BattleStage){
@@ -6033,12 +6082,51 @@ function renderMulti(){
   mbRefresh();
   if(reception.phase==="win") showWin(); else if(reception.phase==="lose") showLose();
 }
+function mbAssignReady(B){
+  const units=(B||{}).units||[];
+  for(const u of units){
+    if(u.side!=="ally"||u.hp<=0||u.staggered) continue;
+    if((u.dice||[]).some(d=>!d.card)) return false;
+  }
+  return true;
+}
+function mbStatRow(u){
+  const dead=u.hp<=0, stag=!!u.staggered;
+  const hp=Math.max(0,u.hp|0), mhp=Math.max(1,u.maxHp|0);
+  const st=Math.max(0,u.stagger|0), mst=Math.max(1,u.maxStagger|0);
+  const hpPct=Math.min(100,mhp?hp/mhp*100:0), stPct=Math.min(100,mst?st/mst*100:0);
+  return `<button class="mb-stat-row${dead?" dead":""}${stag?" is-stag":""}" type="button" data-unit="${u.id}" aria-label="${u.name} 체력 ${hp}/${mhp} 흐트러짐 ${st}/${mst}${stag?" 흐트러짐":""}${dead?" 퇴장":""}">
+    <div class="mb-nm"><span>${u.name}</span>${stag?`<em class="st-mark">흐트러짐</em>`:""}</div>
+    <div class="mb-meters">
+      <span class="mb-meter hp"><span class="bar"><i style="width:${hpPct}%"></i></span><b>${hp}/${mhp}</b></span>
+      <span class="mb-meter st"><span class="bar"><i style="width:${stPct}%"></i></span><b>${st}/${mst}</b></span>
+    </div>
+  </button>`;
+}
+function mbHighlightUnit(id){
+  const el=document.querySelector(`.bs-unit[data-unit="${id}"]`); if(!el) return;
+  el.classList.remove("mb-hl"); void el.offsetWidth; el.classList.add("mb-hl");
+  clearTimeout(el._hlT); el._hlT=setTimeout(()=>el.classList.remove("mb-hl"),720);
+}
+function mbPaintStats(B){
+  const units=(B&&B.units)||[];
+  const ally=$("#mb-stat-ally"), enemy=$("#mb-stat-enemy");
+  if(ally) ally.innerHTML=units.filter(u=>u.side==="ally").map(mbStatRow).join("");
+  if(enemy) enemy.innerHTML=units.filter(u=>u.side==="enemy").map(mbStatRow).join("");
+  $$(".mb-stat-row").forEach(r=>r.onclick=()=>mbHighlightUnit(r.dataset.unit));
+}
 function mbRefresh(display){
   if(!mb||!$("#mb-host")) return;
   const B=mb.battle;
-  if(window.BattleStage) BattleStage.render(display||B,mbStageOpts());
+  const src=display||B;
+  if(window.BattleStage) BattleStage.render(src,mbStageOpts());
   const tc=$("#mb-turn"); if(tc) tc.innerHTML=`${B.scene}막 · ${mb.guest.concept}`;
-  const go=$("#btn-mb-go"); if(go) go.style.display=B.phase==="assign"&&!display?"":"none";
+  mbPaintStats(src);
+  const go=$("#btn-mb-go");
+  if(go){
+    go.style.display=B.phase==="assign"&&!display?"":"none";
+    go.classList.toggle("ready", !!(B.phase==="assign"&&!display&&mbAssignReady(B)));
+  }
   if(B.phase==="question"&&!display) mbShowQuestion(); else $("#qpanel")?.classList.remove("on","key","short");
   if(window.BattleStage&&BattleStage.relayout){ BattleStage.relayout(); requestAnimationFrame(()=>BattleStage.relayout&&BattleStage.relayout()); }
 }
@@ -6961,7 +7049,7 @@ function boot(){
       assign(unitId,dieIdx,cardId,target){ const r=mbAssign(unitId,dieIdx,cardId,target); mbRefresh(); return r; },
       unassign(unitId,dieIdx){ const r=mbUnassign(unitId,dieIdx); mbRefresh(); return r; },
       resolve(o){ return mbRunResolve(!(o&&o.animate)); }, resolveOnly:()=>mbResolve(), startScene(){ mbStartScene(); mbRefresh(); return mb.battle; },
-      relink:()=>mbRelink(), isClash:(u,i)=>mbIsClash(u,i),
+      relink:()=>mbRelink(), refresh:()=>mbRefresh(), isClash:(u,i)=>mbIsClash(u,i),
       setRng(fn){ if(mb) mb.rng=fn; },
       setEnemyTarget(eid,k,target){ const X=mb.x[eid]; X.orig[k]=target?{unit:target.unit,die:target.die}:null; mbRelink(); mbRefresh(); },
       hand:(uid)=>mb.x[uid].handIds, cardOf:(cid)=>mb.cards[cid]||PAGE_BY[cid]||null, internals:()=>mb.x, get mb(){ return mb; },

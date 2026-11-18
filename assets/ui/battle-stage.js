@@ -13,16 +13,16 @@
         ev = {kind:"clash"|"one-sided", a:{unit,die,card,values}, b:{...}|null, steps:[{aVal,bVal,winner:"a"|"b"|"tie",dmg}], result}
            또는 예전 모양 {kind, ally, allyDie, enemy, enemyDie, allyCard, enemyCard, win, by}
         시간: 합 하나 clashMs(900), 부딪침 hitAt(400), steps 하나 더할 때마다 stepMs(240), 최대 maxClashMs(1600). fast 면 fastMs(300).
-        카메라가 들어가 있는 동안 .battle-stage 에 bs-cam-on → 손패·합 진행 버튼 숨김.
+        카메라가 들어가 있는 동안 .battle-stage 에 bs-cam-on → 손패·개막 버튼·상태판 숨김.
         연출 중 탭 = 이번 합 빨리 감기(+onSkip), 길게 누르기(holdMs 450) = 다음 배치 단계 render 전까지 모든 clash 즉시 끝남(+onSkip)
      BattleStage.focus(ev, fast) // (예전 흐름) 카메라만. 이걸로 맞춰 둔 뒤 clash(ev) 를 부르면 clash 는 카메라를 건드리지 않는다
      BattleStage.unitPoint(unitId) // 피해 숫자 띄울 화면 좌표 {x,y} (캐릭터 가슴께)
      BattleStage.relayout() // 바깥 요소(문제 칸 등)가 바뀐 뒤 자리만 다시 잡기
    조작: 배치 단계면 카드 안 놓은 첫 주사위가 자동으로 골라져 손패가 바로 뜬다.
      내 주사위 탭 → 손패에서 카드 탭 → 적 주사위 탭(또는 끌기). 흐트러져 주사위가 없는 적은 캐릭터를 탭하면 {unit, die:null}.
-     합 진행 전까지는 언제든 다시 고를 수 있다. 카드가 놓인 내 주사위 또는 그 화살표를 탭하면 해제(opts.onUnassign || onUnassign).
+     개막 전까지는 언제든 다시 고를 수 있다. 카드가 놓인 내 주사위 또는 그 화살표를 탭하면 해제(opts.onUnassign || onUnassign).
      고른 카드를 다시 탭하면 선택만 해제. 감정 조건이 안 되는 카드(cardInfo.usable / emotionReq)는 흐리고 고를 수 없다.
-   자리: 아래쪽 손패·합 진행 버튼 몫(가로 66px, 세로 118px)은 비워 둔다.
+   자리: 아래쪽 손패·개막 버튼 몫(가로 약 186px, 세로 손패+개막+상태판 약 360px)은 비워 둔다. 좌우 상태판은 손패 옆 여백.
    배치: 아군 slot 0 앞줄, 1·2 뒷줄 / 적 slot 0~2 앞줄, 3·4 뒷줄. 뒷줄은 작고 어둡게. */
 (function(){
   const CSS=`
@@ -101,7 +101,7 @@
 .bs-spark b:nth-child(2){transform:rotate(60deg)}.bs-spark b:nth-child(3){transform:rotate(-60deg)}
 @keyframes bsSpark{0%{transform:scale(.3);opacity:1}70%{opacity:1}100%{transform:scale(1.5);opacity:0}}
 @media (prefers-reduced-motion:reduce){.bs-unit.lunge .bs-fig,.bs-unit.flinch .bs-fig,.bs-unit.lose .bs-fig{animation:none}}
-.bs .hand.bs-fan{left:calc(8px + env(safe-area-inset-left,0px));right:calc(104px + env(safe-area-inset-right,0px));bottom:calc(4px + env(safe-area-inset-bottom,0px));height:168px;z-index:50}
+.bs .hand.bs-fan{left:calc(208px + env(safe-area-inset-left,0px));right:calc(208px + env(safe-area-inset-right,0px));bottom:calc(4px + env(safe-area-inset-bottom,0px));height:168px;z-index:50}
 .bs .hand.bs-fan .cc{width:108px;height:156px;margin:0}
 .bs .hand.bs-fan .cc.pick .card.paper{box-shadow:0 0 0 2px #ffe6a8,0 0 18px rgba(255,200,90,.55)}
 .bs .hand.bs-fan .cc.used{opacity:.28;filter:grayscale(.6);pointer-events:none}
@@ -118,13 +118,14 @@
 .bs-unit.bg{opacity:.22;filter:brightness(.55)!important}
 .bs.focus .bs-svg{opacity:0;transition:opacity .15s}
 .result-on .bs-svg,.result-on .bs-info,.result-on .bs-fan,.result-on .bs-hand{display:none!important}
+.bs-unit.mb-hl{filter:brightness(1.4) drop-shadow(0 0 14px rgba(255,230,168,.95));z-index:30!important}
 .bs.focus .bs-unit.fo{transition:left .3s cubic-bezier(.2,.8,.2,1),top .3s cubic-bezier(.2,.8,.2,1)}
 .bs-cam{transition:transform .32s cubic-bezier(.2,.8,.2,1);transform-origin:0 0;will-change:transform}
 .bs-cam.fast{transition-duration:.16s}
-/* 카메라가 들어가 있는 동안(다가감~빠짐 끝) 손패·합 진행 버튼 숨김 */
-.bs-cam-on .bs-fan,.bs-cam-on .bs-hand,.bs-cam-on #btn-mb-go,.bs-cam-on .pass-btn{opacity:0!important;visibility:hidden!important;pointer-events:none!important;transition:opacity .12s,visibility 0s .12s}
+/* 카메라가 들어가 있는 동안(다가감~빠짐 끝) 손패·개막 버튼·상태판 숨김 */
+.bs-cam-on .bs-fan,.bs-cam-on .bs-hand,.bs-cam-on #btn-mb-go,.bs-cam-on .pass-btn,.bs-cam-on .mb-stat{opacity:0!important;visibility:hidden!important;pointer-events:none!important;transition:opacity .12s,visibility 0s .12s}
 @media (prefers-reduced-motion:reduce){ .bs-cam{transition:none} }
-@media (orientation:landscape) and (max-height:500px){ .bs .hand.bs-fan{height:136px} .bs .hand.bs-fan .cc{width:84px;height:122px} }
+@media (orientation:landscape) and (max-height:500px){ .bs .hand.bs-fan{height:136px;left:calc(196px + env(safe-area-inset-left,0px));right:calc(196px + env(safe-area-inset-right,0px))} .bs .hand.bs-fan .cc{width:84px;height:122px} }
 /* 몸 종류가 있는 적(인간형·기계인간형·꼭두각시형): 온몸 그림이라 조금 크게, 우두머리는 더 크게. 흐트러지면 기울이지 않고 그림이 무너진다 */
 .bs-unit.nb{--fh:88px}
 .bs-unit.nb.lead{--fh:112px;--uw:86px}
@@ -147,7 +148,7 @@
   function isLand(){ return !root || root.clientWidth>=root.clientHeight; }
   function band(){
     const H=root.clientHeight, land=isLand(), R=root.getBoundingClientRect();
-    const fan=!!opts.cardHtml; const reserve = last&&last.phase==="question" ? 8 : fan ? (land?(H<=500?132:172):182) : (land?66:118);
+    const fan=!!opts.cardHtml; const reserve = last&&last.phase==="question" ? 8 : fan ? (land?(H<=500?186:220):360) : (land?66:118);
     let y0=land?44:48, y1=H-reserve;
     const sel=opts.avoid===undefined?"#qpanel.on":opts.avoid, av=sel&&document.querySelector(sel);
     if(av){ const r=av.getBoundingClientRect();
