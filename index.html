@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118zb">
+<meta name="build" content="library-20261118zc">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -2124,7 +2124,10 @@ const COMBAT = {
   guestStagger:{1:12,2:16,3:22},          // 흐트러짐 저항 게이지 (0이 되면 흐트러짐)
   playerStagger:26, playerStaggerPerLevel:2,
   quizShift:2, keyShift:3,                // 정답 시 내 주사위 +, 오답 시 −
-  quizGuestShift:1, keyWrongGuestShift:1, // 정답 시 손님 주사위 −1, 핵심 문항 오답 시 손님 주사위 +1
+  quizGuestShift:1, keyWrongGuestShift:1, // (예전 고정값 — 지금은 아래 pct 를 쓴다)
+  /* 주사위 변동은 비율: 각 끝(min·max)에 곱해 반올림, 변동은 최소 1, 하한 1, hi≥lo.
+     정답: 내 +right(핵심 keyRight) + emotionPer×감정단계, 손님 −guestRight. 오답: 내 −wrong(핵심 keyWrong), 핵심 문항 오답일 때만 손님 +guestKeyWrong */
+  pct:{right:0.20, wrong:0.20, keyRight:0.30, keyWrong:0.30, emotionPer:0.05, guestRight:0.20, guestKeyWrong:0.20},
   correctStagger:1.25, keyCorrectStagger:1.75,
   bigEvery:{1:4,2:3,3:3}
 };
@@ -2255,6 +2258,9 @@ for (const slot of SLOTS) {
 const COLLECTION_TOTAL = COSMETIC_ITEMS.length;
 const STARTER_PAGES = COMBAT_PAGES.filter(p=>p.starter).map(p=>p.id);
 const PAGE_BY = Object.fromEntries(COMBAT_PAGES.map(p=>[p.id,p]));
+/* 감정 요구 단계는 card.emotionReq 로 통일 (예전 page.emotion 은 별칭으로 읽어 emotionReq 에 맞춘다) */
+const pageEmotionReq=p=>p?(p.emotionReq!=null?p.emotionReq:(p.emotion||0)):0;
+COMBAT_PAGES.forEach(p=>{ if(p.emotionReq==null) p.emotionReq=p.emotion||0; });
 const KEY_BY = Object.fromEntries(KEY_PAGES.map(p=>[p.id,p]));
 const ITEM_BY = Object.fromEntries(COSMETIC_ITEMS.map(p=>[p.id,p]));
 const GUEST_BY = Object.fromEntries(WEAK_POINTS.map(p=>[p.id,p]));
@@ -2490,16 +2496,17 @@ function stagOnly(u,v,mul){
 function recoverSt(u,v){ if(u.stag>0) return {kind:"recover",st:0}; const b=u.st; u.st=Math.min(u.stMax,u.st+v); return {kind:"recover",st:u.st-b}; }
 const randInt=(rng,a,b)=>a+Math.floor(rng()*(b-a+1));
 /* dice modifiers from the quiz */
+/* 한 끝 값 v 를 비율 p 만큼 (p>0 늘림, p<0 줄임). 반올림, 변동 최소 1, 하한 1 */
+function pctEnd(v,p){ if(!p) return v; let n=Math.round(v*(1+p)); if(n===v) n=v+(p>0?1:-1); return Math.max(1,n); }
+function pctRange(d,p,add){ const lo=Math.max(1,pctEnd(d.min,p)+(add||0)), hi=Math.max(lo,pctEnd(d.max,p)); return [lo,hi]; }
+/* 1:1·다대다·미리보기·cardInfo 가 모두 이 두 함수를 쓴다. dieMin 보정은 비율 뒤 하한(min)에만 더한다 (예전과 같음) */
 function playerDieRange(d,correct,isKey,emotion,dieMin){
-  const base=isKey?COMBAT.keyShift:COMBAT.quizShift;
-  const shift=correct?base+Math.floor((emotion||0)/2):-base;
-  const lo=Math.max(1,d.min+(dieMin||0)+shift), hi=Math.max(lo,d.max+shift);
-  return [lo,hi];
+  const P=COMBAT.pct, p=correct?(isKey?P.keyRight:P.right)+P.emotionPer*(emotion||0):-(isKey?P.keyWrong:P.wrong);
+  return pctRange(d,p,dieMin||0);
 }
 function guestDieRange(d,correct,isKey){
-  const shift=correct?-COMBAT.quizGuestShift:(isKey?COMBAT.keyWrongGuestShift:0);
-  const lo=Math.max(1,d.min+shift), hi=Math.max(lo,d.max+shift);
-  return [lo,hi];
+  const P=COMBAT.pct, p=correct?-P.guestRight:(isKey?P.guestKeyWrong:0);
+  return pctRange(d,p,0);
 }
 function resolveScene(o){
   const P=o.P,G=o.G,pDice=o.pDice,gDice=o.gDice,correct=!!o.correct,isKey=!!o.isKey,rng=o.rng||Math.random,mods=o.mods||{};
@@ -5691,11 +5698,11 @@ function nextTurn(){
               status:[{id,stacks,turns}], dice:[{speed, card, target:{unit,die}|null}]}]}
    무대 그리기·조작은 assets/ui/battle-stage.js (UI/UX 담당). 기믹 훅: MB_HOOKS.onSceneStart/onSceneEnd/onAnswer/onClash */
 const MB={ allyDice:2, allySpeed:[2,6], leaderSpeed:[2,6], followerSpeed:[1,5], followerHp:.5, followerSt:.6, followerDie:-1,
-  maxEnemies:5, answerLight:1, answerDie:1, stepMs:520 };
+  maxEnemies:5, stepMs:520 };
 /* 적 key별 덮어쓰기: {maxHp, maxStagger, speedDice, speed:[lo,hi], resist, pages:[{name,dice}], big, bigEvery} — 비어 있으면 공식대로 */
 const ENEMY_STATS={};
 const MB_TYPE_EN={참격:"slash",관통:"pierce",타격:"blunt",방어:"guard",회피:"evade"};
-const MB_HOOKS={onSceneStart:[],onSceneEnd:[],onAnswer:[],onClash:[]};
+const MB_HOOKS={onSceneStart:[],onSceneEnd:[],onAnswer:[],onClash:[],onAssign:[],onUnassign:[]};
 let mb=null;
 /* 다대다가 기본. ?multi=0 또는 save.multiBattle===false 면 기존 1:1 접대 (?multi=1 은 저장값보다 우선해 다대다) */
 function multiEnabled(){ try{ if(/[?&]multi=0(&|$)/.test(location.search)) return false; if(/[?&]multi=1(&|$)/.test(location.search)) return true; }catch(e){} return save.multiBattle!==false; }
@@ -5729,6 +5736,39 @@ function enemyStats(guest,e,idx){
   o.speedDice=Math.max(1,Math.min(3,o.speedDice|0));
   return o;
 }
+/* 적 외형 분류 (UI 가 몸·표정 그림을 고를 때). guest.enemies[i].body/form 이 있으면 그대로.
+   body: 1) e.body  1b) ENEMY_BODY[e.key] (적 key 별 기본표, ENEMY_STATS 와 별도)  2) 손님 archetype "puppet" → "puppet"  3) 손님 floorId: crime·criminal-law → "human", cognition → "machine", memory → "puppet"
+         4) 그 밖은 손님 id 해시 % 3 → human/machine/puppet (같은 손님의 무리는 같은 몸)
+   form: 1) e.form  2) 우두머리이고 weakness ≥ 3(어려운 손님) → "chaos"
+         3) 책장의 절반 이상에 effect/text(효과) 가 있으면 → "knowledge"
+         4) 주사위 중 공격(참격·관통·타격) 비율 ≥ 0.9 → "basic"  5) 방어·회피 비율 ≥ 0.5 → "ritual"
+         6) 섞인 손(기본 키트는 공격 0.8)이면 손님 archetype 으로: fixer·knight·beast → basic, scholar·mage → knowledge, puppet → ritual
+         7) 그래도 없으면 공격 ≥ 0.75 → basic, 아니면 knowledge */
+const ENEMY_BODY={};
+for(const [b,ks] of Object.entries({
+  human:["beccaria-author","beccaria-no-revenge","tc-scale-knight","bentham-preacher","bentham-warden","legality-gatekeeper","legality-whim-judge","deterrence-brakeman","limits-article-ten","meta-scribe","defamation-advocate","defamation-accuser"],
+  machine:["tc-fine-collector","bentham-accountant","deterrence-tracker","limits-dim-lobe","pomodoro-clockwork","pomodoro-intruder","recall-echo","spaced-sentinel","meta-mirror"],
+  puppet:["beccaria-rack-ghost","tc-harshness","deterrence-same-price","limits-shadow","recall-reread","spaced-cram-night","defamation-rumormonger","defamation-casebook"]})) for(const k of ks) ENEMY_BODY[k]=b;
+const MB_ARCH_FORM={fixer:"basic",knight:"basic",beast:"basic",scholar:"knowledge",mage:"knowledge",puppet:"ritual"};
+const MB_BODIES=["human","machine","puppet"], MB_FLOOR_BODY={crime:"human","criminal-law":"human",cognition:"machine",memory:"puppet"};
+function mbHash(str){ let h=0; for(const ch of String(str)) h=(h*31+ch.charCodeAt(0))>>>0; return h; }
+function enemyBody(guest,e){
+  if(e&&MB_BODIES.includes(e.body)) return e.body;
+  if(e&&MB_BODIES.includes(ENEMY_BODY[e.key])) return ENEMY_BODY[e.key];
+  if(guest.archetype==="puppet") return "puppet";
+  if(MB_FLOOR_BODY[guest.floorId]) return MB_FLOOR_BODY[guest.floorId];
+  return MB_BODIES[mbHash(guest.id)%3];
+}
+function enemyForm(guest,e,S){
+  if(e&&["basic","ritual","knowledge","chaos"].includes(e.form)) return e.form;
+  if(S.leader&&(guest.weakness||1)>=3) return "chaos";
+  const pages=[...(S.pages||[]),...(S.big?[S.big]:[])];
+  if(pages.length&&pages.filter(p=>p.effect||p.text).length*2>=pages.length) return "knowledge";
+  const dice=pages.flatMap(p=>p.dice||[]); if(!dice.length) return "basic";
+  const atk=dice.filter(d=>isAttack(d.type)).length/dice.length;
+  if(atk>=0.9) return "basic"; if(1-atk>=0.5) return "ritual";
+  return MB_ARCH_FORM[guest.archetype]||(atk>=0.75?"basic":"knowledge");
+}
 function mbQuestionPool(guest){
   const m={};
   (guest.questions||[]).forEach(q=>{ if(q&&q.id) m[q.id]={q,isKey:false}; });
@@ -5738,7 +5778,9 @@ function mbQuestionPool(guest){
 const mbUnit=id=>mb&&mb.battle.units.find(u=>u.id===id);
 const mbSide=side=>mb.battle.units.filter(u=>u.side===side);
 const mbLive=side=>mbSide(side).filter(u=>u.hp>0);
-function mbSync(u){ const c=mb.x[u.id].cu; u.hp=c.hp; u.stagger=c.st; u.staggered=c.stag>0; }
+/* expr(표정): "shock" 흐트러진 동안 · "hurt" 방금 교환에서 피해(체력·흐트러짐)를 입음 · "win" 방금 합에서 이김(피해 없이) · 그 밖 "idle".
+   교환마다 그 교환에 나온 둘만 바뀌고, 다음 막 시작에 idle(흐트러졌으면 shock)로 돌아간다 */
+function mbSync(u){ const c=mb.x[u.id].cu; u.hp=c.hp; u.stagger=c.st; u.staggered=c.stag>0; if(u.staggered) u.expr="shock"; else if(u.expr==="shock") u.expr="idle"; }
 function mbCreate(guestId,o){
   o=o||{};
   const guest=GUEST_BY[guestId]; if(!guest) return null;
@@ -5750,7 +5792,7 @@ function mbCreate(guestId,o){
     const L=libOf(save,libId), t=libMods(libId), id="a"+(i+1);
     const hpMax=save.maxHp+(t.hp||0), stMax=playerStaggerMax(save.level), emo=libStartEmotion(libId), sl=libStartLight(libId);
     units.push({id,side:"ally",slot:i,libId,name:L.name,hp:hpMax,maxHp:hpMax,stagger:stMax,maxStagger:stMax,staggered:false,
-      light:sl,maxLight:Math.min(COMBAT.maxLightCap,Math.max(sl,COMBAT.baseLight+emo)),emotion:emo,status:[],dice:[]});
+      light:sl,maxLight:Math.min(COMBAT.maxLightCap,Math.max(sl,COMBAT.baseLight+emo)),emotion:emo,emotionCharge:0,emotionMax:COMBAT.emotionMax,chargesPerEmotion:COMBAT.chargesPerEmotion,status:[],dice:[],expr:"idle"});
     x[id]={cu:mkUnit(hpMax,stMax,FLAT_RESIST),mods:t,charge:0,deckIds:shuffle(libDeckIds(libId)),handIds:[],discardIds:[],
       seq:[],pendingDraw:0,pendingLight:0,breathe:0,nDice:MB.allyDice,speed:MB.allySpeed.slice(),log:null};
   });
@@ -5759,7 +5801,7 @@ function mbCreate(guestId,o){
   ordered.forEach((e,i)=>{
     const S=enemyStats(guest,e,i), id="e"+(i+1);
     units.push({id,side:"enemy",slot:i,key:e.key,topic:e.topic,name:e.name,hp:S.maxHp,maxHp:S.maxHp,stagger:S.maxStagger,maxStagger:S.maxStagger,staggered:false,
-      light:0,maxLight:0,emotion:0,status:[],dice:[]});
+      light:0,maxLight:0,emotion:0,status:[],dice:[],leader:!!S.leader,body:enemyBody(guest,e),form:enemyForm(guest,e,S),expr:"idle"});
     x[id]={cu:mkUnit(S.maxHp,S.maxStagger,S.resist),S,e,pageIdx:0,qIdx:Math.floor(rng()*Math.max(1,(e.q||[]).length)),diePages:[],orig:[]};
   });
   const m={guestId,guest,isRecall:save.conqueredIds.includes(guest.id),rng,x,qpool:mbQuestionPool(guest),bonus:0,cur:null,log:[],events:[],
@@ -5772,7 +5814,8 @@ function mbRollDice(u){
   u.dice=(u.hp<=0||X.cu.stag>0)?[]:Array.from({length:n},()=>({speed:randInt(mb.rng,sp[0],sp[1]),card:null,target:null}));
 }
 function mbStartScene(){
-  const B=mb.battle; B.scene++; mb.bonus=0; mb.events=[];
+  const B=mb.battle; B.scene++; mb.events=[];
+  for(const u of B.units) u.expr="idle";
   for(const u of B.units){
     const X=mb.x[u.id], cu=X.cu;
     if(u.hp<=0){ u.dice=[]; continue; }
@@ -5823,27 +5866,28 @@ function mbPickQuestion(){
   B.question={fromUnit:u.id,id:qid,answered:false,correct:null};
 }
 function mbCharge(u,n){
-  const X=mb.x[u.id]; X.charge+=n;
+  const X=mb.x[u.id]; X.charge+=n; u.emotionCharge=X.charge;
   while(X.charge>=COMBAT.chargesPerEmotion&&u.emotion<COMBAT.emotionMax){
-    X.charge-=COMBAT.chargesPerEmotion; u.emotion++;
+    X.charge-=COMBAT.chargesPerEmotion; u.emotion++; u.emotionCharge=X.charge;
     u.maxLight=Math.min(COMBAT.maxLightCap,Math.max(u.maxLight,COMBAT.baseLight+u.emotion));
     X.pendingDraw++; X.pendingLight++;
     mb.log.push(`${u.name}의 감정이 ${u.emotion}단계가 되었다.`);
   }
 }
-/* 정답: 모든 사서 빛 +1, 이 막 동안 모든 주사위 값 +1(+감정 보너스). 오답: 보너스도 벌칙도 없음 */
+/* 막 문제 답: 1:1 과 같은 규칙. 이 막의 주사위 범위는 battle.question.correct 로 정해진다
+   (사서 playerDieRange(d,correct,isKey,emotion,dieMin), 적 guestDieRange(d,correct,isKey)).
+   감정: 정답이면 사서마다 충전 +1 (chargesPerEmotion 마다 감정 +1), 오답이면 충전 0 */
 function mbAnswer(correct){
   const B=mb&&mb.battle; if(!B||B.phase!=="question") return false;
   correct=!!correct; const rec=reception, guest=mb.guest;
   B.question.answered=true; B.question.correct=correct;
-  mb.bonus=correct?MB.answerDie:0;
   if(rec){ rec.sessionTotal=(rec.sessionTotal||0)+1; if(correct) rec.sessionCorrect=(rec.sessionCorrect||0)+1; }
   const rst=ensureRecall(guest.id); rst.total++; if(correct) rst.correct++;
   const ps=save.conceptStats[guest.id]||{correct:0,total:0};
   save.conceptStats={...save.conceptStats,[guest.id]:{correct:ps.correct+(correct?1:0),total:ps.total+1}};
   save.questionsAnswered++;
-  if(correct) for(const u of mbLive("ally")){ u.light=Math.min(u.maxLight,u.light+MB.answerLight); mbCharge(u,1); }
-  mb.log.push(correct?`${B.scene}막 문제 정답 — 사서 모두 빛 +1, 주사위 +${MB.answerDie}`:`${B.scene}막 문제 오답 — 해설 · ${guest.explanation}`);
+  for(const u of mbLive("ally")){ if(correct) mbCharge(u,1); else { mb.x[u.id].charge=0; if(u.emotionCharge!=null) u.emotionCharge=0; } }
+  mb.log.push(correct?`${B.scene}막 문제 정답 — 이번 막 내 주사위가 커지고 손님 주사위가 작아진다`:`${B.scene}막 문제 오답 — 해설 · ${guest.explanation}`);
   B.phase="assign";
   mbEmit("onAnswer",{correct,id:B.question.id,isKey:!!(mb.cur&&mb.cur.isKey),fromUnit:B.question.fromUnit});
   persist();
@@ -5875,8 +5919,8 @@ function mbAssign(unitId,dieIdx,cardId,target){
   const prev=d.card;
   if(!X.handIds.includes(cardId)&&prev!==cardId) return {ok:false,reason:"not-in-hand"};
   const refund=prev?(PAGE_BY[prev].cost||0):0;
+  if(pageEmotionReq(page)>(u.emotion||0)) return {ok:false,reason:"emotion"};   /* 감정 단계 부족이 먼저 (cardInfo.reason 과 같은 순서) */
   if((page.cost||0)>u.light+refund) return {ok:false,reason:"light"};
-  if((page.emotion||0)>u.emotion) return {ok:false,reason:"emotion"};
   const tu=target&&mbUnit(target.unit);
   if(!tu||tu.side!=="enemy"||tu.hp<=0) return {ok:false,reason:"target"};
   const tdie=target.die==null?null:+target.die;
@@ -5885,73 +5929,142 @@ function mbAssign(unitId,dieIdx,cardId,target){
   removeOne(X.handIds,cardId); u.light-=(page.cost||0);
   d.card=cardId; d.target={unit:tu.id,die:tdie}; X.seq[dieIdx]=++mb.seq;
   mbRelink();
-  return {ok:true,clash:mbIsClash(u.id,dieIdx)};
+  const res={ok:true,clash:mbIsClash(u.id,dieIdx)};
+  mbEmit("onAssign",{unit:u.id,die:dieIdx,card:cardId,target:{...d.target},prev:prev||null,clash:res.clash});
+  return res;
 }
 function mbUnassign(unitId,dieIdx){
   const B=mb&&mb.battle; if(!B||B.phase!=="assign") return false;
   const u=mbUnit(unitId), d=u&&u.dice[dieIdx]; if(!d||!d.card||u.side!=="ally") return false;
-  const X=mb.x[u.id]; X.handIds.push(d.card); u.light+=(PAGE_BY[d.card].cost||0);
-  d.card=null; d.target=null; X.seq[dieIdx]=0; mbRelink(); return true;
+  /* 배치 단계 동안은 언제든 되돌림: 카드는 손패로, 빛 환불 (합 진행 전까지 자동 진행 없음) */
+  const X=mb.x[u.id], card=d.card, refund=PAGE_BY[card].cost||0; X.handIds.push(card); u.light+=refund;
+  d.card=null; d.target=null; X.seq[dieIdx]=0; mbRelink();
+  mbEmit("onUnassign",{unit:u.id,die:dieIdx,card,refund});
+  return true;
 }
-/* 카드 정보 (UI가 주사위를 탭했을 때 보여 줄 것). 사서 책장 id, 적 주사위 카드 id(e1@막.주사위), 또는 적 책장 이름+unitId.
-   적 부하의 책장은 주사위 −1 이 반영된 값. type 은 무대와 같은 영어(slash/pierce/blunt/guard/evade), ko 는 한국어 유형 */
+/* 이번 막 문제 상태: answered 전이면 correct=null (범위는 base) */
+function mbQState(){ const q=mb&&mb.battle&&mb.battle.question; return {answered:!!(q&&q.answered),correct:!!(q&&q.answered&&q.correct),isKey:!!(mb&&mb.cur&&mb.cur.isKey)}; }
+/* 사서가 이 책장을 지금 쓸 수 있나 (1:1 과 같은 규칙: 빛 비용, 감정 단계). 이미 이 사서 주사위에 놓인 카드는 그 빛을 돌려받는 셈으로 본다 */
+function mbUsable(u,P){
+  if(!u||!P) return {usable:false,reason:"card"};
+  if(u.hp<=0||(mb.x[u.id]&&mb.x[u.id].cu.stag>0)) return {usable:false,reason:"unit"};
+  const placed=u.dice.some(d=>d.card===P.id);
+  if(pageEmotionReq(P)>(u.emotion||0)) return {usable:false,reason:"emotion"};
+  if(!placed&&(P.cost||0)>u.light) return {usable:false,reason:"light"};
+  return {usable:true,reason:null};
+}
+/* 카드 정보. 사서 책장 id, 적 주사위 카드 id(e1@막.주사위), 또는 적 책장 이름+unitId.
+   {id,name,cost,emotionReq,usable,reason,dice:[{type,min,max,baseMin,baseMax,rightMin,rightMax,wrongMin,wrongMax,ko}],text,side,...}
+   min/max = 이번 막 실제 범위(문제 답 전이면 base). rightMin~Max·wrongMin~Max = 정답/오답일 때 범위(덱 편성 표시용). base = 카드 값 그대로
+   사서 범위는 unitId 의 감정·dieMin 반영(없으면 0). 적 부하의 책장은 주사위 −1 이 이미 반영된 값. type 은 무대와 같은 영어, ko 는 한국어 */
 function mbCardInfo(cid,uid){
-  const dice=ds=>(ds||[]).map(d=>({type:MB_TYPE_EN[d.type]||d.type,min:d.min,max:d.max,ko:d.type}));
+  const qs=mb?mbQState():{answered:false,correct:false,isKey:false};
   const P=PAGE_BY[cid];
-  if(P) return {id:P.id,name:P.name,cost:P.cost||0,dice:dice(P.dice),text:P.text||"",side:"ally",emotion:P.emotion||0};
+  if(P){
+    const u=mb&&uid?mbUnit(uid):null, X=u&&mb.x[u.id], emo=u?(u.emotion||0):0, dm=X&&X.mods?(X.mods.dieMin||0):0;
+    const dice=(P.dice||[]).map(d=>{ const r=playerDieRange(d,true,qs.isKey,emo,dm), w=playerDieRange(d,false,qs.isKey,emo,dm), cur=qs.answered?(qs.correct?r:w):[d.min,d.max];
+      return {type:MB_TYPE_EN[d.type]||d.type,min:cur[0],max:cur[1],baseMin:d.min,baseMax:d.max,rightMin:r[0],rightMax:r[1],wrongMin:w[0],wrongMax:w[1],ko:d.type}; });
+    const us=u?mbUsable(u,P):{usable:null,reason:null};
+    return {id:P.id,name:P.name,cost:P.cost||0,emotionReq:pageEmotionReq(P),usable:us.usable,reason:us.reason,dice,text:P.text||"",side:"ally",emotion:pageEmotionReq(P),unit:u?u.id:null};
+  }
   if(!mb) return null;
+  const edice=ds=>(ds||[]).map(d=>{ const r=guestDieRange(d,true,qs.isKey), w=guestDieRange(d,false,qs.isKey), cur=qs.answered?(qs.correct?r:w):[d.min,d.max];
+    return {type:MB_TYPE_EN[d.type]||d.type,min:cur[0],max:cur[1],baseMin:d.min,baseMax:d.max,rightMin:r[0],rightMax:r[1],wrongMin:w[0],wrongMax:w[1],ko:d.type}; });
   const C=mb.cards[cid];
-  if(C) return {id:cid,name:C.name,cost:0,dice:dice(C.dice),text:C.big?"이 손님의 큰 일격":"",side:"enemy",big:!!C.big,unit:cid.split("@")[0]};
+  if(C) return {id:cid,name:C.name,cost:0,emotionReq:0,usable:null,reason:null,dice:edice(C.dice),text:C.big?"이 손님의 큰 일격":"",side:"enemy",big:!!C.big,unit:cid.split("@")[0]};
   const X=uid&&mb.x[uid];
   if(X&&X.S){ const pg=[...X.S.pages,...(X.S.big?[X.S.big]:[])].find(p=>p.name===cid);
-    if(pg) return {id:cid,name:pg.name,cost:0,dice:dice(pg.dice),text:pg===X.S.big?"이 손님의 큰 일격":"",side:"enemy",big:pg===X.S.big,unit:uid}; }
+    if(pg) return {id:cid,name:pg.name,cost:0,emotionReq:0,usable:null,reason:null,dice:edice(pg.dice),text:pg===X.S.big?"이 손님의 큰 일격":"",side:"enemy",big:pg===X.S.big,unit:uid}; }
   return null;
 }
 function mbDiceOf(u,i){ return u.side==="ally"?PAGE_BY[u.dice[i].card].dice:mb.x[u.id].diePages[i].dice; }
-/* 막 풀기: 모든 주사위를 속도 순(빠른 것부터)으로. 서로 노린 두 주사위는 합(기존 resolveScene), 아니면 일방 공격 */
-function mbResolve(){
+/* 막 풀기: 모든 주사위를 속도 순(빠른 것부터)으로. 서로 노린 두 주사위는 합(기존 resolveScene), 아니면 일방 공격.
+   한 번에 하나씩: mbResolveBegin() → mbResolveNext(R) (교환 하나를 풀어 상태에 반영하고 그 이벤트를 돌려줌, 끝이면 null) → mbResolveEnd(R).
+   mbResolve() 는 이것을 한 번에 다 도는 동기 경로(테스트·즉시 진행).
+   교환 이벤트 ev (kind "clash"|"one-sided"):
+     a:{unit,die,card,values:[굴린 값…]}  — 먼저 움직인(더 빠른) 주사위
+     b:{unit,die,card,values}|null        — 합 상대. 일방 공격이면 null (맞는 쪽은 ev.target)
+     target: 맞는 유닛 id (합이면 b.unit)
+     steps:[{aVal,bVal,winner:"a"|"b"|"tie",dmg:{unit,hp,stagger}|null, …resolveScene 원래 필드(pd,gd,outcome,events,newStag)}]
+     result:{staggered:[이번 교환에서 새로 흐트러진 id], dead:[이번 교환에서 쓰러진 id]}
+     + 기존 필드 by,speed,ally,allyDie,enemy,enemyDie,allyCard,enemyCard,win("ally"|"enemy"|"tie"|null),snap  */
+function mbResolveBegin(){
   const B=mb&&mb.battle; if(!B||B.phase!=="assign") return null;
   B.phase="resolve";
   const acts=[];
   for(const u of B.units){ if(u.hp<=0||mb.x[u.id].cu.stag>0) continue; u.dice.forEach((d,i)=>{ if(d.card) acts.push({u,i,d}); }); }
   acts.sort((a,b)=>b.d.speed-a.d.speed||(a.u.side===b.u.side?0:a.u.side==="ally"?-1:1)||a.u.slot-b.u.slot||a.i-b.i);
-  const done=new Set(), K=(id,i)=>id+":"+i, events=[];
+  return {acts,k:0,done:new Set(),events:[],ended:false};
+}
+function mbResolveNext(R){
+  const B=mb.battle, K=(id,i)=>id+":"+i, done=R.done, events=R.events;
   const snap=()=>Object.fromEntries(B.units.map(u=>[u.id,{hp:u.hp,stagger:u.stagger,staggered:u.staggered}]));
-  for(const a of acts){
-    if(mb.outcome) break;
+  while(R.k<R.acts.length){
+    if(mb.outcome){ R.k=R.acts.length; break; }
+    const a=R.acts[R.k++];
     if(done.has(K(a.u.id,a.i))) continue;
     done.add(K(a.u.id,a.i));
-    if(a.u.hp<=0||mb.x[a.u.id].cu.stag>0){ events.push({kind:"skip",by:{unit:a.u.id,die:a.i},speed:a.d.speed}); continue; }
+    if(a.u.hp<=0||mb.x[a.u.id].cu.stag>0){ const sk={kind:"skip",by:{unit:a.u.id,die:a.i},speed:a.d.speed}; events.push(sk); return sk; }
     const t=a.d.target; let tu=t&&mbUnit(t.unit), partner=null;
     if(tu&&tu.hp>0&&t.die!=null&&tu.dice[t.die]&&!done.has(K(tu.id,t.die))&&mbIsClash(a.u.id,a.i)&&mb.x[tu.id].cu.stag===0) partner={u:tu,i:t.die};
     if(!tu||tu.hp<=0){ const pool=mbLive(a.u.side==="ally"?"enemy":"ally"); if(!pool.length) continue; tu=pool[Math.floor(mb.rng()*pool.length)]; partner=null; }
     if(partner) done.add(K(partner.u.id,partner.i));
+    const before=Object.fromEntries(B.units.map(u=>[u.id,{alive:u.hp>0,stag:mb.x[u.id].cu.stag>0}]));
     const ally=a.u.side==="ally"?a.u:tu, enemy=a.u.side==="ally"?tu:a.u;
     const allyDie=a.u.side==="ally"?a.i:(partner?partner.i:null), enemyDie=a.u.side==="enemy"?a.i:(partner?partner.i:null);
     const pDice=allyDie!=null?mbDiceOf(ally,allyDie):null, gDice=enemyDie!=null?mbDiceOf(enemy,enemyDie):null;
     const AX=mb.x[ally.id], EX=mb.x[enemy.id];
-    const shift=mb.bonus?mb.bonus+Math.floor((ally.emotion||0)/2):0;
-    const steps=resolveScene({P:AX.cu,G:EX.cu,pDice,gDice,correct:false,isKey:false,rng:mb.rng,mods:AX.mods,stMul:1,
-      pRangeFn:d=>{ const lo=Math.max(1,d.min+(AX.mods.dieMin||0)+shift); return [lo,Math.max(lo,d.max+shift)]; },
-      gRangeFn:d=>{ const lo=Math.max(1,d.min); return [lo,Math.max(lo,d.max)]; }});
+    const qc=mbQState();
+    const steps=resolveScene({P:AX.cu,G:EX.cu,pDice,gDice,correct:qc.correct,isKey:qc.isKey,emotion:ally.emotion||0,rng:mb.rng,mods:AX.mods,stMul:1});
     mbSync(ally); mbSync(enemy);
     const clash=!!(pDice&&gDice);
     const res={kind:clash?"clash":"one-sided",by:{unit:a.u.id,die:a.i},speed:a.d.speed,ally:ally.id,allyDie,enemy:enemy.id,enemyDie,
       allyCard:allyDie!=null?ally.dice[allyDie].card:null,enemyCard:enemyDie!=null?enemy.dice[enemyDie].card:null,
       win:clash?(steps.filter(s=>s.outcome==="P").length>steps.filter(s=>s.outcome==="G").length?"ally":steps.some(s=>s.outcome!=="tie"&&s.outcome!=="none")?"enemy":"tie"):null,
       steps,snap:snap()};
-    if(clash&&steps.some(s=>s.outcome==="P")) mbCharge(ally,1);
+    /* 카메라·연출용 a/b 모양 */
+    const aAlly=a.u.side==="ally", aKey=aAlly?"pd":"gd", bKey=aAlly?"gd":"pd", sideOf=w=>w==="P"?(aAlly?"a":"b"):w==="G"?(aAlly?"b":"a"):"tie";
+    const vals=k=>steps.map(s=>s[k]&&s[k].roll).filter(v=>v!=null);
+    const look=u=>u.side==="enemy"?{side:"enemy",body:u.body,form:u.form,leader:!!u.leader}:{side:"ally"};
+    res.a={unit:a.u.id,die:a.i,card:a.d.card,values:vals(aKey),...look(a.u)};
+    res.b=clash?{unit:partner.u.id,die:partner.i,card:partner.u.dice[partner.i].card,values:vals(bKey),...look(partner.u)}:null;
+    res.target=tu.id;
+    steps.forEach(s=>{ s.aVal=s[aKey]?s[aKey].roll:null; s.bVal=s[bKey]?s[bKey].roll:null; s.winner=sideOf(s.outcome);
+      let dmg=null; for(const e of s.events){ if(e.kind!=="hit"&&e.kind!=="stag") continue; const uid=e.target==="P"?ally.id:enemy.id; dmg=dmg||{unit:uid,hp:0,stagger:0}; if(dmg.unit===uid){ dmg.hp+=e.hp||0; dmg.stagger+=e.st||0; } }
+      s.dmg=dmg; });
+    { const hit=new Set(), aSide=a.u.id, other=tu.id;
+      steps.forEach(s=>{ const ex={}; ex[ally.id]="idle"; ex[enemy.id]="idle";
+        if(s.outcome==="P") ex[ally.id]="win"; else if(s.outcome==="G") ex[enemy.id]="win";
+        if(s.dmg){ ex[s.dmg.unit]="hurt"; hit.add(s.dmg.unit); }
+        s.newStag.forEach(w=>{ ex[w==="P"?ally.id:enemy.id]="shock"; });
+        s.expr=ex; });
+      for(const u of [ally,enemy]){ if(u.staggered) u.expr="shock"; else if(hit.has(u.id)) u.expr="hurt";
+        else u.expr=(clash&&((res.win==="ally"&&u===ally)||(res.win==="enemy"&&u===enemy)))||(!clash&&u.id===aSide&&steps.some(s=>s.dmg))?"win":"idle"; }
+      res.a.expr=mbUnit(aSide).expr; if(res.b) res.b.expr=mbUnit(res.b.unit).expr;
+      res.expr={[ally.id]:ally.expr,[enemy.id]:enemy.expr}; }
+    res.result={staggered:B.units.filter(u=>!before[u.id].stag&&mb.x[u.id].cu.stag>0).map(u=>u.id),dead:B.units.filter(u=>before[u.id].alive&&u.hp<=0).map(u=>u.id)};
     steps.forEach(s=>s.newStag.forEach(w=>mb.log.push(`${(w==="P"?ally:enemy).name}이(가) 흐트러졌다!`)));
     events.push(res);
     if(clash) mbEmit("onClash",res);
     if(!mbLive("enemy").length) mb.outcome="win"; else if(!mbLive("ally").length) mb.outcome="lose";
+    return res;
   }
+  return null;
+}
+function mbResolveEnd(R){
+  if(R.ended) return R.events; R.ended=true;
+  const B=mb.battle, events=R.events;
   for(const u of mbSide("ally")){ const X=mb.x[u.id]; u.dice.forEach(d=>{ if(d.card){ X.discardIds.push(d.card); if(d.card==="breathe") X.breathe++; } }); }
   for(const u of B.units) u.status=(u.status||[]).map(s=>typeof s.turns==="number"?{...s,turns:s.turns-1}:s).filter(s=>typeof s.turns!=="number"||s.turns>0);
   mb.events=events;
   mbEmit("onSceneEnd",{scene:B.scene,events});
   if(mb.outcome){ B.phase="end"; mbFinish(); }
   return events;
+}
+function mbResolve(){
+  const R=mbResolveBegin(); if(!R) return null;
+  while(mbResolveNext(R));
+  return mbResolveEnd(R);
 }
 function mbFinish(){
   const rec=reception, guest=mb.guest; if(!rec) return;
@@ -6168,35 +6281,54 @@ function mbShowStepEvents(ev,st){
     else if(e.kind==="recover"){ if(e.st) fn(c.x,c.y,"+"+e.st,"rec","회피"); }
   }
 }
+/* 합 진행. instant(테스트·무대 없음)는 동기로 한 번에. 아니면 교환마다 차례로: 상태 반영 → await BattleStage.clash(ev,{fast})
+   (카메라 인→단계별 타격→아웃; Promise 가 아니면 clashMs 타이머 폴백) → render → 다음 교환. hitAt 에 소리·피해 숫자·막대.
+   무대 탭/길게 누름(onSkip) 뒤로는 fast (길게 누름이면 무대가 clash 를 바로 끝냄).
+   진행 중에는 busy + phase "resolve" 라 '합 진행'이 두 번 눌리지 않는다. 돌아가는 Promise 는 mb.resolving */
 function mbRunResolve(instant){
-  if(!mb) return null;
-  const pre=mb.battle.units.map(u=>({...u}));
-  const events=mbResolve(); if(!events) return null;
-  const B=mb.battle, my=mb;
+  if(!mb||busy||mb.resolving) return null;   /* 진행 중 두 번째 호출은 무시 */
+  const B=mb.battle, my=mb; if(!B||B.phase!=="assign") return null;
   const finish=()=>{
-    busy=false;
+    busy=false; my.resolving=null;
     if(my!==mb) return;
     if(mb.outcome==="win"){ mbRefresh(); SFX.pageScatter(); if(instant) showWin(); else setTimeout(()=>{ if(my===mb) showWin(); },700); return; }
     if(mb.outcome==="lose"){ mbRefresh(); SFX.lose(); showLose(); return; }
     mbStartScene(); mbRefresh(); takPunch(B.scene);
   };
-  if(instant||!$("#mb-host")){ finish(); return events; }
-  busy=true; let k=0; const BS=window.BattleStage||{};
-  my.fast=false; BS.onSkip=()=>{ if(my===mb&&busy&&!my.fast){ my.fast=true; if(BS.focus) BS.focus(null,true); } };
-  const end=finish; const finish2=()=>{ if(BS.focus) BS.focus(null); BS.onSkip=null; end(); };
-  const step=()=>{
-    if(my!==mb){ busy=false; return; }
-    if(k>=events.length) return finish2();
-    const ev=events[k++]; if(ev.kind==="skip") return step();
-    const disp={...B,phase:"resolve",units:B.units.map(u=>({...u,...ev.snap[u.id]}))};
-    mbRefresh(disp);
-    const fast=my.fast||!BS.focus; if(BS.focus) BS.focus(fast?null:ev,fast);
-    SFX.dice(); setTimeout(()=>{ if(my!==mb) return; if(window.BattleStage&&BattleStage.clash) BattleStage.clash(ev,{fast}); SFX.clash(ev.win!=="enemy"); flash(.14); shake(5); ev.steps.forEach(st=>mbShowStepEvents(ev,st)); if(ev.steps.some(s=>s.newStag.length)) SFX.stagger(); },fast?(BS.fastHitAt||160):(BS.hitAt||400));
-    setTimeout(step,fast?Math.min(MB.stepMs,BS.fastMs||MB.stepMs):Math.max(MB.stepMs,BS.clashMs||MB.stepMs));
-  };
-  mbRefresh({...B,phase:"resolve",units:pre});
-  step();
-  return events;
+  if(instant||!$("#mb-host")){ const events=mbResolve(); if(!events) return null; finish(); return events; }
+  const pre=B.units.map(u=>({...u}));
+  const R=mbResolveBegin(); if(!R) return null;
+  busy=true; const BS=window.BattleStage||{};
+  my.fast=false; BS.onSkip=()=>{ if(my===mb&&busy) my.fast=true; };   /* 탭·길게 누름 → 남은 합은 fast (길게 누름이면 무대가 clash 를 바로 끝냄) */
+  const wait=ms=>new Promise(r=>setTimeout(r,Math.max(0,ms)));
+  const show=units=>mbRefresh({...B,phase:"resolve",units});
+  my.resolving=(async()=>{
+    try{
+      show(pre);
+      for(;;){
+        if(my!==mb){ busy=false; return; }
+        const before=B.units.map(u=>({...u}));
+        const ev=mbResolveNext(R); if(!ev) break; if(ev.kind==="skip") continue;
+        show(before);                                  /* 맞기 전 막대 */
+        const fast=!!my.fast, hitAt=fast?(BS.fastHitAt||160):(BS.hitAt||400), total=fast?Math.min(MB.stepMs,BS.fastMs||MB.stepMs):Math.max(MB.stepMs,BS.clashMs||MB.stepMs);
+        let pr=null; try{ if(window.BattleStage&&BattleStage.clash) pr=BattleStage.clash(ev,{fast}); }catch(e){ console.warn(e); }
+        const isP=!!(pr&&typeof pr.then==="function");
+        let hitDone=false; const doHit=()=>{ if(hitDone||my!==mb) return; hitDone=true;   /* 맞는 순간: 소리·숫자·막대 */
+          SFX.clash(ev.win!=="enemy"); flash(.14); shake(5); ev.steps.forEach(st=>mbShowStepEvents(ev,st)); if(ev.steps.some(s=>s.newStag.length)) SFX.stagger();
+          show(B.units.map(u=>({...u}))); };
+        SFX.dice(); const ht=setTimeout(doHit,hitAt);
+        if(isP) await pr.catch(()=>{});               /* 카메라 인 → 단계별 타격 → 아웃 이 끝날 때까지 */
+        else await wait(my.fast&&!fast?Math.min(total,BS.fastMs||total):total);   /* Promise 없는 무대: 타이머 폴백 */
+        clearTimeout(ht); doHit();
+        if(my!==mb){ busy=false; return; }
+        show(B.units.map(u=>({...u})));               /* render (다음 교환 전) */
+      }
+      BS.onSkip=null;
+      mbResolveEnd(R);
+      finish();
+    }catch(e){ console.error(e); busy=false; my.resolving=null; }
+  })();
+  return R.events;
 }
 
 /* 달의 계시: 오늘 퀴즈 점수비. 순수 함수라 테스트에서 오늘 날짜를 직접 넣을 수 있다. */
@@ -7031,7 +7163,7 @@ function boot(){
   window.__studyGame = {
     save, transit, showScene, renderLobby, renderBattle, renderShelf, renderTitle,
     BOOK_COVER_N, bookCoverSrc, bookCoverIndex, bookArt,
-    beginReception, selectBook, answer, answerShort, choosePage, SFX, takPunch, showWin, showLose, engine:{COMBAT,TIER,ATK_TYPES,mkUnit,resolveScene,guestCombat,planIntent,expectedDamage,checkShort,keyQsOf,WEAK_POINTS,COMBAT_PAGES,PAGE_BY,hitUnit,playerDieRange,guestDieRange,playerStaggerMax,FLAT_RESIST,getRec(){return reception;}},
+    beginReception, selectBook, answer, answerShort, choosePage, SFX, takPunch, showWin, showLose, engine:{pctEnd,pctRange,COMBAT,TIER,ATK_TYPES,mkUnit,resolveScene,guestCombat,planIntent,expectedDamage,checkShort,keyQsOf,WEAK_POINTS,COMBAT_PAGES,PAGE_BY,hitUnit,playerDieRange,guestDieRange,playerStaggerMax,FLAT_RESIST,getRec(){return reception;}},
     gx:{guestSvg,GX_VARIANTS,GX_VLABEL,GX_LABEL,gxAttack,gxExFlash,gxPick,GUEST_ART,gxUnitArt,mbEnemyFigure},
     data:{EGO_GIFTS,KEY_PAGES,COSMETIC_ITEMS,WEAK_POINTS,COMBAT_PAGES,FLOORS,KEY_QUESTIONS},
     acq:{bookMaxed,shownBookCount,BOOK_POOLS,BOOK_RULES,poolEntries,burnBookOnce,addBooks,bookCount,totalBooks,ownedCount,deckLimit,DECK_MIN,DECK_MAX,sourcesOf,acqAudit,migrateAcq,rollRecallBooks,loadSave,defaultSave,SAVE_KEY},
@@ -7048,7 +7180,7 @@ function boot(){
       answer(correct){ return mbAnswer(correct); }, answerUI:(c)=>mbAnswerUI(c),
       assign(unitId,dieIdx,cardId,target){ const r=mbAssign(unitId,dieIdx,cardId,target); mbRefresh(); return r; },
       unassign(unitId,dieIdx){ const r=mbUnassign(unitId,dieIdx); mbRefresh(); return r; },
-      resolve(o){ return mbRunResolve(!(o&&o.animate)); }, resolveOnly:()=>mbResolve(), startScene(){ mbStartScene(); mbRefresh(); return mb.battle; },
+      resolve(o){ return mbRunResolve(!(o&&o.animate)); }, resolveOnly:()=>mbResolve(), resolving:()=>(mb&&mb.resolving)||null, resolveBegin:()=>mbResolveBegin(), resolveNext:R=>mbResolveNext(R), resolveEnd:R=>mbResolveEnd(R), usable:(uid,cid)=>mbUsable(mbUnit(uid),PAGE_BY[cid]), ENEMY_BODY, enemyBody:(gid,e)=>enemyBody(GUEST_BY[gid],e||{}), startScene(){ mbStartScene(); mbRefresh(); return mb.battle; },
       relink:()=>mbRelink(), refresh:()=>mbRefresh(), isClash:(u,i)=>mbIsClash(u,i),
       setRng(fn){ if(mb) mb.rng=fn; },
       setEnemyTarget(eid,k,target){ const X=mb.x[eid]; X.orig[k]=target?{unit:target.unit,die:target.die}:null; mbRelink(); mbRefresh(); },
