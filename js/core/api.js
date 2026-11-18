@@ -54,6 +54,15 @@ function nextGuestAfter(guestId){
   return WEAK_POINTS.find(x=>open(x)&&cur&&x.floorId===cur.floorId)||WEAK_POINTS.find(open)||null;
 }
 
+/* ---------- 층 무대(3D 겉모습) ---------- */
+const FLOOR_STAGE_DEFAULT={mood:"lamp",accent:"#d9a35a",props:["candles","bookpile"]};
+function floorStage(floorId){
+  const f=FLOORS.find(x=>x.id===floorId), st=(f&&f.stage)||{}, D=FLOOR_STAGE_DEFAULT;
+  return {mood:st.mood||D.mood,accent:st.accent||D.accent,props:(Array.isArray(st.props)?st.props:D.props).slice()};
+}
+/* ---------- 개막을 한 교환씩 (연출용) ---------- */
+function battleStepEnd(R){ const ev=mbResolveEnd(R); if(mb&&!mb.outcome) mbStartScene(); return ev; }
+
 /* ---------- 책 소각 ---------- */
 /* 책을 times 권 태운다. {ok, n, cards:[{k,id,name,n,isNew}], why} */
 function burnBooks(gid,times){
@@ -123,9 +132,9 @@ function setAudio(o){ if("bgm" in o) save.bgmMuted=!o.bgm; if("sfx" in o) save.s
 const Game={
   get save(){ return save; },
   data:{FLOORS,WEAK_POINTS,GUEST_BY,COMBAT_PAGES,PAGE_BY,KEY_PAGES,KEY_BY,EGO_GIFTS,EGO_BY,KEY_QUESTIONS,BOOK_POOLS,COSMETIC_ITEMS,
-    DECK_MIN,DECK_MAX,DECK_MAX_COPIES,HAND_MAX,PARTY_MAX,TIER,TIER_ORDER,ATK_TYPES,BOOK_COVER_N,bookCoverIndex,bookCoverSrc},
+    floorStage,DECK_MIN,DECK_MAX,DECK_MAX_COPIES,HAND_MAX,PARTY_MAX,TIER,TIER_ORDER,ATK_TYPES,BOOK_COVER_N,bookCoverIndex,bookCoverSrc},
   battle:{
-    begin:beginBattle, answer:mbAnswer, assign:mbAssign, unassign:mbUnassign, resolve:battleResolve, settle:battleSettle, leave:battleLeave,
+    begin:beginBattle, answer:mbAnswer, assign:mbAssign, unassign:mbUnassign, resolve:battleResolve, stepBegin:()=>(mb?mbResolveBegin():null), stepNext:R=>mbResolveNext(R), stepEnd:battleStepEnd, settle:battleSettle, leave:battleLeave,
     cardInfo:mbCardInfo, usable:(uid,cid)=>mbUsable(mbUnit(uid),PAGE_BY[cid]||(mb&&mb.cards[cid])), hand:uid=>mb?mb.x[uid].handIds:[],
     question:()=>mb&&mb.cur?mb.cur.q:null, isClash:mbIsClash, unit:mbUnit, enemyBody:(gid,e)=>enemyBody(GUEST_BY[gid],e||{}),
     nextGuest:nextGuestAfter, hooks:MB_HOOKS,

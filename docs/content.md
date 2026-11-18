@@ -258,7 +258,7 @@ window.MOON_WORDS = [
 ## 8. 새 강의를 손님으로 넣는 순서
 
 1. 강의 노트를 읽고, 애매한 부분은 큐 양에게 묻는다. 기존 손님의 책장·장서복·문제·적 데이터는 편집하지 않는다.
-2. 새 과목이면 `FLOORS`에 층을 **예시 층 뒤에** 추가한다. 기존 층 `id`를 바꾸지 않는다.
+2. 새 과목이면 `FLOORS`에 층을 **예시 층 뒤에** 추가한다. 기존 층 `id`를 바꾸지 않는다. 새 층이면 `FLOORS`에 `stage:{mood, accent, props}`를 정한다(`mood`는 `"lamp"` 등불 서고 | `"moon"` 달빛 열람실, `accent`는 포인트 색, 소품 이름은 `js/stage/props.js`의 `PROP_KIT`). 안 정하면 `floorStage()` 기본값이 쓰인다.
 3. `WEAK_POINTS`에 손님을 추가한다. `id`, `floorId`, `concept`, `subject`, `weakness`, `archetype`, `palette`, `accessory`, `book`(1–8), `explanation`, 필요하면 `sourceNote`.
 4. 일반 문항(`-q0`부터)과 핵심 문항(`KEY_QUESTIONS`, `-k0`부터. 보통 mc 하나 + short 하나)을 쓴다. 판례 O/X 표는 5절 규칙을 따른다.
 5. `enemies`를 만든다. 우두머리 먼저, 최대 3명, 소주제당 한 명, 모든 문항 `id`를 정확히 한 적의 `q`에 넣는다. `ENEMY_BODY`에 `key`와 몸을 등록한다.

@@ -1,9 +1,10 @@
 /* 개념의 서고 — 데이터: 층·손님·문제·책장·핵심 책장·E.G.O 기프트·수치, 사서/기프트 계산 (화면 없음) */
+/* stage: 3D 무대 겉모습 {mood:"lamp"|"moon", accent, props(js/stage/props.js PROP_KIT)}. 없으면 floorStage() 기본값 */
 const FLOORS = [
-  { id:"crime", name:"범죄학의 층", subject:"범죄학의 기초", motto:"처벌은 복수가 아니라 예방이라는 오래된 문장들." },
-  { id:"memory", name:"기억의 층 · 예시", subject:"학습법 (예시)", motto:"잊힐 때까지 기다리는 책장." },
-  { id:"cognition", name:"인지의 층 · 예시", subject:"학습법 (예시)", motto:"알고 있는지, 아직 모르는지를 보는 창." },
-  { id:"criminal-law", name:"형법의 층", subject:"형법", motto:"진실과 공익이 함께 설 때, 적시한 말은 벌하지 않는다." }
+  { id:"crime", name:"범죄학의 층", subject:"범죄학의 기초", motto:"처벌은 복수가 아니라 예방이라는 오래된 문장들.", stage:{ mood:"lamp", accent:"#d9a35a", props:["scales","candles"] } },
+  { id:"memory", name:"기억의 층 · 예시", subject:"학습법 (예시)", motto:"잊힐 때까지 기다리는 책장.", stage:{ mood:"moon", accent:"#7fc8e8", props:["hourglass","bookpile"] } },
+  { id:"cognition", name:"인지의 층 · 예시", subject:"학습법 (예시)", motto:"알고 있는지, 아직 모르는지를 보는 창.", stage:{ mood:"moon", accent:"#a99be0", props:["globe","clock"] } },
+  { id:"criminal-law", name:"형법의 층", subject:"형법", motto:"진실과 공익이 함께 설 때, 적시한 말은 벌하지 않는다.", stage:{ mood:"lamp", accent:"#c4705a", props:["scales","scroll"] } }
 ];
 
 const WEAK_POINTS = [

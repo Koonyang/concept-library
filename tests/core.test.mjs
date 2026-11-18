@@ -57,5 +57,28 @@ ok(r.burn.ok&&r.burn.n===1&&r.burnNone.ok===false&&r.owned,"책 소각 → 책�
 ok(r.deckAdd&&r.deckLen[1]===r.deckLen[0]+1,"얻은 책장을 덱에 넣기",r.deckLen);
 ok(r.party&&r.party.ok===false&&r.libs>=1,"사서 혼자면 명단에서 뺄 수 없음",r.party);
 ok(r.moonQ===30&&r.moonPhase==="bridge"&&r.moonDone==="result"&&r.moonSave&&r.moonSave.used===false&&r.moonSave.reveal===15,"달의 계시: 30문제 → 재현시 다리 → 건너뛰기 → 오늘 기록",{q:r.moonQ,s:r.moonSave});
+
+/* ---------- 층 무대 데이터 · 한 교환씩 진행 ---------- */
+const fs=await p.evaluate(()=>{ const G=Game, D=G.data, o={};
+  o.crime=D.floorStage("crime"); o.memory=D.floorStage("memory"); o.none=D.floorStage("없는층");
+  const f0=D.FLOORS[0], keep=f0.stage; delete f0.stage; o.missing=D.floorStage(f0.id); f0.stage=keep;
+  f0.stage={mood:"moon"}; o.partial=D.floorStage(f0.id); f0.stage=keep;
+  return o; });
+const DEF={mood:"lamp",accent:"#d9a35a",props:["candles","bookpile"]};
+ok(JSON.stringify(fs.crime)===JSON.stringify({mood:"lamp",accent:"#d9a35a",props:["scales","candles"]}),"floorStage(crime) 처음 값",fs.crime);
+ok(fs.memory.mood==="moon","memory 층은 달빛",fs.memory);
+ok(JSON.stringify(fs.none)===JSON.stringify(DEF)&&JSON.stringify(fs.missing)===JSON.stringify(DEF),"없는 층·stage 없는 층은 기본값",fs);
+ok(fs.partial.mood==="moon"&&fs.partial.accent===DEF.accent&&JSON.stringify(fs.partial.props)===JSON.stringify(DEF.props),"일부만 있으면 빈 칸만 기본값",fs.partial);
+const st=await p.evaluate(()=>{ const G=Game, o={};
+  const mk=s=>()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+  const MR=Math.random; const run=(useStep)=>{ Math.random=mk(5); G.battle.leave(); G.battle.begin("beccaria",{rng:mk(11)});
+    o.qPhase=G.battle.stepBegin(); G.battle.answer(true);
+    const B=G.battle.state, en=B.units.filter(u=>u.side==="enemy");
+    for(const u of B.units.filter(u=>u.side==="ally")) u.dice.forEach((d,i)=>{ const c=G.battle.hand(u.id).find(c=>G.battle.usable(u.id,c).usable); if(c) G.battle.assign(u.id,i,c,{unit:en[0].id,die:0}); });
+    if(useStep){ const R=G.battle.stepBegin(); let n=0; while(G.battle.stepNext(R)) n++; G.battle.stepEnd(R); o.n=n; } else G.battle.resolve();
+    const r={hp:G.battle.state.units.map(u=>u.hp),scene:G.battle.state.scene,phase:G.battle.state.phase}; G.battle.leave(); return r; };
+  o.a=run(false); o.b=run(true); Math.random=MR; return o; });
+ok(st.qPhase===null,"문제 단계에서 stepBegin 은 null",st.qPhase);
+ok(JSON.stringify(st.a)===JSON.stringify(st.b)&&st.n>0,"한 교환씩 진행한 결과 = resolve() 결과",st);
 ok(errs.length===0,"오류 없음",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);
