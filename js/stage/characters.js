@@ -34,6 +34,15 @@ function codeBook(color) {
   pages.position.y = 0.01; g.add(cover, pages); g.rotation.x = Math.PI / 2; return g;
 }
 
+/* KayKit 재질(Standard, 거칠기 0.5, 금속 0)을 Phong 으로 바꿔 쓴다: 겉보기는 거의 같고 픽셀당 계산이 가볍다(휴대폰 성능) */
+const phongCache = new Map();
+function phongOf(m) {
+  if (!m || !m.isMeshStandardMaterial) return m;
+  let p = phongCache.get(m);
+  if (!p) { p = new THREE.MeshPhongMaterial({ map: m.map, color: m.color, side: m.side, transparent: m.transparent, opacity: m.opacity, shininess: 24, specular: 0x161616 }); p.name = m.name; phongCache.set(m, p); }
+  return p;
+}
+
 function realFigure(look) {
   const src = models[look.model] || models.Rogue_Hooded;
   const obj = SkeletonUtils.clone(src);
@@ -47,7 +56,7 @@ function realFigure(look) {
   obj.traverse(n => {
     if (n.name === "handslot.l") handL = n; if (n.name === "handslot.r") handR = n;
     if (!n.isMesh) return;
-    n.frustumCulled = false;
+    n.frustumCulled = false; n.material = phongOf(n.material);
     if (ALL_WEAPONS.test(n.name)) n.visible = keep.has(n.name);
     if (CLOTH.test(n.name)) { n.material = n.material.clone(); n.material.color.copy(cloth).lerp(new THREE.Color(0xffffff), 0.25); }
   });

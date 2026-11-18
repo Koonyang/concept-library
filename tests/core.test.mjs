@@ -100,10 +100,10 @@ const qi=await p.evaluate(()=>{ const G=Game, o={};
   const en=B.units.find(u=>u.side==="enemy"); const c=G.battle.hand(ally.id).find(c=>G.battle.usable(ally.id,c).usable&&(G.data.PAGE_BY[c].cost||0)>0);
   if(c){ const before=G.battle.lightOf(ally.id).light; G.battle.assign(ally.id,0,c,{unit:en.id,die:0}); o.spent=before-G.battle.lightOf(ally.id).light===G.data.PAGE_BY[c].cost; } else o.spent=true;
   /* 핵심 문제가 나오면 isKey true */
-  let tries=0; o.keySeen=false;
-  while(!G.battle.outcome&&tries<40&&!o.keySeen){ tries++; G.battle.resolve(); if(G.battle.state&&G.battle.state.phase==="question"){ const I=G.battle.questionInfo(); if(I&&I.isKey) o.keySeen=true; G.battle.answer(true);
-    const B2=G.battle.state, en2=B2.units.filter(u=>u.side==="enemy"&&u.hp>0);
-    for(const u of B2.units.filter(u=>u.side==="ally"&&u.hp>0)) u.dice.forEach((d,i)=>{ const c=G.battle.hand(u.id).find(c=>G.battle.usable(u.id,c).usable); if(c&&en2[0]) G.battle.assign(u.id,i,c,{unit:en2[0].id,die:0}); }); } }
+  /* 전투가 일찍 끝나지 않게: 사서는 공격하지 않고 체력을 크게 → 문제를 다 돌면 핵심 문제가 나온다 */
+  let tries=0; o.keySeen=false; const X=__studyGame.battleApi.internals();
+  for(const u of B.units.filter(u=>u.side==="ally")){ X[u.id].cu.hp=99999; u.hp=99999; }
+  while(!G.battle.outcome&&tries<60&&!o.keySeen){ tries++; G.battle.resolve(); if(G.battle.state&&G.battle.state.phase==="question"){ const I=G.battle.questionInfo(); if(I&&I.isKey) o.keySeen=true; G.battle.answer(true); } }
   G.battle.leave(); return o; });
 ok(qi.has&&JSON.stringify(qi.short)===JSON.stringify([true,true,true,false,false]),"Game.checkShort: 정답·accept·대소문자/공백 허용, 오답·빈 답은 false",qi.short);
 ok(qi.none===null&&qi.noLight===null,"전투 없을 때 questionInfo·lightOf 는 null",{q:qi.none,l:qi.noLight});
