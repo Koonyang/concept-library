@@ -67,6 +67,7 @@
 .bs-tag{position:absolute;top:-16px;font-size:10px;padding:1px 5px;border-radius:6px;background:#c45c4a;color:#fff;white-space:nowrap}
 .bs-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:40;overflow:visible}
 .bs-svg .bs-arr-hit{pointer-events:stroke;cursor:pointer;stroke:transparent;fill:none}
+.bs-svg .bs-arr-hi{pointer-events:none}
 .bs-hand{position:absolute;left:50%;bottom:calc(6px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;gap:6px;z-index:50;max-width:calc(100% - 220px);overflow-x:auto;padding:8px 2px 2px;scrollbar-width:none}
 .bs-hand::-webkit-scrollbar{display:none}
 .bs.port .bs-hand{max-width:calc(100% - 12px)}
@@ -408,7 +409,7 @@
     const below=p.top-h-8<4; el.classList.toggle("below",below);
     el.style.left=Math.max(w/2+4,Math.min(W-w/2-4,p.x))+"px"; el.style.top=(below?p.top+r.height+6:p.top-6)+"px";
   }
-  function showInfo(uid,i){ info = info&&info.unit===uid&&info.die===i ? null : {unit:uid,die:i}; placeInfo(); }
+  function showInfo(uid,i){ info = info&&info.unit===uid&&info.die===i ? null : {unit:uid,die:i}; drawArrows(); }
   function unit(id){ return last&&last.units.find(u=>u.id===id); }
 
   function render(battle, o){
@@ -416,7 +417,7 @@
     last=battle; if(o) opts=o;
     if(battle.phase==="assign") skipAll=false;
     if(sel){ const su=unit(sel.unit); if(!su||su.hp<=0||su.staggered||!su.dice[sel.die]) { sel=null; pickCard=null; } }
-    if(battle.phase!=="assign"){ sel=null; pickCard=null; }
+    if(battle.phase!=="assign"){ sel=null; pickCard=null; info=null; }
     else if(!sel){ /* 빠른 진행: 카드 안 놓은 첫 주사위를 바로 고른다 */
       for(const u of battle.units){ if(u.side!=="ally"||u.hp<=0||u.staggered) continue; const i=(u.dice||[]).findIndex(d=>!d.card); if(i>=0){ sel={unit:u.id,die:i}; pickCard=null; break; } } }
     const n=enemyRows();
@@ -431,26 +432,40 @@
   function figEl(uid){ return root.querySelector(`.bs-unit[data-unit="${uid}"] .bs-fig`); }
   function figPt(el){ const r=rel(el), h=el.getBoundingClientRect().height/(cam.z||1); return {x:r.x,y:r.y-h*.1+14,top:r.y-h*.4}; }
   function dieEl(uid,i){ return root.querySelector(`.bs-die[data-u="${uid}"][data-d="${i}"]`); }
+  const HI_COL="#f7fbff"; /* ice-white: distinct from ally gold #c4a35a and enemy red #e06a55 */
+  function arrowGeom(u,i,d){
+    const a=dieEl(u.id,i); if(!a||!d||!d.target) return null;
+    const noDie=d.target.die==null, b=noDie?figEl(d.target.unit):dieEl(d.target.unit,d.target.die); if(!b) return null;
+    const p=rel(a), q=noDie?figPt(b):rel(b); const mx=(p.x+q.x)/2, my=Math.max(8, Math.min(p.top,q.top)-36-Math.abs(p.x-q.x)*.08);
+    return {d:`M${p.x} ${p.y-14} Q${mx} ${my} ${q.x} ${q.y-14}`,p,q,mx,my};
+  }
   function drawArrows(){
     if(!root||!last) return; const svg=root.querySelector(".bs-svg"); if(!svg) return;
     if(root.closest(".result-on")){ svg.innerHTML=""; info=null; return; }
-    let h=`<defs><marker id="bsA" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>`;
+    if(last.phase&&last.phase!=="assign") info=null;
+    let h=`<defs><marker id="bsA" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker><marker id="bsAH" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="${HI_COL}"/></marker></defs>`;
     const seen=new Set();
-    for(const u of last.units){ if(u.hp<=0) continue; (u.dice||[]).forEach((d,i)=>{ if(!d.target) return; const a=dieEl(u.id,i);
-      const noDie=d.target.die==null, b=noDie?figEl(d.target.unit):dieEl(d.target.unit,d.target.die); if(!a||!b) return;
-      const t=unit(d.target.unit), td=!noDie&&t&&t.dice&&t.dice[d.target.die];
+    let hi=null;
+    for(const u of last.units){ if(u.hp<=0) continue; (u.dice||[]).forEach((d,i)=>{ if(!d.target) return;
+      const g=arrowGeom(u,i,d); if(!g) return;
+      const t=unit(d.target.unit), noDie=d.target.die==null, td=!noDie&&t&&t.dice&&t.dice[d.target.die];
       const clash = td&&td.target&&td.target.unit===u.id&&td.target.die===i;
-      const key=[u.id+":"+i,d.target.unit+":"+d.target.die].sort().join("|"); if(clash&&seen.has(key)) return; seen.add(key);
-      const p=rel(a), q=noDie?figPt(b):rel(b); const mx=(p.x+q.x)/2, my=Math.max(8, Math.min(p.top,q.top)-36-Math.abs(p.x-q.x)*.08);
+      const key=[u.id+":"+i,d.target.unit+":"+d.target.die].sort().join("|"); if(clash&&seen.has(key)){ if(info&&info.unit===u.id&&info.die===i) hi=g; return; } seen.add(key);
       const col= clash?"#ffe6a8": u.side==="ally"?"#c4a35a":"#e06a55";
-      h+=`<path d="M${p.x} ${p.y-14} Q${mx} ${my} ${q.x} ${q.y-14}" fill="none" stroke="${col}" stroke-width="${clash?2.6:2}" ${clash?"":"stroke-dasharray=\"5 4\""} marker-end="url(#bsA)" ${clash?"marker-start=\"url(#bsA)\"":""} opacity=".92"/>`;
-      if(clash) h+=`<circle cx="${mx}" cy="${(my+Math.min(p.y,q.y))/2-6}" r="9" fill="#1a1f2c" stroke="${col}" stroke-width="1.5"/><text x="${mx}" y="${(my+Math.min(p.y,q.y))/2-2}" font-size="10" font-weight="800" text-anchor="middle" fill="${col}">합</text>`;
+      h+=`<path class="bs-arr" data-u="${u.id}" data-d="${i}" data-side="${u.side||""}" d="${g.d}" fill="none" stroke="${col}" stroke-width="${clash?2.6:1.45}" ${clash?"":"stroke-dasharray=\"5 4\""} marker-end="url(#bsA)" ${clash?"marker-start=\"url(#bsA)\"":""} opacity=".92"/>`;
+      if(clash) h+=`<circle cx="${g.mx}" cy="${(g.my+Math.min(g.p.y,g.q.y))/2-6}" r="9" fill="#1a1f2c" stroke="${col}" stroke-width="1.5"/><text x="${g.mx}" y="${(g.my+Math.min(g.p.y,g.q.y))/2-2}" font-size="10" font-weight="800" text-anchor="middle" fill="${col}">합</text>`;
+      if(info&&info.unit===u.id&&info.die===i) hi=g;
     }); }
+    if(hi){
+      h+=`<g class="bs-arr-hi" pointer-events="none">`;
+      h+=`<path d="${hi.d}" fill="none" stroke="${HI_COL}" stroke-width="5" opacity=".28" stroke-linecap="round"/>`;
+      h+=`<path class="bs-arr-hi-line" d="${hi.d}" fill="none" stroke="${HI_COL}" stroke-width="2.9" marker-end="url(#bsAH)" opacity="1"/>`;
+      h+=`</g>`;
+    }
     if(last.phase==="assign"){
       for(const u of last.units){ if(u.side!=="ally"||u.hp<=0) continue; (u.dice||[]).forEach((d,i)=>{ if(!d.card||!d.target) return;
-        const a=dieEl(u.id,i); const noDie=d.target.die==null, b=noDie?figEl(d.target.unit):dieEl(d.target.unit,d.target.die); if(!a||!b) return;
-        const p=rel(a), q=noDie?figPt(b):rel(b); const mx=(p.x+q.x)/2, my=Math.max(8, Math.min(p.top,q.top)-36-Math.abs(p.x-q.x)*.08);
-        h+=`<path class="bs-arr-hit" data-u="${u.id}" data-d="${i}" d="M${p.x} ${p.y-14} Q${mx} ${my} ${q.x} ${q.y-14}" fill="none" stroke="transparent" stroke-width="18"/>`;
+        const g=arrowGeom(u,i,d); if(!g) return;
+        h+=`<path class="bs-arr-hit" data-u="${u.id}" data-d="${i}" d="${g.d}" fill="none" stroke="transparent" stroke-width="18"/>`;
       }); }
     }
     if(drag&&drag.x!=null){ const a=dieEl(drag.unit,drag.die); if(a){ const p=rel(a); h+=`<path d="M${p.x} ${p.y-14} L${drag.x} ${drag.y}" stroke="#ffe6a8" stroke-width="2.4" fill="none" marker-end="url(#bsA)"/>`; } }
@@ -483,7 +498,7 @@
     if(arr&&last.phase==="assign"){ const u=unit(arr.dataset.u), i=+arr.dataset.d; if(u&&u.side==="ally"&&u.dice[i]&&u.dice[i].card) fireUnassign(u.id,i); return; }
     const ed=e.target.closest(".bs-unit.enemy .bs-die");
     if(ed&&!(last.phase==="assign"&&sel&&pickCard)){ showInfo(ed.dataset.u,+ed.dataset.d); return; }
-    if(info){ info=null; placeInfo(); }
+    if(info){ info=null; drawArrows(); }
     if(last.phase!=="assign") return;
     const fc=e.target.closest(".hand .cc[data-card]"); if(fc){ pickCardId(fc.dataset.card); return; }
     const card=e.target.closest(".bs-card"); if(card){ if(card.classList.contains("cant")) return; pickCard = pickCard===card.dataset.card?null:card.dataset.card; render(last); return; }
@@ -509,6 +524,8 @@
     clearTimeout(holdT);
     if((cur&&!cur.done)||(last&&last.phase==="resolve")) return; const ed=e.target.closest&&e.target.closest(".bs-unit.enemy .bs-die");
     if(ed){ holdT0=[e.clientX,e.clientY]; } if(ed) holdT=setTimeout(()=>{ holdHit=true; info=null; showInfo(ed.dataset.u,+ed.dataset.d); },380);
+    const ad=e.target.closest&&e.target.closest(".bs-unit.ally .bs-die");
+    if(ad&&last&&last.phase==="assign"){ const au=unit(ad.dataset.u), ai=+ad.dataset.d; if(au&&au.dice[ai]&&au.dice[ai].target){ holdT0=[e.clientX,e.clientY]; holdT=setTimeout(()=>{ holdHit=true; info=null; showInfo(ad.dataset.u,ai); },380); } }
     const die=e.target.closest(".bs-unit.ally .bs-die"); if(!die||!last||last.phase!=="assign") return;
     if(!(sel&&sel.unit===die.dataset.u&&sel.die===+die.dataset.d&&pickCard)) return;
     drag={unit:die.dataset.u,die:+die.dataset.d,x0:e.clientX,y0:e.clientY,x:null,y:null};
