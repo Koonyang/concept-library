@@ -1,103 +1,79 @@
-# 개념의 서고 — UI/UX 인수인계
+# 개념의 서고 — UI/UX · 3D 무대 인수인계 (2026-11-18 새 UI)
 
-> **2026-11-18: 이 문서는 옛 UI(`legacy/`) 설명이다.** 옛 화면은 전부 내렸고 새 UI를 만드는 중이다. 새 화면은 `js/core/api.js`의 `Game`만 부른다.
-> 1절의 규칙(가로 기본, 산세리프, 막는 팝업 금지, 전투 UI 겹침 금지)은 새 UI에도 그대로 적용한다.
+옛 UI 설명은 `legacy/ui-old.md`, 옛 화면 코드는 `legacy/`. 설계는 `docs/superpowers/specs/2026-11-18-3d-stage-design.md`,
+작업 계획은 `docs/superpowers/plans/2026-11-18-3d-stage.md`.
 
-UI/UX 담당이 맡았던 화면·연출 부분을 이어받을 사람을 위한 문서입니다. 전투 규칙·데이터는 전투/시스템 담당, 문제·책 내용은 학습내용 담당 문서를 보세요.
+## 1. 꼭 지킬 규칙 (큐 양이 정함)
+- 휴대폰 가로가 기본(844×390). 세로(390×844)도 지원한다. 가로에 한 변경은 세로에도 똑같이 한다.
+- Project Moon 에셋 금지. 전투 방식만 따르고 생김새는 우리 것이다. 새 에셋은 `CREDITS.md`·`LICENSES.md`에 적는다.
+- 막는 팝업 금지. 연출은 탭 = 빨리 감기, 길게 누르기 = 건너뛰기. 결과 안내는 80% 이상 불투명한 검은 화면이나 카드로 보인다.
+- 글꼴은 Pretendard·Space Grotesk만 쓴다. 세리프·궁서체 금지.
+- 전투 UI끼리 겹침 0건이어야 배포한다(주사위, 체력·흐트러짐 막대, 대상 화살표, 손패, [개막], 상태판, 문제 패널). 무대·캐릭터는 배경층이라 UI 뒤로 가도 된다.
 
-## 1. 꼭 지킬 규칙 (큐 양이 정한 것)
-
-- **가로 폰이 기본.** 큐 양은 주로 휴대폰 가로로 플레이한다. 모든 화면은 가로에서 먼저 맞추고, 세로도 지원한다. 따로 말이 없으면 가로에 한 변경은 세로에도 똑같이 한다.
-- 기준 해상도: 가로 `844×390`, 세로 `390×844` (아이폰 12~14급). 가로 미디어쿼리는 `(orientation:landscape) and (max-height:500px)`.
-- **원작(Library of Ruina / Limbus Company) 에셋 금지.** 그림·아이콘·폰트·소리 전부. 들여온 에셋은 `CREDITS.md`, `LICENSES.md`에 출처를 적는다.
-- **팝업 금지, 빠른 템포.** 확인창·모달 대신 화면 안에서 바로 바뀌게. 연출은 탭하면 빨리 감기, 길게 누르면 건너뛰기.
-- **무대와 캐릭터는 배경층이다.** 전투 UI 뒤에 가려져도 된다. 서로 겹치면 안 되는 건 전투 UI끼리다: 주사위, 체력/흐트러짐 바, 대상 화살표, 손패, [개막] 버튼, 상태 패널, 합 책장 카드. 겹침 검사(아래 5절)가 이걸 잡는다.
-- 큐 양이 마음에 들어 한 연출은 묻지 않고 바꾸지 않는다.
-- UI는 주사위·결과를 직접 계산하지 않는다. 전투 엔진이 준 필드를 그대로 그린다(없을 때만 예전 필드로 대신).
-
-## 2. 파일 구조
-
-- `index.html` — 게임 전체(CSS + 마크업 + JS 한 파일, 약 7,500줄). 빌드 없음. 그냥 열면 돌아감.
-  - 1~1850줄 근처: CSS. 가로/세로 미디어쿼리는 각 블록 바로 뒤에 붙어 있다.
-  - `const FLOORS`, `WEAK_POINTS`, `COMBAT`, `COMBAT_PAGES`, `KEY_PAGES`, `EGO_GIFTS` …: 데이터(전투·학습 담당 영역).
-  - `resolveScene` 등 1:1 전투 규칙, `mb*` 함수들: 다대다 전투(전투 담당 영역, UI 쪽은 `renderMulti`, `mbStatRow`, `mbPaintStats`, `mbRunResolve`, `mbShowStepEvents`, `mbHighlightUnit`).
-  - `render*` 함수들: 화면 그리기(UI 영역).
-- `assets/ui/battle-stage.js` — 다대다 전투 무대(`BattleStage`). 파일 맨 위 주석에 API 전체가 있다.
-- `assets/bg`, `assets/books`(책 표지 8장), `assets/icons`, `assets/textures`, `assets/ui`(패널·금테 이미지), `assets/fonts`(Pretendard, Space Grotesk), `assets/audio`.
-- `assets/reserve/` — 지금은 안 쓰는 보관 코드(치장·뽑기). 지우지 말 것.
-- 저장: `localStorage["concept-library-game-v1"]`, `loadSave`/`persist`. 저장 모양이 바뀌면 `migrate*`/`sanitize*`에서 옛 저장이 깨지지 않게 한다(예: level/xp가 없어도 됨).
+## 2. 층 구조
+```
+index.html            <canvas id="stage"> + <div id="ui">, importmap(three), 코어 <script>들, js/ui/app.js(module)
+js/core/*             규칙·데이터·엔진·저장 (전역 Game). 화면 없음 — docs/battle.md
+js/stage/*            3D 무대 (규칙 모름)
+  stage.js            createStage(canvas) → Stage
+  moods.js            분위기 MOODS {lamp 등불 서고, moon 달빛 열람실}
+  props.js            공용 소품 PROP_KIT, buildProp(name, accent)
+  looks.js            유닛 → 모델·색·장신구 (lookOf)
+  characters.js       KayKit 모델 로드·복제·동작, 실패하면 자리표시 도형
+  fx.js               불꽃·섬광·고리·조각·책 낙하, registerFx(pageId, fn)
+js/ui/*               DOM 화면
+  app.js              진입점: 무대 만들고 화면 오가기, 설정(BGM·효과음), BGM
+  screens.js          층 고르기·손님 고르기·결과
+  battle.js           전투 화면 mountBattle(root, stage, guestId, {onEnd})
+  sfx.js              WebAudio 합성 효과음
+  style.css           토큰(:root) + 화면별 스타일
+vendor/three/         three.js 0.180.0 (MIT), GLTFLoader·SkeletonUtils
+assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/build-characters.mjs 로 만듦)
+```
 
 ## 3. 화면
+`#ui[data-screen]`: `floors` → `guests` → `battle` → `result` → (다시 접대 | 다음 손님 | 층으로).
+- 층을 고르면 `stage.setFloor(Game.data.floorStage(id))`. 층 겉모습은 `FLOORS[].stage {mood, accent, props}` 한 줄이다(`docs/content.md`). `accent`가 UI의 `--accent`도 된다.
+- 설정(오른쪽 위)은 층·손님 화면에만 있다. 배경음은 기본 꺼짐이다(`save.bgmMuted`).
 
-`showScene(name)`으로 바꾸고, 화면 사이 이동은 `transit(next, fn)`(0.42초 책장 넘김).
+## 4. 무대 API (`js/stage/stage.js`)
+| 호출 | 하는 일 |
+|---|---|
+| `await createStage(canvas)` | WebGL 실패면 `ok:false`인 빈 무대(모든 호출이 아무것도 안 함, `play`는 바로 끝남) |
+| `setFloor({mood, accent, props})` | 팔각 단, 책장 9개(책 색 = 분위기 + accent), 소품은 가장자리 슬롯 6곳 |
+| `await setUnits(units, guest)` | `Game.battle.state.units` 그대로. 사서는 왼쪽, 적은 오른쪽(우두머리 가운데·조금 크게), 발밑 편 색 고리 |
+| `await play(ev, {fast, onHit, final})` | 교환 하나 연출(ev 모양은 `docs/battle.md` 4절). 합 1.0초(+단계당 0.2초, 최대 1.6초), fast 0.35초. 맞는 순간(40%)부터 단계마다 `onHit(i)`. 쓰러진 적은 조각으로 흩어지고 책(손님 표지)이 떨어진다 |
+| `finishNow()` | 진행 중 연출을 바로 끝냄(길게 누르기) |
+| `unitPoint(id)` | 유닛 머리 위 화면 좌표(CSS px). UI가 주사위·숫자를 붙인다 |
+| `setStaggered(id, on)` | 머리 위 별 고리 |
+| `registerFx(pageId, async ctx => …)` | 그 책장만의 전용 연출. 없으면 등급 연출: N 기본, R 불꽃 2배, SR 클로즈업+어둡게, SSR 크게 어둡게+클로즈업+감속+고리. 적 카드는 큰 일격(`big`)이 SR |
 
-| scene | 그리는 함수 | 내용 |
-|---|---|---|
-| `title` | `renderTitle` | 시작 화면 |
-| `lobby` | `renderLobby` | 접대(층 고르기, 손님 목록, 층 점 `#floor-nav`/`.fn-dots`, 손님 시트 `openGuestSheet`) |
-| `battle` | `renderBattle`(1:1), `renderMulti`(다대다) | 전투 |
-| `shelf` | `renderShelf` → `renderShelfBooks`/`renderShelfDeck`/`renderDress` | 도서관: 책, 덱 편집(`renderDeckEditor`), 사서 치장·기프트 |
-| `deck` | `renderDeckEditor` | 덱 편집 |
-| `moon` | `Moon.render` | 달의 계시(오늘의 단어 퀴즈) |
-| `credits` | `renderCredits` | 크레딧 |
+성능: 픽셀 비율 ≤ 1.5, 느린 기기는 1.0까지 자동으로 내림, 실시간 그림자 없음, 책은 InstancedMesh, 연출 빛은 1개를 돌려 씀. 참고 측정 `node tests/perf.mjs`.
 
-- **메뉴:** 화면 왼쪽 위 책갈피 버튼(`.bm-btn`)이 서랍(`.botnav`: 접대·도서관·계시)을 연다. `botNav`, `setDrawer`. 가로·세로 같음.
-- **설정 책갈피** `#set-bm`은 기본 화면에만 있고 전투 중에는 `#game.set-away`로 숨긴다(`syncSettingsBookmark`).
-- **결과 화면** `openResult`/`showWin`/`showLose`: 한 화면에 다 들어가야 한다. 안내 문구("회상을 마쳤다" 등)는 책 제목 아래(가로는 왼쪽 칸), 오른쪽은 보상 줄만. 기프트는 받은 사서만 줄로, 아무도 못 받으면 "이번엔 기프트가 떨어지지 않았다" 한 줄. 사서 레벨 UI는 없다(성장은 책장·핵심 책장·기프트).
-- 알림은 `toast`, 학습 알림은 `learnToast`(팝업 아님).
+## 5. 전투 화면 (`js/ui/battle.js`)
+- 자리(가로): 막대는 위 왼쪽(사서)·위 오른쪽(적), 상태판·오답 해설은 위 가운데, 속도 주사위는 머리 위(막대·상태판 아래로, 다른 유닛 주사위와 안 겹치게 밀어냄), 손패는 아래 가운데, [개막]은 아래 오른쪽, 문제 패널은 아래.
+- 세로: 막대 위 두 줄, 상태판·해설 그 아래, 무대 가운데, 손패·[개막]·문제는 아래.
+- 조작: 문제를 풀고 → 내 주사위 → 카드 → 적 주사위(주사위 없는 적은 몸)를 누른다. 노릴 적이 하나면 카드만 눌러도 놓인다. 놓인 주사위를 다시 누르면 뺀다.
+- [개막] → `Game.battle.stepBegin/stepNext/stepEnd`로 교환마다 `stage.play`. 진행 중에는 입력이 잠기고, 화면을 탭하면 빨리 감기, 450ms 넘게 누르면 남은 교환을 연출 없이 처리한다.
+- DOM id·클래스(테스트와 겹침 검사가 씀): `.unit-bar[data-unit]`, `.die-row`, `.speed-die[data-unit][data-die][data-side]`, `.enemy-target`, `#target-arrows`, `#hand .card[data-card]`, `#btn-open`, `#status`, `#learn`, `#question .q-opt[data-i]` / `#q-short` `#q-submit`, `#skip-layer`.
 
-## 4. 다대다 전투 무대 (`BattleStage`)
+## 6. 테스트
+- `node tests/run.mjs`: core, libs, mbdata, sim, assets, stage, ui, app, overlap-check. 전부 통과해야 배포한다.
+- `tests/battle.html?guest=<id>`: 전투만 띄우는 페이지. `tests/stage.html`: 무대만 띄우는 페이지.
+- 겹침 검사 `node tests/overlap-check.mjs`: 844×390·390×844 × (사서 1:적 3, 3:3) × (문제, 배정, 손패 8장). 겹치면 `shots/overlap/`에 스크린샷.
+- Chromium은 `--use-gl=swiftshader`로 3D를 그린다(느리다). 배포 전 844×390·390×844 스크린샷을 직접 본다.
 
-자세한 시그니처는 `assets/ui/battle-stage.js` 맨 위 주석. 요점만:
+## 7. 역할 (2026-11-18 큐 양 결정)
+| 역할 | 파일 |
+|---|---|
+| 전투/시스템 | `js/core/battle.js·engine.js·save.js·api.js`, `tools/sim`, `docs/battle.md` |
+| 학습내용 | `js/core/data.js`의 층·손님·문제·책장, `FLOORS[].stage` 값, `docs/content.md` |
+| 3D 무대 | `js/stage/*`, `assets/models/`, `tools/assets/`, `vendor/three/` |
+| UI/UX | `js/ui/*`, `index.html`, `tests/overlap-check.mjs`, 이 문서 |
 
-- `mount(host)` 한 번, 배치 단계마다 `render(battle, {hands, cards, figure, onUnassign, avoid})`.
-- `onAssign(unitId, dieIdx, cardId, target)` / `onUnassign(unitId, dieIdx)`. 조작: 내 주사위 → 손패 카드 → 적 주사위(또는 끌기). 놓은 주사위나 화살표를 탭하면 해제. 감정 조건이 안 되는 카드(`cardInfo.usable`, `emotionReq`)는 흐리게 "감정 n+".
-- `await clash(ev, {fast})` — 합 하나 전체 연출. 끝나면 풀리는 Promise. `ev.steps[]`의 `aDie`/`bDie`(`{type,min,max,value,idx,reused}`), `aResult`/`bResult`(`win|lose|draw|block|evade|none`), `blocked`, `recovered`, `expr`를 쓴다. 없으면 `winner`·`pd`/`gd`로 대신.
-  - 합 하나 1.0초, 주사위 칸 하나 더할 때마다 +0.3초, 최대 1.6초. `fast`면 0.3초.
-  - 책장 카드 대결: 아군 책장 왼쪽, 적 책장 오른쪽(세로는 캐릭터 아래). 쓰는 칸 강조, 종류·범위·값 크게, 도장은 승/패/무승부/방어/회피, 부가 표시는 "피해 0", "흐트러짐 +N", "N 막음", "재사용", "일방 공격".
-  - 카메라가 들어간 동안 `.battle-stage.bs-cam-on` → 손패·개막·상태판 숨김.
-- `unitPoint(id)` 피해 숫자 위치, `relayout()` 바깥 요소가 바뀐 뒤 자리 다시 잡기, `battleApi.refresh()` 상태판 다시 그리기, `battleApi.enemyCap(gid)` 장면당 적 수.
-- **배치:** 아군 slot 0 앞줄·1·2 뒷줄, 적 slot 0~2 앞줄·3·4 뒷줄. 뒷줄도 어둡게 하지 않는다(`br:1`). 크기는 깊이값 `t`에 따라 `sc = 0.8 + 0.2×t`로 뒤쪽이 조금만 작아진다(`battle-stage.js`의 자리 계산). 캐릭터 기본 크기는 zi 이후 바꾸지 않았다. 가로는 아군 왼쪽·적 오른쪽, 가운데 비움. 캐릭터는 손패·상태판 위 가운데 띠에 몸·이름·머리 막대까지 전부 보이게, 바닥 원판은 발 아래.
-- **아래쪽 자리:** 손패(부채꼴, 모든 카드의 이름·코스트·주사위가 보이고 한 장만 들림) + 가운데 아래 `#btn-mb-go`("개막", 금색 책갈피, 준비되면 빛남). 상태판 `#mb-stat-ally` 왼쪽 아래, `#mb-stat-enemy` 오른쪽 아래(최대 3줄, `unit.parentId`가 있는 분신은 "+N 분신" 칩). 줄을 탭하면 그 유닛 `.mb-hl`.
-- **대상 선:** 기본 점선(가늘게), 주사위 정보 말풍선이 열린 동안 그 주사위의 선을 흰 실선(화살촉)으로 위에 그림. 서로를 노리는 주사위는 "합" 한 줄로 합쳐진다.
-- 무대 배경(`assets/bg/library-battle.webp`)은 화면 끝까지 까는 배경층이다.
-- 1:1 전투는 `?multi=0`. 기본은 다대다.
+서로 맞춰야 하는 곳: 교환 이벤트 `ev`(전투가 만들고 무대가 연출하고 UI가 넘김), 층 무대 이름(학습내용이 값을 정하고 무대가 이름 목록을 관리), `data.js`(전투·학습내용이 같이 씀).
 
-## 4-1. 달의 계시
-
-- `Moon` 모듈(`index.html` 끝부분). 단어는 `assets/data/moon-words.js`의 `window.MOON_WORDS`, 없으면 `moon-words.sample.js`의 `window.MOON_WORDS_SAMPLE`.
-- 단어 형식은 `{id, en, ko, pos}`. `Moon` 안의 `words()`가 읽을 때 `w`/`m`을 같은 객체에 채워 쓴다(예전 형식도 읽힘).
-
-## 5. 테스트와 확인
-
-테스트는 저장소 `tests/`에 있다. 실행 방법 전체는 `docs/battle.md`를 본다. UI 작업에서 쓰는 것만 적는다.
-
-```
-npm install
-node tests/run.mjs                          # 전부 (약 25분). npm test 도 같음
-node tests/run.mjs overlap-check landscape orient fanhand clashcards   # 골라서
-NO_OVERLAP=1 node tests/run.mjs            # 겹침 검사 빼고
-```
-
-- 브라우저는 `tests/lib/browser.mjs`가 찾는다(`CHROME_PATH` 환경 변수가 먼저). `LIB_ROOT`가 없으면 저장소 맨 위를 쓴다.
-- 스크린샷은 `shots/`에 떨어진다(git 무시).
-- 이 저장소의 로컬 git 설정은 `*.mjs`를 무시하므로, 새 테스트 파일은 `git add -f`로 올린다.
-- **겹침 검사 `tests/overlap-check.mjs`:** 전투 UI끼리(주사위, 체력/흐트러짐 바, 화살표, 손패, [개막], 상태 패널, 합 책장 카드) 겹치는 항목은 0건이어야 하고, 하나라도 있으면 배포하지 않는다. `fighter-front-ui`(캐릭터와 앞면 UI 겹침)는 참고용이라 개수만 따로 출력하고 실패로 치지 않는다(무대·캐릭터는 배경층).
-
-UI 쪽 주요 테스트: `overlap-check`, `landscape`, `orient`, `fanhand`, `battlestage`, `clashcards`, `clashpromise`, `arrowhi`, `resultfit`, `hpstatus`, `unassign`, `settings`, `scroll`/`scrollkeep`/`deckscroll`/`receptionscroll`, `sheet`, `dress`, `bookcovers`, `center`, `moon`/`moonwords`.
-
-- 배포 전에 **스크린샷을 직접 눈으로 본다.** 테스트가 통과해도 화면이 어긋난 적이 있다(zh, 되돌림).
-- 새 화면을 만들면 844×390과 390×844 둘 다 찍어 본다.
-
-## 6. 배포
-
-- 저장소: https://github.com/Koonyang/concept-library , GitHub Pages: https://koonyang.github.io/concept-library/
-- `main`에 올리면 바로 배포. 올리기 전 `git pull --rebase origin main`.
-- `index.html` 7번째 줄 `<meta name="build" content="library-YYYYMMDD?">`를 올릴 때마다 바꾼다(같은 날은 a, b, … z, za, zb … 순서, 담당끼리 겹치지 않게).
-- 커밋 메시지는 한국어로, 바뀐 점을 사용자 입장에서 적고 끝에 `[library-…]` 표시.
-
-## 7. 남은 일 / 알아 둘 것
-
-- 엔진에 `unit.parentId`, `gimmick.extraUnits`는 아직 없다. UI는 있으면 분신 칩으로, 없어도 깨지지 않게 되어 있다.
-- 장면당 적은 최대 3(기믹 예외 최대 5).
-- 전투의 다음 밸런스(`zm`: 사서 157/39, 적 100~300)가 들어오면 상태판 숫자 폭이 넘치지 않는지 한 번 볼 것.
+## 8. 남은 일
+- 도서관(책 소각·덱 편성·사서·장서복·기프트)과 달의 계시 화면은 아직 없다. 규칙은 `Game.books / deck / libs / moon`에 있다.
+- 전용 연출을 줄 SR·SSR 책장은 큐 양이 아직 고르지 않았다(지금은 등급 연출만 나온다).
+- 옛 1:1 전투 화면은 없다(엔진만 남음).

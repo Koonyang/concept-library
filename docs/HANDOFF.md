@@ -12,27 +12,8 @@
 
 ## 2. 파일 지도
 
-> **2026-11-18 UI 전면 교체:** 아래 표·묶음 설명은 옛 구조다. 지금은 `index.html`이 빈 껍데기이고, 규칙·데이터·엔진·저장은
-> `js/core/`(data · engine · save · battle · moon · api)에 있다. 이름(`FLOORS`, `WEAK_POINTS`, `mbCreate` …)은 그대로라 검색하면 된다.
-> 화면 함수(`renderLobby`, `renderMulti`, `BattleStage`, `SFX`, `FX`, 캐릭터 SVG `gx*`/`librarianSvg` …)는 `legacy/index.html`·`legacy/assets/ui/`에만 있다.
-> 새 화면이 부를 동작: `Game.battle.begin/answer/assign/unassign/resolve/settle/leave`, `Game.books.burn`, `Game.deck.toggle`,
-> `Game.libs.pick/toggleParty/equipKey/equipGift`, `Game.moon.open/start/answer/endRound/skipReplay`. 상태는 `Game.save`, `Game.battle.state`.
-| 경로 | 내용 |
-|---|---|
-| `index.html` | 게임 전체(약 7,500줄, 575KB). CSS → 마크업 → `<script>` 순. 데이터·전투 엔진·화면이 모두 여기 있다. 7번째 줄이 빌드 표시 `<meta name="build" content="library-…">`. |
-| `assets/ui/battle-stage.js` | 다대다 전투 무대 `window.BattleStage`(배치, 대상 화살표, 손패 부채꼴, 합 클로즈업 `clash(ev,{fast})`). 파일 맨 위 주석이 API 설명. |
-| `assets/data/moon-words.js`, `moon-words.sample.js` | 달의 계시 영단어 데이터(`window.MOON_WORDS`, 형식 `{id, en, ko, pos}`, 파일 끝에서 `w`/`m` 별칭도 채움; 없으면 예시 `MOON_WORDS_SAMPLE`). |
-| `assets/books/book-1.webp … book-8.webp` | 손님 책 표지(큐 양 제공 그림). `BOOK_COVER_N=8`. |
-| `assets/bg/` | 로비·전투 배경(CC0). `library-battle.webp`가 전투 무대 배경. |
-| `assets/icons/`, `assets/ui/*.webp|png`, `assets/textures/parchment.webp` | Kenney 아이콘·테두리, 양피지 질감(CC0). |
-| `assets/fonts/` | Pretendard, Space Grotesk(OFL). |
-| `assets/audio/` | `bgm.mp3`, `bgm-reception.mp3`(사용자 제공). |
-| `assets/reserve/` | 게임에서 로드하지 않는 보관 코드(옛 뽑기 `outfit-gacha-reserve.js`, 옛 장서 화면 `cosmetics-ui-parked.js`). 지우지 말 것. |
-| `CREDITS.md`, `LICENSES.md` | 에셋 출처. 새 에셋을 넣으면 꼭 갱신. |
-| `manifest.json` | PWA 매니페스트(`orientation: landscape`, fullscreen). |
-| `docs/` | 이 문서들. |
-| `tests/` | Playwright 테스트 39개(겹침 검사 포함). `node tests/run.mjs` / `npm test`. 브라우저 찾기는 `tests/lib/browser.mjs`, 스크린샷은 `shots/`(git 무시). |
-| `tools/sim/` | 밸런스 시뮬레이션 `balance.mjs`(`npm run sim`), 체력표 `hp.mjs`(`npm run sim:hp`). |
+> **2026-11-18 새 UI:** 아래 표·묶음 설명은 옛 구조다. 지금 구조·화면·무대 API·역할은 `docs/ui.md`를 먼저 읽는다.
+> 규칙 이름(`FLOORS`, `WEAK_POINTS`, `mbCreate` …)은 `js/core/`에 그대로 있다. 옛 화면 함수는 `legacy/`에만 있다.
 
 `index.html` 안의 주요 묶음(이름으로 검색할 것):
 - 데이터: `FLOORS`(층 4개: crime, memory, cognition, criminal-law), `WEAK_POINTS`(손님 11명, 문제 `questions`),
@@ -63,7 +44,7 @@
 
 ## 4. 담당 문서 나눔
 - [`docs/battle.md`](battle.md)(전투/시스템): 엔진 구조, `battleApi`, `ev`/`steps` 필드, 다대다·1:1 수치와 배율, 퍼센트 주사위, 저장 형식·버전·이전 저장 처리, 시뮬레이션, 테스트 실행.
-- [`docs/ui.md`](ui.md)(UI/UX): 화면 목록, `index.html` 구성, `BattleStage` API, 무대 배경 규칙과 겹침 검사, 손패·[개막]·상태판·책갈피 서랍, 합 연출, 가로/세로.
+- [`docs/ui.md`](ui.md)(UI/UX·3D 무대): 새 화면 구조, 무대 API(`createStage`·`play`·`registerFx`), 전투 화면 조작, 겹침 검사, 테스트, 역할 나눔. 옛 UI 설명은 `legacy/ui-old.md`.
 - [`docs/content.md`](content.md)(학습내용): 손님 데이터 형식, 문제·핵심 문제·단어, `ENEMY_BODY`, `guest.book`, 새 손님 추가 순서.
 - [`docs/decisions.md`](decisions.md)(총괄): 큐 양이 정한 규칙. 다른 문서와 어긋나면 **decisions.md가 우선**이고, 어긋난 문서를 고친다.
 
