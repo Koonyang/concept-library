@@ -99,6 +99,7 @@
 @keyframes bsInfo{from{opacity:0;margin-top:4px}to{opacity:1;margin-top:0}}
 .bs-unit.bg{opacity:.22;filter:brightness(.55)!important}
 .bs.focus .bs-svg{opacity:0;transition:opacity .15s}
+.result-on .bs-svg,.result-on .bs-info,.result-on .bs-fan,.result-on .bs-hand{display:none!important}
 .bs.focus .bs-unit.fo{transition:left .3s cubic-bezier(.2,.8,.2,1),top .3s cubic-bezier(.2,.8,.2,1)}
 .bs-cam{transition:transform .32s cubic-bezier(.2,.8,.2,1);transform-origin:0 0;will-change:transform}
 .bs-cam.fast{transition-duration:.16s}
@@ -305,6 +306,7 @@
   function dieEl(uid,i){ return root.querySelector(`.bs-die[data-u="${uid}"][data-d="${i}"]`); }
   function drawArrows(){
     if(!root||!last) return; const svg=root.querySelector(".bs-svg"); if(!svg) return;
+    if(root.closest(".result-on")){ svg.innerHTML=""; info=null; return; }
     let h=`<defs><marker id="bsA" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>`;
     const seen=new Set();
     for(const u of last.units){ if(u.hp<=0) continue; (u.dice||[]).forEach((d,i)=>{ if(!d.target) return; const a=dieEl(u.id,i);

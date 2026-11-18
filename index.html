@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118p">
+<meta name="build" content="library-20261118q">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -5745,6 +5745,7 @@ function openResult(){
   const b=$("#rbanner");
   $("#learn-toast")?.classList.remove("on");
   document.querySelector(".battle-stage")?.classList.add("result-on");
+  document.querySelectorAll(".battle-stage .bs-svg").forEach(v=>v.innerHTML="");
   $("#qpanel")?.classList.remove("on");
   b.classList.add("on");
   return b;
