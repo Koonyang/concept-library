@@ -143,12 +143,33 @@
 
   function injectCss(){ if(document.getElementById("bs-css")) return; const s=document.createElement("style"); s.id="bs-css"; s.textContent=CSS; document.head.appendChild(s); }
 
-  /* slot → 무대 위 자리. 남는 칸(band: 위 y0 ~ 아래 y1, px)을 재서 앞줄은 아래·크게, 뒷줄은 위·작게.
-     가로: 아군 왼쪽 / 적 오른쪽. 세로: 적은 위 절반, 아군은 아래 절반. */
+  /* slot → 무대 위 자리. 캐릭터(몸·이름·머리 막대)는 앞면 UI 위에 보이게 두고,
+     가로: 아군 왼쪽 / 적 오른쪽, 가운데는 비움. 세로는 적 뒤·아군 앞.
+     바닥 원판은 그 발 아래에 맞추고, 배경은 화면 맨 아래까지 깔린다. */
   function isLand(){ return !root || root.clientWidth>=root.clientHeight; }
+  function visEl(el){ if(!el) return false; const s=getComputedStyle(el); return s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity!==0; }
+  /* 앞면 UI 칸들(손패 카드·개막·상태판·주사위 설명). 유닛과 가로로 겹치면 그 위를 피한다. */
+  function frontCaps(){
+    if(!root) return [];
+    const R=root.getBoundingClientRect(), caps=[];
+    const add=el=>{
+      if(!visEl(el)) return;
+      const r=el.getBoundingClientRect(); if(r.width<2||r.height<2) return;
+      caps.push({x0:r.left-R.left, x1:r.right-R.left, top:r.top-R.top});
+    };
+    document.querySelectorAll("#btn-mb-go, .mb-stat, #mb-stat-ally, #mb-stat-enemy, .bs-info").forEach(add);
+    document.querySelectorAll("#hand .cc, .hand.bs-fan .cc, .bs-hand").forEach(add);
+    return caps;
+  }
+  function capBottom(x, half, y, caps){
+    for(const c of caps){ if(x+half>c.x0+1 && x-half<c.x1-1) y=Math.min(y, c.top-6); }
+    return y;
+  }
   function band(){
     const H=root.clientHeight, land=isLand(), R=root.getBoundingClientRect();
-    const fan=!!opts.cardHtml; const reserve = last&&last.phase==="question" ? 8 : fan ? (land?(H<=500?198:220):360) : (land?66:118);
+    const fan=!!opts.cardHtml;
+    /* 기본 줄은 화면의 대략 22–68%대(발은 앞줄 근처). 겹치는 앞면 UI는 layout 에서 유닛별로 피한다. */
+    const reserve = last&&last.phase==="question" ? 8 : fan ? (land?(H<=500?Math.round(H*.28):Math.round(H*.26)):Math.round(H*.36)) : (land?66:118);
     let y0=land?44:48, y1=H-reserve;
     const hud=document.querySelector(".hud-top");
     if(hud){ const s=getComputedStyle(hud);
@@ -187,7 +208,8 @@
     let r;
     if(B.land){
       r=rows(B.y0,B.y1,uh);
-      if(ally){ x = u.slot===0 ? 18 : u.slot===1 ? 8 : 28; }
+      /* 가장자리로 붙이되, 좁은 가로에서 적끼리 겹치지 않게 간격을 둔다. */
+      if(ally){ x = u.slot===0 ? 16 : u.slot===1 ? 7 : 24; }
       else { const X = back ? {1:[86],2:[76,94]} : {1:[84],2:[74,94],3:[70,84,96]}; x=(X[row.length]||X[1])[k]??84; }
     } else {
       const mid=B.y0+(B.y1-B.y0)*.5; r = ally ? rows(mid,B.y1,uh) : rows(B.y0,mid,uh);
@@ -202,13 +224,20 @@
     px=Math.max(half+pad, Math.min(B.W-half-pad, px));
     return {x:px,y,t,sc,br:1,z:1+Math.round(t*10),r};
   }
-  /* 바닥(사다리꼴) 위치: 가장 뒤·가장 앞 발 높이 (화면 좌표). 배경 그림이 여기에 맞춰 무대를 깐다. */
+  /* 바닥 원판: 캐릭터 발 아래(뒤 발~앞 발). 화면 맨 아래까지 늘리지 않는다. */
   function floorBand(){
-    if(!root||!last) return null; const B=band(), n=enemyRows(); const any=root.querySelector(".bs-unit"); const uh=any?any.offsetHeight:120;
-    const pl=any&&any.querySelector(".bs-plate"), ph=pl?pl.offsetHeight:26, R=root.getBoundingClientRect();
-    if(B.land){ const r=rows(B.y0,B.y1,uh); return {land:true,yb:R.top+r.back-ph*.8-8,yf:R.bottom,top:R.top,H:R.height}; }
-    const mid=B.y0+(B.y1-B.y0)*.5, ra=rows(mid,B.y1,uh), re=rows(B.y0,mid,uh);
-    return {land:false,yb:R.top+re.back-ph*.8-8,yf:R.bottom,top:R.top,H:R.height};
+    if(!root||!last) return null; const B=band(), R=root.getBoundingClientRect();
+    const figs=[...root.querySelectorAll(".bs-unit:not(.dead) .bs-fig")].map(el=>el.getBoundingClientRect()).filter(r=>r.height>2);
+    if(figs.length){
+      const yb=Math.min(...figs.map(r=>r.bottom))-14, yf=Math.max(...figs.map(r=>r.bottom))+18;
+      return {land:B.land,yb,yf,top:R.top,H:R.height};
+    }
+    const n=enemyRows(), any=root.querySelector(".bs-unit"), uh=any?any.offsetHeight:120;
+    const pl=any&&any.querySelector(".bs-plate"), ph=pl?pl.offsetHeight:26;
+    let back, front;
+    if(B.land){ const r=rows(B.y0,B.y1,uh); back=r.back; front=r.front; }
+    else { const mid=B.y0+(B.y1-B.y0)*.5, ra=rows(mid,B.y1,uh), re=rows(B.y0,mid,uh); back=re.back; front=ra.front; }
+    return {land:B.land,yb:R.top+back-ph-8,yf:R.top+front-ph+18,top:R.top,H:R.height};
   }
   /* 합 클로즈업: 합을 치는 사서·적 둘만 무대 가운데로 모이고, 카메라(무대를 감싼 칸)가 그 둘에 다가간다 */
   function focusPos(u,B,uh,p){
@@ -251,19 +280,29 @@
     if(!root||!last) return;
     const B=band(), n=enemyRows();
     const any=root.querySelector(".bs-unit"); const uh=any?any.offsetHeight:120;
+    let snap=false;
     for(const u of last.units){ const el=root.querySelector(`.bs-unit[data-unit="${u.id}"]`); if(!el) continue;
       let p=place(u,n,B,uh);
       el.classList.toggle("bg",!!focus&&!focus.ids.includes(u.id)); el.classList.toggle("fo",!!focus&&focus.ids.includes(u.id));
       if(focus&&focus.ids.includes(u.id)) p=focusPos(u,B,uh,p);
-      if(!laidOut) el.classList.add("nofx");
       el.style.visibility="";
-      el.style.setProperty("--x",p.x+"px"); el.style.setProperty("--y",p.y+"px");
+      let y=p.y; /* --y 는 유닛 박스 하단(발+명찰) */
+      const sc=+p.sc||1, uhPx=el.offsetHeight*sc, half=(el.offsetWidth*sc)/2;
+      const top=y-uhPx;
+      if(top<B.y0) y+=B.y0-top;     /* 주사위·화살표가 HUD 아래로 */
+      if(y>B.y1) y=B.y1;
+      y=capBottom(p.x, half, y, frontCaps()); /* 몸·이름·머리 막대가 앞면 UI 아래로 가지 않게 */
+      if(y>B.H-1) y=B.H-1;
+      const prevY=parseFloat(el.style.getPropertyValue("--y"));
+      /* 캡으로 올라가는 배치는 전환 없이 바로 적용해, 손패와 겹친 채로 보이지 않게 */
+      if(!laidOut || (isFinite(prevY) && y<prevY-0.5)){ el.classList.add("nofx"); snap=true; }
+      el.style.setProperty("--x",p.x+"px"); el.style.setProperty("--y",y+"px");
       el.style.setProperty("--sc",p.sc); el.style.setProperty("--br",p.br); el.style.setProperty("--z",p.z);
       el.style.setProperty("--lx",B.land?(u.side==="ally"?"18px":"-18px"):"0px");
       el.style.setProperty("--ly",B.land?"0px":(u.side==="ally"?"-16px":"16px"));
       prevPos[u.id]=p; }
     root.classList.toggle("port",!B.land); root.classList.toggle("focus",!!focus); applyCam(B,uh);
-    if(!laidOut){ void root.offsetWidth; root.querySelectorAll(".bs-unit.nofx").forEach(e=>e.classList.remove("nofx")); laidOut=true; }
+    if(!laidOut||snap){ void root.offsetWidth; root.querySelectorAll(".bs-unit.nofx").forEach(e=>e.classList.remove("nofx")); laidOut=true; }
     drawArrows(); clearTimeout(arrowT); arrowT=setTimeout(drawArrows,380);
     if(opts.onFloor){ const f=floorBand(); if(f) opts.onFloor(f); }
   }
@@ -384,8 +423,9 @@
     root.innerHTML=`<div class="bs-floor"></div>${battle.units.map(u=>unitHtml(u,n)).join("")}<svg class="bs-svg"></svg>${opts.cardHtml?`<div class="hand bs-fan">${handHtml()}</div>`:`<div class="bs-hand">${handHtml()}</div>`}`;
     if(info&&battle.phase==="resolve") info=null;
     for(const u of battle.units){ seenHp[u.id]=u.hp; seenStag[u.id]=!!u.staggered; }
-    markTargets(); layout(); requestAnimationFrame(layout);
+    markTargets();
     if(opts.cardHtml&&opts.onHand){ const hd=root.querySelector(".hand.bs-fan"); if(hd&&hd.children.length) opts.onHand(hd,API); }
+    layout(); requestAnimationFrame(layout);
   }
   function rel(el){ const r=el.getBoundingClientRect(), R=root.getBoundingClientRect(), z=cam.z||1; return {x:(r.left-R.left+r.width/2)/z,y:(r.top-R.top+r.height/2)/z,top:(r.top-R.top)/z}; }
   function figEl(uid){ return root.querySelector(`.bs-unit[data-unit="${uid}"] .bs-fig`); }
@@ -401,7 +441,7 @@
       const t=unit(d.target.unit), td=!noDie&&t&&t.dice&&t.dice[d.target.die];
       const clash = td&&td.target&&td.target.unit===u.id&&td.target.die===i;
       const key=[u.id+":"+i,d.target.unit+":"+d.target.die].sort().join("|"); if(clash&&seen.has(key)) return; seen.add(key);
-      const p=rel(a), q=noDie?figPt(b):rel(b); const mx=(p.x+q.x)/2, my=Math.min(p.top,q.top)-36-Math.abs(p.x-q.x)*.08;
+      const p=rel(a), q=noDie?figPt(b):rel(b); const mx=(p.x+q.x)/2, my=Math.max(8, Math.min(p.top,q.top)-36-Math.abs(p.x-q.x)*.08);
       const col= clash?"#ffe6a8": u.side==="ally"?"#c4a35a":"#e06a55";
       h+=`<path d="M${p.x} ${p.y-14} Q${mx} ${my} ${q.x} ${q.y-14}" fill="none" stroke="${col}" stroke-width="${clash?2.6:2}" ${clash?"":"stroke-dasharray=\"5 4\""} marker-end="url(#bsA)" ${clash?"marker-start=\"url(#bsA)\"":""} opacity=".92"/>`;
       if(clash) h+=`<circle cx="${mx}" cy="${(my+Math.min(p.y,q.y))/2-6}" r="9" fill="#1a1f2c" stroke="${col}" stroke-width="1.5"/><text x="${mx}" y="${(my+Math.min(p.y,q.y))/2-2}" font-size="10" font-weight="800" text-anchor="middle" fill="${col}">합</text>`;
@@ -409,7 +449,7 @@
     if(last.phase==="assign"){
       for(const u of last.units){ if(u.side!=="ally"||u.hp<=0) continue; (u.dice||[]).forEach((d,i)=>{ if(!d.card||!d.target) return;
         const a=dieEl(u.id,i); const noDie=d.target.die==null, b=noDie?figEl(d.target.unit):dieEl(d.target.unit,d.target.die); if(!a||!b) return;
-        const p=rel(a), q=noDie?figPt(b):rel(b); const mx=(p.x+q.x)/2, my=Math.min(p.top,q.top)-36-Math.abs(p.x-q.x)*.08;
+        const p=rel(a), q=noDie?figPt(b):rel(b); const mx=(p.x+q.x)/2, my=Math.max(8, Math.min(p.top,q.top)-36-Math.abs(p.x-q.x)*.08);
         h+=`<path class="bs-arr-hit" data-u="${u.id}" data-d="${i}" d="M${p.x} ${p.y-14} Q${mx} ${my} ${q.x} ${q.y-14}" fill="none" stroke="transparent" stroke-width="18"/>`;
       }); }
     }
