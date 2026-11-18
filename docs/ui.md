@@ -67,16 +67,21 @@ UI/UX 담당이 맡았던 화면·연출 부분을 이어받을 사람을 위한
 
 ## 5. 테스트와 확인
 
-테스트는 지금 **저장소 밖** `/workspace/lib-tests`(봇 공용 컴퓨터)에 있다. Playwright(`playwright-core`) + 시스템 Chrome(`/usr/bin/google-chrome`)로 로컬 서버를 띄워 화면을 찍고 검사한다.
+테스트는 저장소 `tests/`에 있다. 실행 방법 전체는 `docs/battle.md`를 본다. UI 작업에서 쓰는 것만 적는다.
 
 ```
-cd /workspace/lib-tests
-LIB_ROOT=/path/to/repo node overlap-check.mjs      # 겹침 검사(fighter-front-ui 포함). 0개여야 함
-LIB_ROOT=/path/to/repo node landscape.test.mjs     # 가로 화면들
-LIB_ROOT=/path/to/repo node orient.test.mjs        # 가로/세로 전환
+npm install
+node tests/run.mjs                          # 전부 (약 25분). npm test 도 같음
+node tests/run.mjs overlap-check landscape orient fanhand clashcards   # 골라서
+NO_OVERLAP=1 node tests/run.mjs            # 겹침 검사 빼고
 ```
 
-UI 쪽 주요 테스트: `overlap-check`(지금 들어 있는 `fighter-front-ui` 항목은 캐릭터와 앞면 UI 겹침을 잡는데, 위 규칙상 실패해도 막는 기준은 아니다), `landscape`, `orient`, `fanhand`, `battlestage`, `clashcards`, `clashpromise`, `arrowhi`, `resultfit`, `hpstatus`, `unassign`, `settings`, `scroll`/`scrollkeep`/`deckscroll`/`receptionscroll`, `sheet`, `dress`, `bookcovers`, `center`. 스크린샷은 `$LIB_ROOT/shots/`에 떨어진다(저장소에 올리지 않음).
+- 브라우저는 `tests/lib/browser.mjs`가 찾는다(`CHROME_PATH` 환경 변수가 먼저). `LIB_ROOT`가 없으면 저장소 맨 위를 쓴다.
+- 스크린샷은 `shots/`에 떨어진다(git 무시).
+- 이 저장소의 로컬 git 설정은 `*.mjs`를 무시하므로, 새 테스트 파일은 `git add -f`로 올린다.
+- **겹침 검사 `tests/overlap-check.mjs`는 0개여야 배포한다.** 전투 UI끼리(주사위, 바, 화살표, 손패, [개막], 상태 패널, 합 책장 카드) 겹치면 안 된다. `fighter-front-ui` 항목은 캐릭터와 앞면 UI의 겹침을 보는데, 지금 화면은 0개다. 1절 규칙상 캐릭터는 가려져도 되므로, 일부러 UI를 캐릭터 위에 두는 변경이면 실패를 무시하지 말고 그 항목을 검사에서 빼는 커밋을 같이 올린다.
+
+UI 쪽 주요 테스트: `overlap-check`, `landscape`, `orient`, `fanhand`, `battlestage`, `clashcards`, `clashpromise`, `arrowhi`, `resultfit`, `hpstatus`, `unassign`, `settings`, `scroll`/`scrollkeep`/`deckscroll`/`receptionscroll`, `sheet`, `dress`, `bookcovers`, `center`, `moon`/`moonwords`.
 
 - 배포 전에 **스크린샷을 직접 눈으로 본다.** 테스트가 통과해도 화면이 어긋난 적이 있다(zh, 되돌림).
 - 새 화면을 만들면 844×390과 390×844 둘 다 찍어 본다.
