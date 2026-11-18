@@ -5,17 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
 <meta name="build" content="library-20261118zm">
-<link rel="stylesheet" href="assets/fonts/fonts.css">
+<meta name="theme-color" content="#0b0d10">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="data:,">
-<!-- 새 UI 자리. 옛 화면은 legacy/ 에 보관. 규칙·데이터는 js/core/ (화면 없음) -->
-<style>
-  html,body{margin:0;height:100%;background:#000;color:#999;font:14px/1.5 Pretendard,system-ui,sans-serif}
-  #app{height:100%;display:grid;place-items:center;text-align:center}
-</style>
+<link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<link rel="stylesheet" href="js/ui/style.css">
+<script type="importmap">{"imports":{"three":"./vendor/three/three.module.min.js","three/addons/":"./vendor/three/addons/"}}</script>
 </head>
 <body>
-<div id="app"><p id="core-status">새 화면 준비 중</p></div>
+<!-- 맨 아래: 3D 무대(js/stage), 그 위: 화면(js/ui). 옛 화면은 legacy/ -->
+<canvas id="stage"></canvas>
+<div id="ui"></div>
 
 <!-- 규칙·데이터 (순서 중요: 앞 파일의 이름을 뒤 파일이 쓴다) -->
 <script src="assets/data/moon-words.sample.js"></script>
@@ -26,10 +27,6 @@
 <script src="js/core/battle.js"></script>
 <script src="js/core/moon.js"></script>
 <script src="js/core/api.js"></script>
-<script>
-  const d=Game.data;
-  document.getElementById("core-status").textContent=
-    `새 화면 준비 중 · 규칙 코어 로드됨 (층 ${d.FLOORS.length} · 손님 ${d.WEAK_POINTS.length} · 책장 ${d.COMBAT_PAGES.length} · 핵심 책장 ${d.KEY_PAGES.length} · 기프트 ${d.EGO_GIFTS.length})`;
-</script>
+<script type="module" src="js/ui/app.js"></script>
 </body>
 </html>
