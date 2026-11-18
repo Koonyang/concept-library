@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118q">
+<meta name="build" content="library-20261118r">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -5764,11 +5764,11 @@ function showWin(){
   const bookRow=`<div class="rb-gift book"><span class="rb-gift-ico">${ico("book",22)}</span>
       <div class="rb-gift-tx"><span class="rb-gift-lab">책 획득</span><b>${guest.concept} ×${nb}</b><small>보유 ${shownBookCount(save,guest.id)}권 · 책장에서 소각하면 책장이 나온다</small></div></div>`;
   const giftRow=drops.map((d,k)=>{
-    const L=libOf(save,libIds[k]);
+    const L=libOf(save,libIds[k]), nm=L.name;
     if(d&&!d.dup) return `<div class="rb-gift"><span class="rb-gift-ico">${ico("gift",22)}</span>
-      <div class="rb-gift-tx"><span class="rb-gift-lab">${L.name}의 에고 기프트 획득</span><b>${d.item.name}</b><small>${d.item.slot} · ${giftPerkText(d.item)}</small></div></div>`;
-    if(d) return `<div class="rb-gift none"><span class="rb-gift-ico">${ico("gift",22)}</span><div class="rb-gift-tx"><span class="rb-gift-lab">이미 가진 기프트</span><b>${d.item.name}</b><small>중복이라 아무것도 얻지 못했다</small></div></div>`;
-    return rec.isRecall?`<div class="rb-gift none"><span class="rb-gift-ico">${ico("gift",22)}</span><div class="rb-gift-tx"><b>이번 회상에서는 기프트가 떨어지지 않았다</b><small>다시 회상하면 다시 기회가 있다.</small></div></div>`:"";
+      <div class="rb-gift-tx"><span class="rb-gift-lab">${nm} · 에고 기프트 획득</span><b>${d.item.name}</b><small>${d.item.slot} · ${giftPerkText(d.item)}</small></div></div>`;
+    if(d) return `<div class="rb-gift none"><span class="rb-gift-ico">${ico("gift",22)}</span><div class="rb-gift-tx"><span class="rb-gift-lab">${nm} · 이미 가진 기프트</span><b>${d.item.name}</b><small>중복이라 아무것도 얻지 못했다</small></div></div>`;
+    return `<div class="rb-gift none"><span class="rb-gift-ico">${ico("gift",22)}</span><div class="rb-gift-tx"><span class="rb-gift-lab">${nm} · 기프트 없음</span><b>이번에는 떨어지지 않았다</b><small>${rec.isRecall?"다시 회상하면 다시 기회가 있다.":"다른 손님을 접대하면 다시 기회가 있다."}</small></div></div>`;
   }).join("");
   b.innerHTML=`<div class="rb-card frame">
     <div class="rb-eyebrow">${rec.isRecall?"회상 완료":"접대 완료"}</div>

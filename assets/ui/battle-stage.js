@@ -394,7 +394,7 @@
     { const ce=host&&camEl(); if(ce){ ce.style.transform=""; ce.classList.remove("bs-cam","fast"); } }
     window.removeEventListener("pointermove",onMove); window.removeEventListener("pointerup",onUp,true); window.removeEventListener("resize",onResize);
     if(ro){ ro.disconnect(); ro=null; }
-    if(root){ root.remove(); } root=null; host=null; last=null; sel=null; pickCard=null; drag=null; laidOut=false; info=null; clearTimeout(holdT); focus=null; cam={z:1,x:0,y:0};
+    if(root){ root.remove(); } root=null; host=null; last=null; sel=null; pickCard=null; drag=null; laidOut=false; info=null; clearTimeout(holdT); clearTimeout(arrowT); focus=null; cam={z:1,x:0,y:0};
     for(const k in prevPos) delete prevPos[k];
   }
   /* 합/일방 연출: 두 캐릭터가 서로 달려들고 가운데서 불꽃. 진 쪽은 밀려난다. */
