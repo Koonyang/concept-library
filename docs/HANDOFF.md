@@ -11,6 +11,12 @@
 - 정적 사이트. 빌드·번들러·패키지 없음. GitHub Pages가 `main` 브랜치 루트(`/`)를 그대로 올린다.
 
 ## 2. 파일 지도
+
+> **2026-11-18 UI 전면 교체:** 아래 표·묶음 설명은 옛 구조다. 지금은 `index.html`이 빈 껍데기이고, 규칙·데이터·엔진·저장은
+> `js/core/`(data · engine · save · battle · moon · api)에 있다. 이름(`FLOORS`, `WEAK_POINTS`, `mbCreate` …)은 그대로라 검색하면 된다.
+> 화면 함수(`renderLobby`, `renderMulti`, `BattleStage`, `SFX`, `FX`, 캐릭터 SVG `gx*`/`librarianSvg` …)는 `legacy/index.html`·`legacy/assets/ui/`에만 있다.
+> 새 화면이 부를 동작: `Game.battle.begin/answer/assign/unassign/resolve/settle/leave`, `Game.books.burn`, `Game.deck.toggle`,
+> `Game.libs.pick/toggleParty/equipKey/equipGift`, `Game.moon.open/start/answer/endRound/skipReplay`. 상태는 `Game.save`, `Game.battle.state`.
 | 경로 | 내용 |
 |---|---|
 | `index.html` | 게임 전체(약 7,500줄, 575KB). CSS → 마크업 → `<script>` 순. 데이터·전투 엔진·화면이 모두 여기 있다. 7번째 줄이 빌드 표시 `<meta name="build" content="library-…">`. |

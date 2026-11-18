@@ -2,7 +2,7 @@
    tests/*.test.mjs 와 tests/overlap-check.mjs(겹침 검사, 10화면)를 병렬로 돌리고 요약.
    환경변수: LIB_ROOT(기본 저장소 맨 위), CHROME_PATH, JOBS(동시 실행 수, 기본 4), TEST_TIMEOUT(초, 기본 900),
             NO_OVERLAP=1(겹침 검사 빼기). 로그는 shots/test-logs/<이름>.log, 스크린샷은 shots/ (git 에 안 올림) */
-import { readdirSync, mkdirSync, createWriteStream } from "fs";
+import { readdirSync, mkdirSync, createWriteStream, existsSync } from "fs";
 import { spawn } from "child_process";
 import { join } from "path";
 import { LIB_ROOT } from "./lib/browser.mjs";
@@ -14,7 +14,7 @@ mkdirSync(LOGS, { recursive: true });
 
 const filters = process.argv.slice(2);
 let files = readdirSync(TESTS).filter((f) => f.endsWith(".test.mjs")).sort();
-if (!process.env.NO_OVERLAP) files.unshift("overlap-check.mjs");   /* 가장 오래 걸리니 먼저 시작 */
+if (!process.env.NO_OVERLAP && existsSync(join(TESTS, "overlap-check.mjs"))) files.unshift("overlap-check.mjs");   /* 가장 오래 걸리니 먼저 시작 */
 if (filters.length) files = files.filter((f) => filters.some((x) => f.includes(x)));
 const JOBS = Math.max(1, +(process.env.JOBS || 4));
 const TIMEOUT = 1000 * +(process.env.TEST_TIMEOUT || 900);

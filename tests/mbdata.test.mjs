@@ -56,11 +56,6 @@ const un=await p.evaluate(()=>{ const G=__studyGame, A=G.battleApi, B=G.battle, 
 ok(un.r.every(Boolean)&&un.phaseAll==="assign","assigning every die does not auto-advance (phase stays 'assign')",un);
 ok(un.u1===true&&un.back===un.after+un.cost&&un.inHand&&un.die.card===null&&un.die.target===null,"unassign: card back to hand, light refunded, die cleared",un);
 ok(un.got.length===1&&un.got[0].unit==="a1"&&un.got[0].die===0&&un.got[0].card==="cover-slam"&&un.got[0].refund===un.cost&&un.as===4,"onUnassign hook {unit,die,card,refund}; onAssign per assign",{got:un.got,as:un.as});
-const tap=await p.evaluate(async()=>{ const A=__studyGame.battleApi; __studyGame.renderBattle(); await new Promise(r=>setTimeout(r,200));
-  /* 무대 쪽 onUnassign 경로(이미 놓인 주사위를 다시 누름)도 같은 엔진 함수를 쓴다 */
-  const ok1=typeof BattleStage.onUnassign==="function"; if(ok1) BattleStage.onUnassign("a1",1);
-  return {ok1,card:__studyGame.battle.units.find(u=>u.id==="a1").dice[1].card,phase:__studyGame.battle.phase}; });
-ok(tap.ok1&&tap.card===null&&tap.phase==="assign","BattleStage.onUnassign → battleApi.unassign (still in assign)",tap);
 /* ---------- 4) 정답 흐트러짐 배율 (1:1 과 같음: 사서→적 만 ×1.25 / 핵심 ×1.75, 적→사서 ×1) ---------- */
 const stg=await p.evaluate(()=>{ const G=__studyGame, A=G.battleApi, E=G.engine, out={c:E.COMBAT.correctStagger,k:E.COMBAT.keyCorrectStagger};
   const run=(correct,isKey)=>{ A.begin("beccaria"); const B=G.battle, U=id=>B.units.find(u=>u.id===id), X=A.internals();
@@ -213,13 +208,13 @@ await p.goto(BASE); await p.waitForFunction(()=>window.__studyGame&&window.__stu
 const mig=await p.evaluate(()=>{ const G=__studyGame, s=G.save, K=G.gifts.SAVE_KEY; const o={};
   o.fields=["level","xp","exp","maxHp"].filter(k=>k in s); o.saveV=s.saveV; o.kept={won:s.receptionsWon,conq:s.conqueredIds};
   o.eff=G.gifts.effectiveMaxHp(s); o.base=G.engine.COMBAT.playerStartHp+G.gifts.withKeyMods(G.gifts.giftTotals(s),s).hp;
-  G.setScene("lobby"); o.lobbyUndef=/undefined|NaN/.test(document.querySelector("#scene-lobby").innerText||"");
+  
   try{ localStorage.setItem(K,JSON.stringify(s)); }catch(e){} const st=JSON.parse(localStorage.getItem(K)); o.stored=["level","xp","exp","maxHp"].filter(k=>k in st);
   const fresh=G.gifts.loadSave(); o.freshFields=["level","xp","exp","maxHp"].filter(k=>k in fresh); o.freshV=fresh.saveV;
   { const A=G.battleApi; A.create("pomodoro"); o.ally=A.mb.battle.units.filter(u=>u.side==="ally").map(u=>[u.maxHp,u.maxStagger]); o.allyExp=[A.allyStats(A.libMods("kyu"),"pomodoro").hp,A.MB.HP.allySt]; }
   return o; });
 ok(mig.fields.length===0&&mig.saveV===2&&mig.stored.length===0&&mig.freshFields.length===0&&mig.freshV===2,"old save with level/xp/maxHp loads; those fields are dropped, saveV=2",mig);
-ok(mig.kept.won===3&&JSON.stringify(mig.kept.conq)==='["pomodoro"]'&&mig.eff===mig.base&&!mig.lobbyUndef,"other progress kept; 1:1 max HP = fixed base + gifts/key page (no level); lobby shows no undefined",mig);
+ok(mig.kept.won===3&&JSON.stringify(mig.kept.conq)==='["pomodoro"]'&&mig.eff===mig.base&&!mig.lobbyUndef,"other progress kept; 1:1 max HP = fixed base + gifts/key page (no level)",mig);
 ok(mig.ally.length>0&&mig.ally[0][0]===mig.allyExp[0]&&mig.ally[0][1]===mig.allyExp[1],"multi librarian stats after migration = fixed allyStats",mig);
 ok(errs.length===0,"no errors",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);
