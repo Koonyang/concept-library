@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118z">
+<meta name="build" content="library-20261118za">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -160,12 +160,15 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .floor-btn.on{border-color:var(--gold4);color:var(--gold4);
   background:linear-gradient(180deg,rgba(236,186,104,.32),rgba(18,14,10,.55));
   box-shadow:0 0 16px rgba(236,186,104,.35),inset 0 1px 0 rgba(255,242,214,.4)}
-.floor-hero{position:relative;height:168px;overflow:hidden;flex:0 0 auto}
+.floor-hero{position:relative;display:flex;flex-direction:column;overflow:hidden;flex:0 0 auto;min-height:0}
+.floor-hero .floor-nav{position:relative;z-index:2;flex:0 0 auto;width:100%;box-sizing:border-box;padding:6px 6px 0;gap:4px}
+.floor-hero .fn-dots{position:relative;z-index:2;flex:0 0 auto;margin:0 auto 4px}
+.floor-art{position:relative;flex:1 1 auto;min-height:120px;overflow:hidden}
 .floor-hero .cap{position:absolute;left:0;top:0;bottom:0;right:38%;z-index:1;
   display:flex;flex-direction:column;justify-content:center;
   padding:16px 22px 16px 20px;
   background:linear-gradient(90deg,rgba(7,8,13,.92) 0%,rgba(7,8,13,.72) 62%,rgba(7,8,13,0) 100%)}
-.floor-hero h2{letter-spacing:.032em;font-size:22px;margin-bottom:4px}
+.floor-hero .cap h2{letter-spacing:.032em;font-size:22px;margin-bottom:4px}
 .guests{flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding-right:4px}
 .guest-card{display:flex;gap:14px;padding:10px 14px 10px 10px;cursor:pointer;text-align:left;width:100%;
   align-items:center;transition:border-color .22s,box-shadow .22s,transform .22s,background .22s}
@@ -672,8 +675,12 @@ body.dressing{cursor:grabbing;-webkit-user-select:none;user-select:none}
   .lobby-grid{display:flex;flex-direction:column;grid-template-columns:none;grid-template-rows:none;gap:8px;min-height:0;overflow:hidden}
   .portrait-box{display:none}
   .lobby-grid>.col.mid{flex:1 1 auto;min-height:0;overflow:hidden}
-  .floor-hero{height:86px}
-  .floor-hero h2{font-size:15px}
+  .floor-hero{height:auto;flex:0 0 auto}
+  .floor-hero .floor-nav{padding:2px 4px 0}
+  .floor-hero .fn-arrow{width:36px;height:36px;flex-basis:36px}
+  .floor-hero .fn-name{font-size:15px}
+  .floor-art{flex:0 0 72px;min-height:72px;height:72px}
+  .floor-hero .cap h2{font-size:15px}
   .floor-hero .cap{padding:8px 12px;right:28%}
   .guests{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;gap:8px}
   .guest-card{flex:0 0 auto;padding:8px}
@@ -827,7 +834,7 @@ b,strong{font-weight:700}
   box-shadow:0 6px 20px rgba(var(--accent-rgb),.3)}
 .floor-hero{border-radius:var(--r-md)}
 .floor-hero .cap{background:linear-gradient(90deg,rgba(6,7,13,.94) 0%,rgba(6,7,13,.7) 62%,rgba(6,7,13,0) 100%)}
-.floor-hero h2{letter-spacing:-.03em;font-weight:800}
+.floor-hero .cap h2{letter-spacing:-.03em;font-weight:800}
 .guest-card{border-radius:var(--r-md)}
 .guest-card:hover,.guest-card.on{border-color:rgba(var(--accent-rgb),.6);transform:translateY(-1px);
   background:linear-gradient(90deg,rgba(var(--accent-rgb),.12),rgba(16,20,33,.6));
@@ -1452,9 +1459,15 @@ b,strong{font-weight:700}
   .fn-name{font-size:15px!important}
   .fn-count{font-size:10px}
   .fn-dots{margin:2px auto 4px}
-  .floor-swipe{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:10px}
-  .floor-hero{height:auto!important;min-height:0}
-  .floor-hero .cap{right:auto!important;left:0;bottom:0;top:auto;max-width:100%}
+  .col.mid{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  .floor-swipe{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(168px,28%) minmax(0,1fr);gap:10px;align-items:stretch}
+  .floor-hero{height:auto!important;min-height:0;align-self:stretch}
+  .floor-hero .floor-nav{padding:4px 2px 0;gap:2px}
+  .floor-hero .fn-arrow{width:30px!important;height:30px!important;flex:0 0 30px!important}
+  .floor-hero .fn-name{font-size:13px!important}
+  .floor-hero .fn-count{font-size:9px}
+  .floor-art{flex:1 1 auto;min-height:0;height:auto}
+  .floor-hero .cap{right:auto!important;left:0;bottom:0;top:auto;max-width:100%;padding:8px 10px 14px}
   .guests{min-height:0;overflow-y:auto;gap:8px}
   .guest-card{padding:6px 8px}
   .guest-card svg{width:52px;height:64px}
@@ -4582,7 +4595,7 @@ function goFloor(idx,dir){
   if(dir==null) dir=idx>floorIndex()?1:-1;
   SFX.click(); closeGuestSheet();
   const finish=()=>{ floorId=FLOORS[idx].id; try{ localStorage.setItem(FLOOR_KEY,floorId); }catch(e){} floorAnimDir=dir; renderLobby(); };
-  const els=$$(".fn-title,.floor-swipe");
+  const els=$$("#floor-swipe");
   if(!els.length||matchMedia("(prefers-reduced-motion: reduce)").matches){ finish(); return; }
   els.forEach(e=>{ e.classList.add(dir>0?"slide-out-l":"slide-out-r"); });
   setTimeout(finish,150);
@@ -4591,11 +4604,11 @@ function bindFloorNav(){
   $("#fn-prev")&&($("#fn-prev").onclick=()=>goFloor(floorIndex()-1,-1));
   $("#fn-next")&&($("#fn-next").onclick=()=>goFloor(floorIndex()+1,1));
   $$("[data-fdot]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.fdot; goFloor(i,i>floorIndex()?1:-1); });
-  const sw=$("#floor-swipe"), nav=$("#floor-nav"); let sx=0,sy=0,t0=0,track=false;
+  const sw=$("#floor-swipe"); let sx=0,sy=0,t0=0,track=false;
   const start=e=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; t0=Date.now(); track=true; };
   const end=e=>{ if(!track) return; track=false; const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
     if(Math.abs(dx)>56&&Math.abs(dx)>Math.abs(dy)*1.6&&Date.now()-t0<700){ if(dx<0) goFloor(floorIndex()+1,1); else goFloor(floorIndex()-1,-1); } };
-  [sw,nav].forEach(el=>{ if(!el) return; el.addEventListener("touchstart",start,{passive:true}); el.addEventListener("touchend",end,{passive:true}); });
+  if(sw){ sw.addEventListener("touchstart",start,{passive:true}); sw.addEventListener("touchend",end,{passive:true}); }
 }
 function renderLobby(){
   const fi=floorIndex();
@@ -4614,16 +4627,18 @@ function renderLobby(){
         <div class="bonus-sum" style="margin-top:8px;width:100%">${bonusLabel(giftTotals(save))}</div>
       </div>
       <div class="col mid">
-        <div class="floor-nav" id="floor-nav">
-          <button class="fn-arrow" id="fn-prev" type="button" aria-label="이전 층"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
-          <div class="fn-title" aria-live="polite"><div class="fn-count">${fi+1} / ${FLOORS.length}</div><h2 class="gold-title fn-name">〈${floor.name}〉</h2></div>
-          <button class="fn-arrow" id="fn-next" type="button" aria-label="다음 층"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
-        </div>
-        ${floorDotsHtml(fi)}
         <div class="floor-swipe" id="floor-swipe">
         <div class="floor-hero frame">${cornerHtml()}
-          <canvas class="arena-bg" id="floor-thumb" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
-          <div class="cap"><h2 class="gold-title">${floor.subject}</h2><div class="gmeta">${floor.motto}</div></div>
+          <div class="floor-nav" id="floor-nav">
+            <button class="fn-arrow" id="fn-prev" type="button" aria-label="이전 층"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <div class="fn-title" aria-live="polite"><div class="fn-count">${fi+1} / ${FLOORS.length}</div><h2 class="gold-title fn-name">〈${floor.name}〉</h2></div>
+            <button class="fn-arrow" id="fn-next" type="button" aria-label="다음 층"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+          </div>
+          ${floorDotsHtml(fi)}
+          <div class="floor-art">
+            <canvas class="arena-bg" id="floor-thumb" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+            <div class="cap"><h2 class="gold-title">${floor.subject}</h2><div class="gmeta">${floor.motto}</div></div>
+          </div>
         </div>
         <div class="guests">${guests.map(gs=>{
           const ok=save.conqueredIds.includes(gs.id);
@@ -4642,7 +4657,7 @@ function renderLobby(){
     <aside class="guest-sheet" id="guest-sheet" aria-hidden="true"></aside>`;
   bindNav();
   bindFloorNav();
-  if(floorAnimDir){ const cls=floorAnimDir>0?"slide-in-r":"slide-in-l"; floorAnimDir=0; $$(".fn-title,.floor-swipe").forEach(e=>{ e.classList.add(cls); setTimeout(()=>e.classList.remove(cls),380); }); }
+  if(floorAnimDir){ const cls=floorAnimDir>0?"slide-in-r":"slide-in-l"; floorAnimDir=0; $$("#floor-swipe").forEach(e=>{ e.classList.add(cls); setTimeout(()=>e.classList.remove(cls),380); }); }
   $$("[data-guest]").forEach(b=>b.onclick=()=>{ selectedGuestId=b.dataset.guest; SFX.hover(); openGuestSheet(selectedGuestId); });
   paintMiniFloor($("#floor-thumb"), floorId);
   if(sheetOpen && selectedGuestId) openGuestSheet(selectedGuestId, true);
