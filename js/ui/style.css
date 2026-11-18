@@ -208,3 +208,24 @@ button { font: inherit; color: inherit; }
   #result .rcard { grid-template-columns: 1fr; justify-items: center; text-align: center; }
   #result .acts { justify-content: center; }
 }
+
+/* ================= 책갈피 서랍 · 설정 책갈피 ================= */
+#nav-bm { position: absolute; top: 0; left: max(14px, env(safe-area-inset-left)); width: 34px; height: 46px; padding: 12px 0 0; box-sizing: border-box; border: 0; cursor: pointer;
+  background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000)); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);
+  display: grid; justify-items: center; align-content: start; gap: 3px; box-shadow: 0 4px 12px rgba(0,0,0,.4); z-index: 5; }
+#nav-bm i { display: block; width: 14px; height: 2px; border-radius: 1px; background: rgba(10,10,12,.75); }
+#nav-scrim { position: absolute; inset: 0; display: none; background: rgba(0,0,0,.35); z-index: 6; }
+#nav-scrim.on { display: block; }
+#nav-drawer { position: absolute; top: 0; bottom: 0; left: 0; width: min(280px, 78vw); padding: calc(max(14px, env(safe-area-inset-top)) + 8px) 14px 14px max(14px, env(safe-area-inset-left));
+  box-sizing: border-box; background: linear-gradient(180deg, #17191e, #0e0f12); border-right: 1px solid var(--line); transform: translateX(-102%); transition: transform .2s ease-out;
+  display: grid; align-content: start; gap: 8px; z-index: 7; overflow-y: auto; }
+#nav-drawer.open { transform: none; }
+.nav-ttl { margin: 0 0 6px; font-weight: 800; font-size: 15px; letter-spacing: -.01em; }
+.nav-item { position: relative; display: grid; gap: 1px; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255,255,255,.03); cursor: pointer; }
+.nav-item b { font-size: 15px; } .nav-item span { font-size: 11px; color: var(--muted); }
+.nav-item.cur { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.nav-item em { position: absolute; right: 10px; top: 10px; font-style: normal; font-size: 10px; color: var(--good); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; }
+#ui[data-screen="floors"] .lobby-head, #ui[data-screen="guests"] .lobby-head, #ui[data-screen="library"] .lobby-head, #ui[data-screen="moon"] .lobby-head { left: calc(max(14px, env(safe-area-inset-left)) + 46px); }
+#settings { top: 0; }
+#btn-set { border-radius: 0 0 10px 10px; border-top: 0; padding: 10px 12px 7px; }
+@media (prefers-reduced-motion: reduce) { #nav-drawer { transition: none; } }

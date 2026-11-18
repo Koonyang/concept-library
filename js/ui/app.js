@@ -4,10 +4,13 @@ import { createStage } from "../stage/stage.js";
 import { mountBattle } from "./battle.js";
 import { renderFloors, renderGuests, renderResult } from "./screens.js";
 import { sfx } from "./sfx.js";
+import { mountNav } from "./nav.js";
+import { renderLibrary } from "./library.js";
+import { renderMoon } from "./moon.js";
 
 const G = window.Game, root = document.getElementById("ui");
 const stage = await createStage(document.getElementById("stage"));
-let battle = null, floorId = null, shownFloor = null;
+let battle = null, floorId = null, shownFloor = null, sub = null;   /* sub: 계시처럼 타이머가 있는 화면의 {unmount} */
 
 /* ---------- 소리 ---------- */
 const BGM = { lobby: "assets/audio/bgm.mp3", battle: "assets/audio/bgm-reception.mp3" };
@@ -33,14 +36,20 @@ setBtn.addEventListener("click", e => {
   sfx.tap(); paintSettings(true);
 });
 function withSettings() { paintSettings(false); root.appendChild(setBtn); }
+/* 기본 화면 공통: 서랍 + 설정 */
+function chrome(current) { mountNav(root, { current, go: k => nav[k]() }); withSettings(); }
+function leaveSub() { if (sub) { sub.unmount(); sub = null; } }
 
 /* ---------- 이동 ---------- */
 function showFloor(id) { if (shownFloor === id) return; shownFloor = id; stage.setFloor(G.data.floorStage(id)); }
-function leaveBattle() { if (battle) { battle.unmount(); battle = null; } G.battle.leave(); }
+function leaveBattle() { leaveSub(); if (battle) { battle.unmount(); battle = null; } G.battle.leave(); }
 const nav = {
-  floors() { leaveBattle(); stage.setUnits([], null); renderFloors(root, nav); withSettings(); playBgm("lobby"); if (floorId) showFloor(floorId); },
+  floors() { leaveBattle(); stage.setUnits([], null); renderFloors(root, nav); chrome("floors"); playBgm("lobby"); if (floorId) showFloor(floorId); },
   preview(id) { showFloor(id); },
-  floor(id) { floorId = id; try { localStorage.setItem("concept-library-floor", id); } catch (e) {} sfx.tap(); showFloor(id); renderGuests(root, id, nav); withSettings(); },
+  floor(id) { floorId = id; try { localStorage.setItem("concept-library-floor", id); } catch (e) {} sfx.tap(); showFloor(id); renderGuests(root, id, nav); chrome("floors"); },
+  library(tab) { leaveBattle(); sfx.tap(); if (floorId) showFloor(floorId); renderLibrary(root, stage, nav, tab); chrome("library"); playBgm("lobby"); },
+  moon() { leaveBattle(); sfx.tap(); stage.setUnits([], null); shownFloor = null; stage.setFloor({ mood: "moon", accent: "#a99be0", props: ["orb", "bookpile"] });
+    sub = renderMoon(root, stage, nav, { chrome: on => { const n = root.querySelector("#nav"); if (on && !n) chrome("moon"); if (!on) { n && n.remove(); setBtn.remove(); } } }); playBgm("lobby"); },
   async battle(gid) {
     leaveBattle(); sfx.tap(); const g = G.data.GUEST_BY[gid]; floorId = g.floorId; showFloor(floorId); playBgm("battle");
     root.innerHTML = "";
