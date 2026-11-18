@@ -46,6 +46,16 @@ for(const [w,h] of [[844,390],[390,844]]){
   ok(ld.length&&fo.length&&Math.min(...ld.map(e=>e.s))>Math.max(...fo.map(e=>e.s)),`${w}×${h}: 우두머리가 더 큼`,r.enemies);
   ok(r.pts.every(q=>q&&q.x>=0&&q.x<=r.w&&q.y>=0&&q.y<=r.h),`${w}×${h}: 모든 유닛 머리 위 좌표가 화면 안`,r.pts);
   ok(r.cur.every(c=>c==="Idle")&&r.placeholder.every(x=>x===false),`${w}×${h}: 모두 Idle, 진짜 모델`,{cur:r.cur,ph:r.placeholder});
+  /* 편 고리: 사서 청록(#8fd3c8 계열), 적 붉은색(#e88a7e 계열), 우두머리 고리는 더 크고 진함 */
+  const rg=await p.evaluate(()=>Game.battle.state.units.map(u=>({side:u.side,leader:!!u.leader,...((__S.ring&&__S.ring(u.id))||{})})));
+  const hue=c=>{const n=parseInt(c.slice(1),16),R=n>>16,G=n>>8&255,B=n&255;return {R,G,B};};
+  ok(rg.every(q=>q.color&&q.visible)&&rg.filter(q=>q.side==="ally").every(q=>{const c=hue(q.color);return c.G>c.R+40&&c.B>c.R+40;})
+    &&rg.filter(q=>q.side==="enemy").every(q=>{const c=hue(q.color);return c.R>c.G+60&&c.R>c.B+60;}),`${w}×${h}: 유닛마다 편 색 고리`,rg);
+  const rl=rg.filter(q=>q.side==="enemy"&&q.leader), rf=rg.filter(q=>q.side==="enemy"&&!q.leader);
+  ok(rl.length&&rf.length&&Math.min(...rl.map(q=>q.radius))>Math.max(...rf.map(q=>q.radius))&&Math.min(...rl.map(q=>q.opacity))>Math.max(...rf.map(q=>q.opacity)),`${w}×${h}: 우두머리 고리가 더 크고 진함`,rg);
+  if(h>w){ const xs=r.pts.map(q=>q.x), ys=r.pts.map(q=>q.y);
+    /* 머리 위 좌표 기준: 폭 75% 이상(몸까지 치면 80% 이상), 머리는 위쪽 20%~50%(발은 60% 위) — 아래 40%는 문제·손패 자리 */
+    ok((Math.max(...xs)-Math.min(...xs))>=0.75*r.w&&ys.every(y=>y>=0.2*r.h&&y<=0.5*r.h),`${w}×${h}: 세로 화면 — 유닛이 폭 75% 이상, 머리가 위쪽 20%~50%`,{xspan:(Math.max(...xs)-Math.min(...xs))/r.w,ys:ys.map(y=>+(y/r.h).toFixed(3))}); }
   await p.screenshot({path:join(ROOT,`shots/stage-units-${w}.png`)});
 }
 await p.setViewportSize({width:844,height:390});
@@ -76,6 +86,7 @@ const t5=await p.evaluate(async()=>{
   const evs2=scene(); o.kinds=evs2.map(e=>e.kind); o.dead=evs2.flatMap(e=>(e.result&&e.result.dead)||[]);
   const b0=S.debug.bookDrops; for(const e of evs2) await S.play(e,{fast:true,final:Game.battle.outcome==="win"&&e===evs2.filter(x=>x.kind!=="skip").at(-1)});
   o.books=S.debug.bookDrops-b0; o.deadEnemies=o.dead.filter(id=>id[0]==="e").length;
+  o.deadRings=o.dead.map(id=>S.ring&&S.ring(id)&&S.ring(id).visible);
   /* 등급 연출 + 전용 연출 */
   const ssr={...e0,a:{...e0.a,card:"apex"}}; await S.play(ssr,{fast:true}); o.tier=S.debug.lastTier;
   let called=0; __stageMod.registerFx("apex",async ctx=>{ called++; await ctx.wait(50); }); await S.play(ssr); o.called=called;
@@ -84,6 +95,7 @@ ok(t5.ms<=1600*1.2&&t5.hits===t5.dmgSteps,"일반 교환: 1.6초 안, 맞는 단
 ok(t5.fastMs<=350*1.5,"빨리 감기: 0.53초 안",t5);
 ok(t5.skipMs<=320,"finishNow: 100ms 뒤 부르면 곧 끝남",t5);
 ok(t5.deadEnemies>=1&&t5.books===t5.deadEnemies,"쓰러진 적마다 책 한 권(skip 교환에선 더 안 떨어짐)",t5);
+ok(t5.deadRings.length>0&&t5.deadRings.every(v=>v===false),"쓰러진 유닛은 발밑 고리도 사라짐",t5.deadRings);
 ok(t5.tier==="SSR","SSR 책장 → SSR 연출",t5);
 ok(t5.called===1,"registerFx 로 등록한 전용 연출이 한 번 불림",t5);
 /* @@NEXT@@ */
