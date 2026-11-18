@@ -98,6 +98,23 @@ ok(t5.deadEnemies>=1&&t5.books===t5.deadEnemies,"쓰러진 적마다 책 한 권
 ok(t5.deadRings.length>0&&t5.deadRings.every(v=>v===false),"쓰러진 유닛은 발밑 고리도 사라짐",t5.deadRings);
 ok(t5.tier==="SSR","SSR 책장 → SSR 연출",t5);
 ok(t5.called===1,"registerFx 로 등록한 전용 연출이 한 번 불림",t5);
+/* ---------- 최종 검토 수정: 상태 맞추기·반복 누수 ---------- */
+await goStage();
+const fix=await p.evaluate(async()=>{ const o={};
+  Game.battle.leave(); Game.battle.begin("beccaria");
+  const S=await __stageMod.createStage(document.getElementById("stage")); S.setFloor(Game.data.floorStage("crime"));
+  const g=Game.data.GUEST_BY.beccaria; await S.setUnits(Game.battle.state.units,g);
+  /* 연출 없이 죽은 적을 무대에 맞춤 */
+  const e=Game.battle.state.units.find(u=>u.side==="enemy"); const b0=S.debug.bookDrops; e.hp=0;
+  S.syncUnits(Game.battle.state.units); await new Promise(r=>setTimeout(r,50));
+  o.hidden=S.figure(e.id).obj.visible===false; o.books=S.debug.bookDrops-b0; S.syncUnits(Game.battle.state.units); o.books2=S.debug.bookDrops-b0;
+  /* setUnits 반복: 자원·ticker 가 늘지 않음 */
+  const count=()=>({g:S.renderer.info.memory.geometries,t:S.renderer.info.memory.textures,k:S.tickers.size});
+  const run=async()=>{ Game.battle.leave(); Game.battle.begin("beccaria"); await S.setUnits(Game.battle.state.units,g); for(const u of Game.battle.state.units) S.setStaggered(u.id,true); await new Promise(r=>setTimeout(r,120)); };
+  await run(); await run(); o.a=count(); for(let i=0;i<4;i++) await run(); o.b=count();
+  Game.battle.leave(); return o; });
+ok(fix.hidden&&fix.books===1&&fix.books2===1,"syncUnits: 연출 없이 죽은 적도 숨기고 책은 한 번만",fix);
+ok(fix.b.k<=fix.a.k&&fix.b.g<=fix.a.g+2&&fix.b.t<=fix.a.t+2,"setUnits 반복해도 ticker·지오메트리·텍스처가 늘지 않음",fix);
 /* @@NEXT@@ */
 ok(errs.filter(e=>!/Error creating WebGL context/.test(e)).length===0,"오류 없음 (nogl 페이지의 WebGL 생성 실패 로그는 의도)",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

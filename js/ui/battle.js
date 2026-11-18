@@ -217,16 +217,18 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
       if (skipAll) { barSnap = null; continue; }
       barSnap = before; renderBars(barSnap);
       sfx.clash();
-      await stage.play(ev, { fast: fast || skipAll, final: G.battle.outcome === "win", onHit: i => {
+      try { await stage.play(ev, { fast: fast || skipAll, final: G.battle.outcome === "win", onHit: i => {
         const s = ev.steps[i]; if (!s || !s.dmg) return; const side = (B().units.find(u => u.id === s.dmg.unit) || {}).side;
         sfx.hit(); if (s.dmg.hp) floatNum(s.dmg.unit, "-" + s.dmg.hp, "hp" + (side === "ally" ? " ally" : "")); if (s.dmg.stagger) floatNum(s.dmg.unit, "-" + s.dmg.stagger, "st");
         barSnap = null; renderBars(); } });
+      } catch (e) { console.warn("[battle] 연출 오류 — 건너뛰고 계속", e); }
       barSnap = null; renderBars();
       if ((ev.result && ev.result.staggered || []).length) sfx.stagger();
       if ((ev.result && ev.result.dead || []).some(id => id[0] === "e")) sfx.book();
       if (!alive) return;
     }
     G.battle.stepEnd(R); barSnap = null;
+    if (stage.syncUnits) stage.syncUnits(B().units);   /* 건너뛴 교환에서 쓰러진 적·흐트러짐까지 무대에 맞춤 */
     if (G.battle.outcome) {
       const result = G.battle.settle();
       busy = true; render();
@@ -234,7 +236,6 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
       if (alive && onEnd) onEnd(result);
       return;
     }
-    for (const u of B().units) if (stage.setStaggered) stage.setStaggered(u.id, !!u.staggered);
     busy = false; render();
   }
   el.open.addEventListener("click", () => { sfx.tap(); runOpen(); });

@@ -36,7 +36,7 @@ const ATTACK_ANIM = { 참격: "1H_Melee_Attack_Slice_Diagonal", 관통: "1H_Mele
 
 function nullStage() {
   const done = () => Promise.resolve();
-  return { ok: false, setFloor() {}, resize() {}, setUnits: done, play: done, finishNow() {}, unitPoint: () => null, figure: () => null,
+  return { ok: false, setFloor() {}, resize() {}, setUnits: done, play: done, finishNow() {}, syncUnits() {}, setStaggered() {}, unitPoint: () => null, figure: () => null,
     ring: () => null, onFrame() {}, dispose() {}, debug: { mood: null, props: [], frames: 0 } };
 }
 
@@ -196,7 +196,7 @@ export async function createStage(canvas) {
   let unitsRoot = null;
   async function setUnits(units, guest) {
     await loadCharacters();
-    if (unitsRoot) { scene.remove(unitsRoot); }
+    if (unitsRoot) { scene.remove(unitsRoot); for (const f of figures.values()) disposeFigure(f); }
     guestNow = guest || null; figures.clear(); unitsRoot = new THREE.Group(); unitsRoot.name = "units"; scene.add(unitsRoot);
     for (const side of ["ally", "enemy"]) {
       /* 우두머리를 가운데 줄(첫 자리)에 */
@@ -217,6 +217,20 @@ export async function createStage(canvas) {
     }
   }
   tickers.add(dt => { for (const { F } of figures.values()) F.update(dt * time.scale); });
+  function disposeFigure(f) {
+    if (f.starsOff) f.starsOff(); if (f.F.dispose) f.F.dispose();
+    f.F.obj.traverse(n => { if (n.userData.own) { if (n.geometry) n.geometry.dispose(); [].concat(n.material || []).forEach(m => m && m.dispose()); } else if (n.userData.ownMat && n.material) n.material.dispose(); });
+    if (f.ring) { f.ring.geometry && f.ring.geometry.dispose(); f.ring.material && f.ring.material.dispose(); }
+  }
+  /* 연출 없이 지나간 교환(길게 눌러 건너뛰기)까지 포함해, 규칙 상태에 무대를 맞춘다: 쓰러짐(조각·책 한 번)·흐트러짐 */
+  function syncUnits(units) {
+    for (const u of units || []) { const f = figures.get(u.id); if (!f) continue;
+      if (u.hp <= 0 && !f.dead) { f.dead = true; if (f.ring) f.ring.visible = false; const pos = f.F.obj.position.clone();
+        const pal = f.look ? [f.look.palette.accent, f.look.palette.cloth, f.look.palette.light] : [0x6e2c38];
+        fragments(fx, pos, pal.map(c => new THREE.Color(c).getHex()), 14); f.F.obj.visible = false;
+        if (f.side === "enemy") { dropBook(fx, pos, coverUrl(), new THREE.Color(debug.spark || 0xffd28a).getHex(), 700); debug.bookDrops++; } }
+      setStaggered(u.id, u.hp > 0 && !!u.staggered); }
+  }
 
   /* ---------- 이펙트 묶음 ---------- */
   const fxRoot = new THREE.Group(); scene.add(fxRoot);
@@ -331,8 +345,8 @@ export async function createStage(canvas) {
     const f = figures.get(id); if (!f) return;
     if (on && !f.stars) { const g = new THREE.Group(), m = new THREE.MeshBasicMaterial({ color: 0xffe08a });
       for (let i = 0; i < 5; i++) { const s = new THREE.Mesh(new THREE.OctahedronGeometry(0.06, 0), m); const a = i / 5 * Math.PI * 2; s.position.set(Math.cos(a) * 0.3, 0, Math.sin(a) * 0.3); g.add(s); }
-      g.position.y = f.F.height + 0.15; f.F.obj.add(g); f.stars = g; f.starsOff = S.onFrame(dt => { g.rotation.y += dt * 3; }); }
-    if (!on && f.stars) { f.F.obj.remove(f.stars); f.starsOff(); f.stars = null; }
+      g.position.y = f.F.height + 0.15; f.F.obj.add(g); f.stars = g; f.starsOff = S.onFrame(dt => { g.rotation.y += dt * 3; }); g.traverse(n => { if (n.isMesh) n.userData.own = true; }); }
+    if (!on && f.stars) { f.F.obj.remove(f.stars); f.starsOff(); f.starsOff = null; f.stars.traverse(n => { if (n.isMesh) { n.geometry.dispose(); n.material.dispose(); } }); f.stars = null; }
   }
 
   async function play(ev, o = {}) {
@@ -378,7 +392,7 @@ export async function createStage(canvas) {
     ok: true, three: THREE, scene, camera: cam, renderer, debug, camShake, tickers,
     setFloor, resize,
     setUnits, unitPoint, ring: ringInfo, figure: id => (figures.get(id) || {}).F || null, figures,
-    play, finishNow, setStaggered, fx,
+    play, finishNow, setStaggered, syncUnits, fx,
     onFrame(f) { tickers.add(f); return () => tickers.delete(f); },
     dispose() { cancelAnimationFrame(raf); ro.disconnect(); document.removeEventListener("visibilitychange", wake); if (world) disposeTree(world); renderer.dispose(); },
   };

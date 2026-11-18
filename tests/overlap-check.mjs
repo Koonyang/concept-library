@@ -27,8 +27,11 @@ const measure=`(()=>{ const R=e=>{ const r=e.getBoundingClientRect(); return {x:
   const W=innerWidth,H=innerHeight, out=boxes.filter(b=>b.g!=="arrow"&&(b.x<-1||b.y<-1||b.x+b.w>W+1||b.y+b.h>H+1)).map(b=>b.k+" 화면 밖");
   return {n:boxes.length,hits:hits.concat(out)}; })()`;
 async function scene(gid, setup, phase, fullHand){
-  await p.goto(BASE+"tests/battle.html?guest="+gid); await p.evaluate(setup); await p.goto(BASE+"tests/battle.html?guest="+gid);
-  await p.waitForFunction(()=>window.__ready,null,{timeout:20000}); await p.waitForSelector("#question.on");
+  /* 사서 구성은 다시 불러오면 장서복 검사로 줄어들 수 있으니, 같은 페이지에서 설정한 뒤 전투를 새로 띄운다 */
+  await p.goto(BASE+"tests/battle.html?guest="+gid); await p.waitForFunction(()=>window.__ready,null,{timeout:20000});
+  await p.evaluate(setup); await p.evaluate(async()=>{ window.__battle.unmount(); Game.battle.leave(); window.__battle=await window.__mount(); });
+  await p.waitForSelector("#question.on");
+  const nU=await p.evaluate(()=>Game.battle.state.units.length); if(setup===party3&&nU!==6) { fails++; console.log("FAIL 3:3 이 아님",nU); }
   if(phase!=="question"){ const ci=await p.evaluate(()=>Game.battle.question().correctIndex); await p.evaluate(ci=>{ const b=document.querySelector(`.q-opt[data-i="${ci}"]`); if(b) b.click(); else Game.battle.answer(true); },ci);
     if(fullHand) await p.evaluate(()=>{ const X=__studyGame.battleApi.internals(), a=Game.battle.state.units.find(u=>u.side==="ally"); X[a.id].handIds=["turn-page","margin-guard","silence","breathe","focus-line","page-echo","cover-slam","stamp-seal"]; });
     /* 첫 사서 주사위 하나에 카드를 놓아 화살표도 생기게 */

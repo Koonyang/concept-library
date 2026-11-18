@@ -56,9 +56,9 @@ function realFigure(look) {
   obj.traverse(n => {
     if (n.name === "handslot.l") handL = n; if (n.name === "handslot.r") handR = n;
     if (!n.isMesh) return;
-    n.frustumCulled = false; n.material = phongOf(n.material);
+    n.userData.fromModel = true; n.frustumCulled = false; n.material = phongOf(n.material);
     if (ALL_WEAPONS.test(n.name)) n.visible = keep.has(n.name);
-    if (CLOTH.test(n.name)) { n.material = n.material.clone(); n.material.color.copy(cloth).lerp(new THREE.Color(0xffffff), 0.25); }
+    if (CLOTH.test(n.name)) { n.material = n.material.clone(); n.userData.ownMat = true; n.material.color.copy(cloth).lerp(new THREE.Color(0xffffff), 0.25); }
   });
   if (look.librarian && !bookName && handL) { const b = codeBook(new THREE.Color(look.palette.accent)); b.scale.setScalar(1 / k); handL.add(b); }
   const mixer = new THREE.AnimationMixer(obj), actions = {};
@@ -67,6 +67,7 @@ function realFigure(look) {
     obj: holder, placeholder: false, current: null, height: TARGET_H,
     hand: side => side === "l" ? handL : handR,
     update(dt) { mixer.update(dt); },
+    dispose() { mixer.stopAllAction(); mixer.uncacheRoot(obj); obj.traverse(n => { if (n.isSkinnedMesh && n.skeleton) n.skeleton.dispose(); }); },
     act(name, o = {}) {
       const clip = THREE.AnimationClip.findByName(clips, name);
       if (!clip) return Promise.resolve();
@@ -105,6 +106,8 @@ export function makeFigure(look) {
   if (look.accessory) { const acc = buildProp(look.accessory, new THREE.Color(look.palette.accent)); if (acc) { acc.scale.setScalar(0.55); acc.position.set(0.32, 0.55, -0.25); F.obj.add(acc); } }
   /* 발밑 둥근 그림자 판 */
   F.obj.add(shadowDisc());
+  /* 이 figure 가 따로 만든 지오메트리·재질(소품·그림자·자리표시 도형)은 정리할 때 지운다. 모델 지오메트리는 원본과 공유라 남긴다 */
+  F.obj.traverse(n => { if (n.isMesh && !n.isSkinnedMesh && !n.userData.fromModel) n.userData.own = true; });
   return F;
 }
 

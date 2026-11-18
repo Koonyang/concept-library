@@ -60,6 +60,13 @@ await p.click("#btn-open");
 await p.waitForFunction(()=>window.__end,null,{timeout:30000}).catch(()=>{});
 const lose=await p.evaluate(()=>window.__end);
 ok(lose&&lose.won===false,"사서 전멸 → onEnd(won:false)",lose);
+/* 연출이 예외를 던져도 전투가 멈추지 않음 */
+await go("beccaria");
+await p.evaluate(()=>{ const pl=__stage.play; let n=0; __stage.play=(ev,o)=>{ if(n++===0) return Promise.reject(new Error("연출 실패 시험")); return pl(ev,o); }; });
+await answer(true); await assignAll(); await p.click("#btn-open");
+const recovered=await p.waitForFunction(()=>window.__end||(Game.battle.state.phase==="question"&&document.querySelector("#question.on")),null,{timeout:20000}).then(()=>true).catch(()=>false);
+ok(recovered,"연출 예외가 나도 다음 막으로 진행");
+errs.splice(0,errs.length,...errs.filter(e=>!/연출 실패 시험/.test(e)));
 /* 가로·세로 스크린샷 (배정 단계) */
 for(const [w,h] of [[844,390],[390,844]]){ await p.setViewportSize({width:w,height:h}); await go("beccaria"); await answer(true);
   await p.click(`.speed-die[data-side="ally"]`); await p.waitForTimeout(400); await p.screenshot({path:join(ROOT,`shots/ui-battle-${w}.png`)}); }
