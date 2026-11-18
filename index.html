@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118s">
+<meta name="build" content="library-20261118t">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -1228,6 +1228,66 @@ b,strong{font-weight:700}
 @keyframes gxTrail{0%{opacity:0}35%{opacity:.9}100%{opacity:0}}
 @keyframes gxHalo{0%{transform:scale(1);opacity:1}40%{transform:scale(1.55);opacity:.9;filter:brightness(2)}100%{transform:scale(1);opacity:1}}
 @keyframes gxBurst{0%{transform:scale(1)}40%{transform:scale(1.35) rotate(6deg);opacity:.7}100%{transform:scale(1)}}
+/* 다대다 적 아트 (인간형/기계인간형/꼭두각시형): 표정 4개, 맞으면 휘청, 흐트러지면 무너짐, 꼭두각시는 줄에 매달려 흔들림 */
+.gx[data-ex="e3"] .e3{display:inline}.gx .e3{display:none}
+.gxn .g-flare,.gxn .g-arc,.gxn .g-thrust{opacity:0}
+.gxn .g-hang{transform-origin:140px -300px;animation:gxnHang 3.2s ease-in-out infinite}
+.gxn .g-lead{animation:gxPulse 3.6s ease-in-out infinite}
+.gxn .g-body{transition:transform .3s}
+.gxn.down .g-body{transform:translate(58px,6px) rotate(-70deg) scale(.5)}
+.gxn.down .g-hang{animation:none}
+.gx-puppet.down .g-strings{opacity:0}
+.gxn.down .g-halo,.gxn.down .g-lead,.gxn.down .g-flare{visibility:hidden}
+.gxn.down .g-sway{animation:none}
+@keyframes gxnHang{0%,100%{transform:rotate(-1.6deg)}50%{transform:rotate(1.6deg)}}
+@keyframes gxnBend{0%{transform:none}30%{transform:rotate(9deg) skewX(-6deg) scaleY(.94)}65%{transform:rotate(-4deg)}100%{transform:none}}
+@keyframes gxnDown{0%{transform:none}35%{transform:rotate(10deg) scaleY(.9)}100%{transform:translate(58px,6px) rotate(-70deg) scale(.5)}}
+@keyframes gxnSnap{0%{opacity:1;transform:none}40%{opacity:1;transform:translateY(-30px) scaleY(.6)}100%{opacity:0;transform:translateY(-80px) scaleY(.2)}}
+@keyframes gxnFade{to{opacity:0}}
+@keyframes gxnSwing{0%{transform:rotate(0)}25%{transform:rotate(-40deg)}60%{transform:rotate(70deg)}100%{transform:rotate(0)}}
+@keyframes gxnThrust{0%{transform:none}30%{transform:rotate(58deg) translate(4px,0)}55%{transform:rotate(58deg) translate(0,46px)}100%{transform:none}}
+@keyframes gxnSmash{0%{transform:rotate(0)}35%{transform:rotate(150deg)}55%{transform:rotate(-20deg)}100%{transform:rotate(0)}}
+@keyframes gxnRaise{0%{transform:none}35%{transform:translate(-22px,-26px) scale(1.15)}75%{transform:translate(-22px,-26px) scale(1.15)}100%{transform:none}}
+@keyframes gxnBrace{0%,100%{transform:none}35%,75%{transform:translateX(8px) skewX(4deg)}}
+@keyframes gxnCast{0%{transform:none;opacity:1}45%{transform:translate(-60px,-14px) rotate(-8deg);opacity:1}100%{transform:none;opacity:1}}
+@keyframes gxnFloat{0%{transform:none}45%{transform:translateY(-34px) scale(1.12)}100%{transform:none}}
+@keyframes gxnFlare{0%{opacity:0;transform:scale(.6)}35%{opacity:1;transform:scale(1.25)}100%{opacity:0;transform:scale(1.5)}}
+@keyframes gxnLine{0%{opacity:0}30%{opacity:.95}100%{opacity:0}}
+/* 다대다 무대: 주사위 종류별 동작 (BattleStage.clash 가 .bs-unit 에 m-* 를 붙임) */
+.bs-unit.m-slash .gxn .g-wpn{animation:gxnSwing .55s ease-in-out}
+.bs-unit.m-slash .gxn .g-trail{animation:gxnLine .55s ease-out}
+.bs-unit.m-pierce .gxn .g-wpn{animation:gxnThrust .55s ease-in-out}
+.bs-unit.m-pierce .gxn .g-thrust{animation:gxnLine .5s ease-out .12s}
+.bs-unit.m-blunt .gxn .g-wpn{animation:gxnSmash .6s ease-in-out}
+.bs-unit.m-blunt .gxn .g-arc{animation:gxnLine .6s ease-out .15s}
+.bs-unit.m-blunt .gx-automaton .g-flare{animation:gxnFlare .6s ease-out}
+.bs-unit.m-slash .gxn.v-knowledge .g-act,.bs-unit.m-pierce .gxn.v-knowledge .g-act,.bs-unit.m-blunt .gxn.v-knowledge .g-act{animation:gxBook .55s ease-out}
+.bs-unit.m-slash .gxn.v-knowledge .g-papers,.bs-unit.m-pierce .gxn.v-knowledge .g-papers,.bs-unit.m-blunt .gxn.v-knowledge .g-papers,
+.bs-unit.m-slash .gx-automaton .g-papers,.bs-unit.m-pierce .gx-automaton .g-papers{animation:gxnCast .55s ease-out}
+.bs-unit.m-slash .gx-puppet .g-arm,.bs-unit.m-pierce .gx-puppet .g-arm{animation:gxnSwing .55s ease-in-out}
+.bs-unit.m-blunt .gx-puppet .g-armL{animation:gxnSmash .6s ease-in-out}
+.bs-unit.m-guard .gxn .g-body,.bs-unit.m-evade .gxn .g-body{animation:gxnBrace .55s ease-out}
+.bs-unit.m-guard .gxn .g-act,.bs-unit.m-guard .gxn .g-wpn{animation:gxnRaise .55s ease-out}
+.bs-unit.m-guard .gxn .g-papers,.bs-unit.m-evade .gxn .g-papers{animation:gxnCast .55s ease-out}
+.bs-unit.m-page .gxn .g-papers,.bs-unit.m-page .gxn .g-act{animation:gxnFloat .6s ease-out}
+.bs-unit.m-page .gxn .g-halo{animation:gxHalo .6s ease-out}
+.bs-unit.lose .gxn .g-body,.bs-unit.flinch .gxn .g-body{animation:gxnBend .45s ease-out}
+.bs-unit.lose .gxn .g-papers,.bs-unit.flinch .gxn .g-papers{animation:gxBurst .5s ease-out}
+.bs-unit.falling .gxn.down .g-body{animation:gxnDown .55s ease-in .3s backwards}
+.bs-unit.falling .gx-puppet.down .g-strings{animation:gxnSnap .4s ease-out .25s backwards;opacity:0}
+.bs-unit.dying .gxn .g-body{animation:gxnDown .55s ease-in .3s forwards}
+.bs-unit.dying .gx-puppet .g-strings{animation:gxnSnap .4s ease-out .25s forwards}
+/* 한 명씩 싸우는 화면(.fighter.guest)에서도 같은 동작 */
+.fighter.guest.atk .gxn .g-wpn{animation:gxnSwing .6s ease-in-out}
+.fighter.guest.atk .gxn .g-trail{animation:gxnLine .6s ease-out}
+.fighter.guest.atk.big .gxn .g-wpn{animation:gxnSmash .7s ease-in-out}
+.fighter.guest.atk.big .gxn .g-arc{animation:gxnLine .7s ease-out .15s}
+.fighter.guest.atk.big .gx-automaton .g-flare{animation:gxnFlare .7s ease-out}
+.fighter.guest.atk .gxn.v-knowledge .g-act{animation:gxBook .6s ease-out}
+.fighter.guest.atk .gxn.v-knowledge .g-papers,.fighter.guest.atk .gx-automaton .g-papers{animation:gxnCast .6s ease-out}
+.fighter.guest.atk .gx-puppet .g-arm{animation:gxnSwing .6s ease-in-out}
+.fighter.guest.hit .gxn .g-body{animation:gxnBend .45s ease-out}
+@media (prefers-reduced-motion:reduce){.gxn .g-body{transition:none}}
 @media (prefers-reduced-motion:reduce){.gx *{animation:none!important}}
 .sheet-top .sheet-books svg{width:14px;height:14px;flex:0 0 auto;filter:none;stroke:currentColor;fill:none}
 
@@ -3216,10 +3276,12 @@ function guestBodyMage(uid, pal, look, stag){
 }
 const GUEST_BODY = { knight:guestBodyKnight, scholar:guestBodyScholar, beast:guestBodyBeast, puppet:guestBodyPuppet, fixer:guestBodyFixer, mage:guestBodyMage };
 /* ---------- 신규 손님 아트: 사제 / 기사 / 기계 (SVG, 네온 림라이트) ---------- */
-const GX_NEON={priest:"#ffc98a",knight:"#ffb070",machine:"#ff7a7a"}, GX_CHAOS="#b48cff";
-const GX_LABEL={priest:"사제",knight:"기사",machine:"기계"}, GX_VLABEL={base:"기본형",ritual:"의식형",knowledge:"지식형",chaos:"혼돈형"};
-const GX_VARIANTS={priest:["base","ritual","knowledge","chaos"],knight:["base","ritual","chaos"],machine:["base","ritual","chaos"]};
-const GX_CROP={priest:"66 0 148 236",knight:"70 4 140 232",machine:"60 4 160 236"};
+const GX_NEON={priest:"#ffc98a",knight:"#ffb070",machine:"#ff7a7a",human:"#ffc07a",automaton:"#ffb46a",puppet:"#ffc98a"}, GX_CHAOS="#b48cff", GX_CHAOS_OF={automaton:"#ff6ac8"};
+const GXN_KINDS=["human","automaton","puppet"];
+const GX_LABEL={priest:"사제",knight:"기사",machine:"기계",human:"인간형",automaton:"기계인간형",puppet:"꼭두각시형"}, GX_VLABEL={base:"기본형",ritual:"의식형",knowledge:"지식형",chaos:"혼돈형"};
+const GX_VARIANTS={priest:["base","ritual","knowledge","chaos"],knight:["base","ritual","chaos"],machine:["base","ritual","chaos"],
+  human:["base","ritual","knowledge","chaos"],automaton:["base","ritual","knowledge","chaos"],puppet:["base","ritual","knowledge","chaos"]};
+const GX_CROP={priest:"66 0 148 236",knight:"70 4 140 232",machine:"60 4 160 236",human:"40 8 200 426",automaton:"40 8 200 426",puppet:"40 8 200 426"}, GX_CROP_LEAD="8 0 264 440";
 const GUEST_ART={beccaria:["priest","base"],bentham:["priest","ritual"],deterrence:["priest","knowledge"],"active-recall":["priest","knowledge"],metacognition:["priest","chaos"],
   "three-conditions":["knight","base"],legality:["knight","ritual"],limits:["knight","chaos"],pomodoro:["knight","base"],"spaced-repetition":["machine","base"],"defamation-truth":["machine","ritual"]};
 const GX_OF_ARCH={knight:"knight",fixer:"knight",scholar:"priest",mage:"priest",puppet:"machine"};
@@ -3368,21 +3430,185 @@ function gxMachine(v,n,uid){
     <path class="g-trail" d="M214 126A170 170 0 0 0 52 352" fill="none" stroke="${blade}" stroke-width="12" stroke-linecap="round" opacity="0"/>
   </g></g><g class="g-papers">${frag}</g><g class="g-sparks">${spk}</g>`;
 }
-const GX_FN={priest:gxPriest,knight:gxKnight,machine:gxMachine};
+/* ---------- 다대다 적 아트: 인간형 / 기계인간형 / 꼭두각시형 (큐 양 시트 기준, 손그림 SVG) ---------- */
+/* 공통: g-body(맞으면 휘청·쓰러짐) > g-sway(대기 흔들림). 표정 e0 대기 · e1 아픔 · e2 놀람(!) · e3 이김(웃음) */
+function gxnBits(n){
+  const B="#15111d",P="#261d35";
+  return {B,P,st:`stroke="${n}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"`,thin:`stroke="${n}" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"`,
+    diam:(x,y,s,f=.2)=>`<path d="M${x} ${y-s}L${x+s*.7} ${y}L${x} ${y+s}L${x-s*.7} ${y}Z" fill="${n}" fill-opacity="${f}" stroke="${n}" stroke-width="1.1" stroke-linejoin="round"/>`,
+    hem:(x0,x1,y,step=7)=>{ let p=`M${x0} ${y}`; for(let x=x0,i=0;x<x1;x+=step,i++) p+=` L${x+step/2} ${i%2?y:y+9} L${x+step} ${y}`; return `<path d="${p}" fill="none" stroke="${n}" stroke-width="1" opacity=".85"/>`; },
+    tx:(x,y,s,t)=>`<text x="${x}" y="${y}" fill="${n}" font-size="${s}" font-weight="800" font-family="Pretendard Variable,Pretendard,sans-serif">${t}</text>`};
+}
+/* 우두머리: 등 뒤 큰 고리 + 바닥 바깥 원 */
+function gxnLead(n,cy=150){
+  let t=""; for(let i=0;i<24;i++){ const a=i/24*Math.PI*2; const r1=i%2?104:100; t+=`M${(140+Math.cos(a)*r1).toFixed(1)} ${(cy+Math.sin(a)*r1).toFixed(1)}L${(140+Math.cos(a)*112).toFixed(1)} ${(cy+Math.sin(a)*112).toFixed(1)}`; }
+  return `<g class="g-lead"><circle cx="140" cy="${cy}" r="96" fill="none" stroke="${n}" stroke-width="1.4" opacity=".7"/><circle cx="140" cy="${cy}" r="116" fill="none" stroke="${n}" stroke-width=".8" stroke-dasharray="2 6" opacity=".7"/><path d="${t}" stroke="${n}" stroke-width=".9" opacity=".55"/>
+  <ellipse cx="140" cy="422" rx="128" ry="17" fill="none" stroke="${n}" stroke-width="1.1" opacity=".75"/></g>`;
+}
+/* 큰 공격: 후광이 번쩍 (평소엔 안 보임) */
+function gxnFlare(n,cy){ return `<g class="g-flare" style="transform-origin:140px ${cy}px"><circle cx="140" cy="${cy}" r="58" fill="${n}" fill-opacity=".12" stroke="${n}" stroke-width="3"/><path d="${[0,45,90,135,180,225,270,315].map(d=>{const a=d*Math.PI/180;return `M${(140+Math.cos(a)*64).toFixed(1)} ${(cy+Math.sin(a)*64).toFixed(1)}L${(140+Math.cos(a)*92).toFixed(1)} ${(cy+Math.sin(a)*92).toFixed(1)}`;}).join("")}" stroke="${n}" stroke-width="2.4" stroke-linecap="round"/></g>`; }
+/* 펼친 책 (지식형): 두 손으로 가슴 앞에 */
+function gxnBook(n,x,y,uid){ return `<g class="g-act" style="transform-origin:${x}px ${y}px"><path d="M${x} ${y-50}L${x-18} ${y-4}H${x+18}Z" fill="url(#${uid}-beam)" opacity=".5"/><path d="M${x-28} ${y}Q${x-14} ${y-9} ${x} ${y}Q${x+14} ${y-9} ${x+28} ${y}V${y+28}Q${x+14} ${y+20} ${x} ${y+28}Q${x-14} ${y+20} ${x-28} ${y+28}Z" fill="${n}" fill-opacity=".24" stroke="${n}" stroke-width="1.6" stroke-linejoin="round"/><path d="M${x} ${y}V${y+28}M${x-22} ${y+8}Q${x-12} ${y+4} ${x-4} ${y+8}M${x-22} ${y+15}Q${x-12} ${y+11} ${x-4} ${y+15}M${x+4} ${y+8}Q${x+12} ${y+4} ${x+22} ${y+8}M${x+4} ${y+15}Q${x+12} ${y+11} ${x+22} ${y+15}" stroke="${n}" stroke-width=".9" fill="none" opacity=".85"/></g>`; }
+/* 빛나는 검: 손(hx,hy)에서 아래·앞(왼쪽)으로 */
+function gxnSword(n,hx,hy){
+  return `<g class="g-wpn" style="transform-origin:${hx}px ${hy}px"><path d="M${hx+5} ${hy-14}L${hx} ${hy}" stroke="${n}" stroke-width="4" stroke-linecap="round"/><path d="M${hx-11} ${hy-3}L${hx+11} ${hy+5}" stroke="${n}" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M${hx-4} ${hy+3}L${hx+4} ${hy+6}L${hx-26} ${hy+112}L${hx-33} ${hy+124}L${hx-33} ${hy+106}Z" fill="${n}" fill-opacity=".38" stroke="${n}" stroke-width="1.7" stroke-linejoin="round"/><path d="M${hx} ${hy+8}L${hx-29} ${hy+112}" stroke="#fff" stroke-width="1.3" opacity=".85"/></g>`;
+}
+function gxnTrails(n){
+  return `<path class="g-trail" d="M70 120A150 150 0 0 0 44 360" fill="none" stroke="${n}" stroke-width="11" stroke-linecap="round" opacity="0"/>
+  <path class="g-arc" d="M226 318Q128 430 24 300" fill="none" stroke="${n}" stroke-width="10" stroke-linecap="round" opacity="0"/>
+  <path class="g-thrust" d="M120 268H6" stroke="${n}" stroke-width="5" stroke-linecap="round" opacity="0"/>`;
+}
+
+function gxHuman(v,n,uid,o){
+  const {B,P,st,thin,diam,hem,tx}=gxnBits(n);
+  const chaos=v==="chaos", rit=v==="ritual", kn=v==="knowledge", lead=!!(o&&o.lead);
+  let halo;
+  if(rit){ let r=""; for(let i=0;i<16;i++){ const a=i/16*Math.PI*2-Math.PI/2; const L=i%4===0?58:48; r+=`M${(140+Math.cos(a)*38).toFixed(1)} ${(84+Math.sin(a)*38).toFixed(1)}L${(140+Math.cos(a)*L).toFixed(1)} ${(84+Math.sin(a)*L).toFixed(1)}`; }
+    halo=`<g class="g-halo"><circle cx="140" cy="84" r="32" fill="${n}" fill-opacity=".08" stroke="${n}" stroke-width="1.8"/><path d="${r}" stroke="${n}" stroke-width="1.1" stroke-linecap="round"/><polygon points="${gxStar(140,22,9,2.6,4)}" fill="${n}"/></g>`; }
+  else if(chaos) halo=`<g class="g-halo"><circle cx="140" cy="84" r="32" fill="none" stroke="${n}" stroke-width="1.6" stroke-dasharray="14 5 3 6"/><circle cx="140" cy="84" r="25" fill="none" stroke="${n}" stroke-width=".7" opacity=".6"/></g>`;
+  else halo=`<g class="g-halo"><circle cx="140" cy="84" r="30" fill="none" stroke="${n}" stroke-width="1.6"/>${kn?`<circle cx="140" cy="84" r="24" fill="none" stroke="${n}" stroke-width=".7" opacity=".6"/>`:""}<polygon points="${gxStar(140,40,7,2,4)}" fill="${n}"/></g>`;
+  const face=`<g class="e0"><rect x="121" y="84" width="38" height="7" rx="2.5" fill="${n}"/><rect x="125" y="86" width="30" height="2.4" rx="1" fill="#fff" opacity=".85"/><path d="M135 101H145" ${thin}/></g>
+  <g class="e1"><rect x="121" y="84" width="38" height="8" rx="2.5" fill="#07060c" ${thin}/><path d="M126 85L133 88L126 91M154 85L147 88L154 91" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><path d="M133 102L136 99L139 102L142 99L145 102L148 99" fill="none" ${thin}/></g>
+  <g class="e2"><rect x="121" y="83" width="38" height="10" rx="3" fill="#07060c" ${thin}/><circle cx="131" cy="88" r="3" fill="#fff"/><circle cx="149" cy="88" r="3" fill="#fff"/><circle cx="140" cy="101" r="2.6" fill="none" ${thin}/>${tx(166,72,26,"!")}</g>
+  <g class="e3"><rect x="121" y="84" width="38" height="8" rx="2.5" fill="#07060c" ${thin}/><path d="M125 90Q130 84 135 90M145 90Q150 84 155 90" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><path d="M133 99Q140 105 147 99" fill="none" ${st}/></g>`;
+  const robe=chaos?"M110 202L94 392L102 408L112 396L124 410L136 398L148 412L160 398L170 410L180 396L188 406L170 202Z":"M110 202L94 404H186L170 202Z";
+  const apron=`<path d="M124 202H156L162 ${chaos?396:400}H118Z" fill="${P}" ${thin}/>`;
+  const orn=rit?`${diam(140,246,9,.3)}${diam(140,290,7)}${diam(140,330,7)}<path d="M140 234V370" ${thin} opacity=".5"/><path d="M98 404L110 352L124 404ZM182 404L170 352L156 404Z" fill="${P}" ${thin}/>`
+    :kn?`<path d="M128 240H152M128 252H152M128 264H146" ${thin} opacity=".75"/>${diam(140,312,7)}`
+    :`${diam(140,250,8)}${diam(140,360,6)}`;
+  const armsDown=`<path d="M100 156L88 250H106L116 156Z" fill="${B}" ${st}/><circle cx="97" cy="256" r="6" fill="${B}" ${st}/>
+    <g class="g-arm" style="transform-origin:172px 156px"><path d="M180 156L192 250H174L164 156Z" fill="${B}" ${st}/><circle cx="183" cy="256" r="6" fill="${B}" ${st}/></g>`;
+  const armsBook=`<path d="M100 156Q88 206 116 228L124 218Q106 202 114 160Z" fill="${B}" ${st}/><path d="M180 156Q192 206 164 228L156 218Q174 202 166 160Z" fill="${B}" ${st}/>`;
+  let papers, sparks;
+  if(chaos){ papers=[[214,120,20,1,0],[58,150,-24,.9,.5],[222,250,34,1,1],[52,262,-40,.8,1.4],[190,58,10,.7,.8],[86,46,-18,.8,.2],[230,190,-8,.7,.6]].map(a=>gxShard(a[0],a[1],a[2],n,a[3],a[4])).join("")+gxPaper(212,180,-10,n,.8,.3)+gxPaper(62,206,18,n,.75,.9);
+    sparks=gxSpark(50,104,6,n)+gxSpark(232,86,5,n,.6)+gxSpark(196,30,5,n,1.2); }
+  else if(kn){ papers=gxPaper(208,124,16,n,1,0)+gxPaper(64,150,-14,n,1,.6)+gxPaper(212,250,12,n,.9,1.1)+gxPaper(70,96,-20,n,.8,.3)+gxPaper(196,192,8,n,.8,.4)+gxPaper(84,250,-6,n,.8,.9);
+    sparks=gxSpark(54,120,5,n)+gxSpark(228,84,5,n,.5); }
+  else if(rit){ papers=gxPaper(208,140,16,n,1,0)+gxPaper(66,170,-14,n,1,.6)+gxPaper(214,248,10,n,.9,1.1);
+    sparks=gxSpark(56,118,6,n)+gxSpark(226,92,6,n,.5)+gxSpark(44,214,5,n,.3)+gxSpark(236,200,5,n,.8)+gxSpark(182,330,4,n,.2)+gxSpark(98,336,4,n,1); }
+  else { papers=gxPaper(66,150,-14,n,1,.6)+gxPaper(212,180,12,n,.95,0);
+    sparks=gxSpark(56,110,5,n)+gxSpark(224,96,5,n,.7)+gxSpark(186,40,4,n,1.2); }
+  return `${gxCircle(uid,n)}${lead?gxnLead(n):""}${halo}${gxnFlare(n,84)}<g class="g-papers">${papers}</g>
+  <g class="g-lunge"><g class="g-body" style="transform-origin:140px 408px"><g class="g-sway ${chaos?"g-lean":""}">
+    <path d="${robe}" fill="${B}" ${st}/>${chaos?"":hem(94,186,404)}${apron}${orn}
+    <path d="M108 156H172L170 196H110Z" fill="${P}" ${st}/><rect x="106" y="194" width="68" height="9" rx="1.5" fill="${B}" ${st}/><rect x="134" y="192" width="12" height="13" rx="2" fill="${P}" ${thin}/>
+    ${kn?armsBook:armsDown}
+    <path d="M98 124H182V156H98Z" fill="${P}" ${st}/><path d="M104 132H176M104 148H118M162 148H176" ${thin} opacity=".7"/>
+    <path d="M124 114H156L162 126H118Z" fill="${B}" ${st}/><rect x="134" y="106" width="12" height="10" fill="${B}" ${thin}/>
+    <circle cx="140" cy="88" r="19" fill="${B}" ${st}/>${face}
+    ${kn?gxnBook(n,140,206,uid):gxnSword(n,97,256)}
+    ${gxnTrails(n)}
+  </g></g></g><g class="g-sparks">${sparks}</g>`;
+}
+
+function gxAutomaton(v,n,uid,o){
+  const {B,P,st,thin,diam,hem,tx}=gxnBits(n);
+  const chaos=v==="chaos", rit=v==="ritual", kn=v==="knowledge", lead=!!(o&&o.lead);
+  let back="";
+  if(rit){ let d=""; for(let i=0;i<18;i++){ const a=i/18*Math.PI*2; d+=`<circle cx="${(140+Math.cos(a)*54).toFixed(1)}" cy="${(92+Math.sin(a)*54).toFixed(1)}" r="2" fill="${n}"/>`; }
+    let r=""; for(let i=0;i<12;i++){ const a=(-180+i*16.4)*Math.PI/180; r+=`M${(140+Math.cos(a)*62).toFixed(1)} ${(92+Math.sin(a)*62).toFixed(1)}L${(140+Math.cos(a)*74).toFixed(1)} ${(92+Math.sin(a)*74).toFixed(1)}`; }
+    back=`<g class="g-halo"><circle cx="140" cy="92" r="46" fill="${n}" fill-opacity=".06" stroke="${n}" stroke-width="1.6"/>${d}<path d="${r}" stroke="${n}" stroke-width="1.2" stroke-linecap="round"/></g>`; }
+  else if(chaos) back=`<g class="g-halo"><circle cx="140" cy="92" r="48" fill="none" stroke="${n}" stroke-width="1.4" stroke-dasharray="16 6 4 8"/></g>`;
+  const hat=`<path d="M78 98Q80 60 140 54Q200 60 202 98Q194 106 180 100Q140 86 100 100Q86 106 78 98Z" fill="${P}" ${st}${chaos?` stroke-dasharray="70 6 30 5"`:""}/><path d="M92 90Q140 72 188 90M112 66Q140 58 168 66" fill="none" ${thin} opacity=".75"/>
+   <rect x="134" y="44" width="12" height="12" rx="2" transform="rotate(45 140 50)" fill="${B}" ${thin}/><circle cx="140" cy="50" r="2.4" fill="${n}"/>${rit?`<path d="M140 40V22M134 28L140 21L146 28" fill="none" ${st}/>`:""}`;
+  const lens=`<rect x="120" y="110" width="40" height="17" rx="4" fill="#07060c" ${thin}/>`;
+  const face=`<g class="e0">${lens}<circle cx="140" cy="118.5" r="6.5" fill="none" stroke="${n}" stroke-width="1.6"/><circle cx="140" cy="118.5" r="3.2" fill="${n}"/><circle cx="141.5" cy="117" r="1.2" fill="#fff"/></g>
+  <g class="e1">${lens}<path d="M130 118.5Q140 114 150 118.5Q140 123 130 118.5Z" fill="${n}" fill-opacity=".5" stroke="${n}" stroke-width="1.4"/><path d="M122 108L134 113M158 108L146 113" fill="none" ${st}/></g>
+  <g class="e2"><rect x="118" y="107" width="44" height="23" rx="5" fill="#07060c" ${thin}/><circle cx="140" cy="118.5" r="9.5" fill="none" stroke="${n}" stroke-width="1.8"/><circle cx="140" cy="118.5" r="2" fill="#fff"/>${tx(206,70,28,"!")}</g>
+  <g class="e3">${lens}<path d="M132 121Q140 111 148 121" fill="none" stroke="${n}" stroke-width="2.2" stroke-linecap="round"/><path d="M128 113L130 110M152 113L150 110" ${thin}/></g>`;
+  const robe=chaos?"M100 196L86 392L96 408L106 394L118 410L130 396L142 412L154 396L166 410L178 394L192 406L180 196Z":"M100 196L86 406H194L180 196Z";
+  const orn=rit?`${diam(140,250,10,.3)}<path d="M126 220Q140 262 154 220M120 238Q140 290 160 238" fill="none" stroke="${n}" stroke-width="2.6" stroke-dasharray="4 3" stroke-linecap="round"/>${diam(140,330,12)}`
+    :`${diam(140,330,12)}<path d="M140 320V340M132 330H148" ${thin} opacity=".7"/>`;
+  const sleeves=kn?`<path d="M104 156Q88 208 118 230L126 220Q108 204 116 164Z" fill="${B}" ${st}/><path d="M176 156Q192 208 162 230L154 220Q172 204 164 164Z" fill="${B}" ${st}/>`
+    :`<path d="M104 156L80 250H106L118 172Z" fill="${B}" ${st}/><circle cx="94" cy="256" r="6" fill="${B}" ${st}/>
+     <g class="g-arm" style="transform-origin:176px 156px"><path d="M176 156L200 250H174L162 172Z" fill="${B}" ${st}/><circle cx="186" cy="256" r="6" fill="${B}" ${st}/></g>`;
+  const cards=(xs)=>xs.map(a=>gxPaper(a[0],a[1],a[2],n,a[3],a[4])).join("");
+  let papers, sparks;
+  if(chaos){ papers=[[50,120,10,.9,0],[232,104,-20,1,.4],[44,250,30,.8,.9],[240,240,-10,.9,1.3],[200,350,25,.7,.2],[80,356,-30,.8,.7]].map(a=>gxShard(a[0],a[1],a[2],n,a[3],a[4])).join("")+cards([[214,176,-12,.8,.3],[62,190,14,.8,.9],[208,52,20,.6,.1]])
+    +`<rect class="g-glitch" x="70" y="210" width="60" height="4" fill="${n}"/><rect class="g-glitch" style="animation-delay:.5s" x="150" y="290" width="70" height="3" fill="${n}"/>`;
+    sparks=gxSpark(52,92,5,n)+gxSpark(232,78,5,n,.7); }
+  else if(kn){ papers=cards([[214,134,14,1,0],[62,150,-12,1,.6],[218,250,10,.9,1.1],[60,250,-18,.85,.3],[206,56,20,.6,.2],[78,52,-20,.6,.8]]); sparks=gxSpark(48,108,5,n)+gxSpark(234,92,5,n,.5); }
+  else if(rit){ papers=cards([[216,140,14,1,0],[60,160,-12,1,.6],[218,250,10,.9,1.1],[204,48,22,.6,.2],[78,46,-20,.6,.8]]); sparks=gxSpark(42,206,5,n,.3)+gxSpark(240,190,5,n,.9)+gxSpark(186,334,4,n,.2); }
+  else { papers=cards([[214,150,14,1,0],[62,176,-12,.95,.6],[204,54,20,.6,.2],[78,50,-20,.6,.8]]); sparks=gxSpark(48,108,5,n)+gxSpark(232,92,5,n,.7); }
+  return `${gxCircle(uid,n)}${lead?gxnLead(n,140):""}${back}${gxnFlare(n,96)}<g class="g-papers">${papers}</g>
+  <g class="g-lunge"><g class="g-body" style="transform-origin:140px 408px"><g class="g-sway ${chaos?"g-lean":""}">
+    <path d="${robe}" fill="${B}" ${st}/>${chaos?"":hem(86,194,406,9)}
+    <path d="M126 196H154L164 ${chaos?394:402}H116Z" fill="${P}" ${thin}/>${orn}
+    ${sleeves}
+    <path d="M104 156Q140 142 176 156L184 198H96Z" fill="${P}" ${st}/><path d="M110 186Q140 194 170 186" fill="none" ${thin} stroke-dasharray="4 3"/>
+    <path d="M124 142H156L162 154H118Z" fill="${B}" ${st}/>
+    <rect x="114" y="96" width="52" height="46" rx="4" fill="${B}" ${st}/><path d="M118 134H162" ${thin} opacity=".6"/>${face}
+    ${hat}
+    ${kn?gxnBook(n,140,208,uid):gxnSword(n,94,256)}
+    ${gxnTrails(n)}
+  </g></g></g><g class="g-sparks">${sparks}</g>`;
+}
+
+function gxPuppet(v,n,uid,o){
+  const {B,P,st,thin,diam,tx}=gxnBits(n);
+  const chaos=v==="chaos", rit=v==="ritual", kn=v==="knowledge", lead=!!(o&&o.lead);
+  const skin=chaos?"#d9c2ff":"#f6dcc0", ink="#2a1a14";
+  /* 줄: 머리·손목·무릎에서 화면 위로 (끝은 흐려짐) */
+  const strings=`<g class="g-strings"><path d="M140 72L132 -360M80 280L56 -360M200 280L226 -360M124 314L104 -360M156 314L178 -360" stroke="url(#${uid}-str)" stroke-width="1" fill="none"/></g>`;
+  const defs=`<defs><linearGradient id="${uid}-str" gradientUnits="userSpaceOnUse" x1="0" y1="320" x2="0" y2="-360"><stop offset="0%" stop-color="${n}" stop-opacity=".95"/><stop offset="100%" stop-color="${n}" stop-opacity="0"/></linearGradient></defs>`;
+  const J=(x,y,r=5.5)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${B}" ${st}/>`;
+  const tube=(d,w=11)=>`<path d="${d}" fill="none" stroke="${n}" stroke-width="${w+3}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${B}" stroke-width="${w}" stroke-linecap="round"/>`;
+  let halo="";
+  if(rit){ let r=""; for(let i=0;i<12;i++){ const a=i/12*Math.PI*2; r+=`M${(140+Math.cos(a)*42).toFixed(1)} ${(96+Math.sin(a)*42).toFixed(1)}L${(140+Math.cos(a)*50).toFixed(1)} ${(96+Math.sin(a)*50).toFixed(1)}`; }
+    halo=`<g class="g-halo"><circle cx="140" cy="96" r="38" fill="${n}" fill-opacity=".07" stroke="${n}" stroke-width="1.6"/><path d="${r}" stroke="${n}" stroke-width="1" stroke-linecap="round"/><polygon points="${gxStar(140,30,12,3,4)}" fill="${n}"/></g>`; }
+  else if(lead) halo=`<g class="g-halo"><circle cx="140" cy="96" r="36" fill="none" stroke="${n}" stroke-width="1.4"/></g>`;
+  const face=`<g class="e0"><circle cx="132" cy="99" r="2.2" fill="${ink}"/><circle cx="149" cy="99" r="2.2" fill="${ink}"/><path d="M140 101L138 107H141" fill="none" stroke="${ink}" stroke-width="1.1"/><path d="M135 111Q140 113 145 111" fill="none" stroke="${ink}" stroke-width="1.3" stroke-linecap="round"/></g>
+  <g class="e3"><path d="M128 100Q132 95 136 100M145 100Q149 95 153 100" fill="none" stroke="${ink}" stroke-width="1.6" stroke-linecap="round"/><path d="M132 107Q140 116 148 107Z" fill="${ink}"/></g>
+  <g class="e1"><path d="M128 96L135 99L128 102M153 96L146 99L153 102" fill="none" stroke="${ink}" stroke-width="1.6" stroke-linecap="round"/><path d="M133 111L136 108L139 111L142 108L145 111L148 108" fill="none" stroke="${ink}" stroke-width="1.3"/><path d="M160 92L168 88M162 100L171 100" stroke="${n}" stroke-width="1.4" stroke-linecap="round"/></g>
+  <g class="e2"><circle cx="132" cy="99" r="3.2" fill="none" stroke="${ink}" stroke-width="1.4"/><path d="M145 99Q149 96 153 99" fill="none" stroke="${ink}" stroke-width="1.4"/><ellipse cx="141" cy="110" rx="3" ry="3.6" fill="${ink}"/>${tx(170,80,28,"!")}</g>`;
+  const head=`<circle cx="140" cy="98" r="22" fill="${skin}" ${st}/><path d="M118 96Q118 74 140 74Q162 74 162 96Q156 86 146 87Q140 82 132 88Q124 86 118 96Z" fill="#1d1418" ${thin}/>${face}`;
+  const gear=`<g class="g-orb"><circle cx="50" cy="178" r="9" fill="none" ${st}/><circle cx="50" cy="178" r="3.5" fill="none" ${thin}/>${[0,45,90,135,180,225,270,315].map(d=>`<rect x="48.5" y="164" width="3" height="5" fill="${n}" transform="rotate(${d} 50 178)"/>`).join("")}</g>`;
+  let papers=gear, sparks=gxSpark(60,120,5,n)+gxSpark(222,96,5,n,.7)+gxSpark(206,330,4,n,.3);
+  if(chaos){ papers+=[[220,120,20,1,0],[58,250,-24,.9,.5],[230,232,34,1,1],[206,40,10,.8,.8],[84,50,-18,.8,.2],[214,320,-8,.7,.6],[64,330,12,.7,1.1]].map(a=>gxShard(a[0],a[1],a[2],n,a[3],a[4])).join("")
+    +`<rect class="g-glitch" x="150" y="230" width="44" height="4" fill="${n}"/><rect class="g-glitch" style="animation-delay:.6s" x="96" y="300" width="40" height="3" fill="${n}"/>`; }
+  else if(kn) papers+=gxPaper(216,120,16,n,1,0)+gxPaper(60,230,-14,n,1,.6)+gxPaper(226,236,12,n,.9,1.1)+gxPaper(74,300,-6,n,.85,.9)+gxPaper(200,318,8,n,.8,.4);
+  else if(rit) sparks+=gxSpark(208,214,6,n,.5)+gxSpark(52,240,5,n,1);
+  const torso=`<rect x="114" y="132" width="52" height="66" rx="6" fill="${B}" ${st}/><path d="M122 150H158M122 176H150" ${thin} opacity=".7"/>${rit?`<polygon points="${gxStar(140,168,12,3,4)}" fill="${n}"/>`:""}${kn?`<path d="M112 132L118 122L124 132L130 122L136 132L142 122L148 132L154 122L160 132L166 122L170 132" fill="${P}" ${thin}/>`:""}`;
+  const flag=`<path d="M166 150L196 176L170 196Z" fill="${n}" fill-opacity=".28" ${thin}/>`;
+  const armR=kn?`<g class="g-arm" style="transform-origin:170px 136px">${tube("M170 136Q190 160 196 196")}${J(196,200,5)}${tube("M196 200Q190 220 176 228",10)}${J(176,232,6)}</g>${gxnBook(n,186,214,uid)}`
+    :`<g class="g-arm" style="transform-origin:170px 136px">${tube("M170 136Q194 200 200 274")}${J(186,200,5)}${J(201,280,7)}</g>`;
+  return `${defs}${gxCircle(uid,n)}${lead?gxnLead(n,170):""}${halo}${gxnFlare(n,98)}<g class="g-papers">${papers}</g>
+  <g class="g-lunge"><g class="g-body" style="transform-origin:140px 408px"><g class="g-hang">
+    ${strings}
+    ${tube("M128 210L124 304")}${tube("M124 308L124 386")}${J(124,306)}<rect x="114" y="384" width="20" height="22" rx="3" fill="${B}" ${st}/>
+    ${tube("M152 210L156 304")}${tube("M156 308L156 386")}${J(156,306)}<rect x="146" y="384" width="20" height="22" rx="3" fill="${B}" ${st}/>
+    <rect x="118" y="196" width="44" height="16" rx="4" fill="${P}" ${st}/>${J(126,210)}${J(154,210)}
+    <g class="g-armL" style="transform-origin:110px 136px">${tube("M110 136Q86 200 80 274")}${J(94,200,5)}${J(79,280,7)}</g>
+    ${torso}${flag}${armR}${J(110,136,6)}${J(170,136,6)}${J(140,124,4)}
+    ${head}
+    ${gxnTrails(n)}
+  </g></g></g><g class="g-sparks">${sparks}</g>`;
+}
+/* 다대다 적 유닛 → 아트. unit.body / unit.form / unit.leader / unit.expr (전투 담당 데이터). body 없으면 null(예전 그림) */
+const GXN_BODY={human:"human",machine:"automaton",automaton:"automaton",puppet:"puppet"};
+const GXN_FORM={basic:"base",base:"base",ritual:"ritual",knowledge:"knowledge",chaos:"chaos"};
+const GXN_EXPR={idle:"e0",hurt:"e1",shock:"e2",win:"e3"};
+function gxUnitArt(u){
+  const k=u&&GXN_BODY[u.body]; if(!k) return null;
+  return {k,v:GXN_FORM[u.form]||"base",lead:!!u.leader};
+}
+const GX_FN={priest:gxPriest,knight:gxKnight,machine:gxMachine,human:gxHuman,automaton:gxAutomaton,puppet:gxPuppet};
 function gxBody(uid,art){
-  const n=art.v==="chaos"?GX_CHAOS:GX_NEON[art.k];
-  return `${gxDefs(uid,n)}<g filter="url(#${uid}-gl)">${GX_FN[art.k](art.v,n,uid)}</g>`;
+  const n=art.v==="chaos"?(GX_CHAOS_OF[art.k]||GX_CHAOS):GX_NEON[art.k];
+  return `${gxDefs(uid,n)}<g filter="url(#${uid}-gl)">${GX_FN[art.k](art.v,n,uid,art)}</g>`;
 }
 function artLabel(art){ return `${GX_LABEL[art.k]} · ${GX_VLABEL[art.v]}`; }
 
 function guestSvg(guest, staggered=false, w=320, h=480, crop=false, artOverride=null, ex="e0"){
   const look=guestLook(guest||{});
-  if(artOverride) look.art=artOverride, look.crop=GX_CROP[artOverride.k];
-  const uid="gs-"+String((guest&&guest.id)||"x").replace(/[^a-z0-9_-]/gi,"")+(artOverride?"-"+artOverride.k+artOverride.v:"");
+  if(artOverride) look.art=artOverride, look.crop=artOverride.lead?GX_CROP_LEAD:GX_CROP[artOverride.k];
+  const uid="gs-"+String((guest&&guest.id)||"x").replace(/[^a-z0-9_-]/gi,"")+(artOverride?"-"+artOverride.k+artOverride.v+(artOverride.lead?"L":""):"");
   const vb=crop?look.crop:"0 0 280 440";
   const label=`<text x="140" y="24" text-anchor="middle" fill="#e0b43a" font-size="13" letter-spacing="0.9" font-family="Pretendard Variable, Pretendard, Space Grotesk, sans-serif" font-weight="700">흐트러짐</text>`;
   if(look.art){
-    return `<svg class="gx gx-${look.art.k} v-${look.art.v}" data-ex="${staggered?"e2":ex}" data-art="${look.art.k}" viewBox="${vb}" width="${w}" height="${h}" role="img" aria-label="${(guest&&guest.concept)||"손님"} 손님">
+    const nk=GXN_KINDS.includes(look.art.k);
+    return `<svg class="gx gx-${look.art.k} v-${look.art.v}${nk?" gxn":""}${nk&&look.art.lead?" lead":""}${nk&&staggered?" down":""}" data-ex="${staggered?"e2":ex}" data-art="${look.art.k}" viewBox="${vb}" width="${w}" height="${h}"${nk?` style="overflow:visible"`:""} role="img" aria-label="${(guest&&guest.concept)||"손님"} 손님">
     ${gxBody(uid,look.art)}${staggered?label:""}</svg>`;
   }
   const body=(GUEST_BODY[look.arch]||guestBodyFixer)(uid, look.pal, look, staggered);
@@ -5634,7 +5860,13 @@ function mbStageOpts(){
     onFloor:f=>{ const cv=$("#arena-bg"); if(!cv) return; const o=cv._floor; if(o&&Math.abs(o.yb-f.yb)<3&&Math.abs(o.yf-f.yf)<3) return; cv._floor=f; paintBattleFloor(cv,mb&&mb.guest.floorId); },
     figure:u=>u.side==="ally"
     ?librarianSvg(save,"100%","100%",{keyId:(libsKeyOf(save,u.libId)||KEY_PAGES[0]).id,uid:"mb"+u.id})
-    :guestSvg(guest,u.staggered,"100%","100%",true)};
+    :mbEnemyFigure(guest,u)};
+}
+/* 적 그림: unit.body(human|machine|puppet) · form(basic|ritual|knowledge|chaos) · leader · expr(idle|win|hurt|shock) 이 있으면 새 몸 그림, 없으면 예전 손님 그림 */
+function mbEnemyFigure(guest,u){
+  const art=gxUnitArt(u);
+  if(!art) return guestSvg(guest,u.staggered,"100%","100%",true);
+  return guestSvg({...guest,id:(guest&&guest.id||"g")+"-"+u.id},u.staggered,"100%","100%",true,art,GXN_EXPR[u.expr]||"e0");
 }
 function renderMulti(){
   if(!mb||!reception||!reception.multi) return;
@@ -6564,7 +6796,7 @@ function boot(){
   window.__studyGame = {
     save, transit, showScene, renderLobby, renderBattle, renderShelf, renderTitle,
     beginReception, selectBook, answer, answerShort, choosePage, SFX, takPunch, showWin, showLose, engine:{COMBAT,TIER,ATK_TYPES,mkUnit,resolveScene,guestCombat,planIntent,expectedDamage,checkShort,keyQsOf,WEAK_POINTS,COMBAT_PAGES,PAGE_BY,hitUnit,playerDieRange,guestDieRange,playerStaggerMax,FLAT_RESIST,getRec(){return reception;}},
-    gx:{guestSvg,GX_VARIANTS,GX_VLABEL,GX_LABEL,gxAttack,gxExFlash,gxPick,GUEST_ART},
+    gx:{guestSvg,GX_VARIANTS,GX_VLABEL,GX_LABEL,gxAttack,gxExFlash,gxPick,GUEST_ART,gxUnitArt,mbEnemyFigure},
     data:{EGO_GIFTS,KEY_PAGES,COSMETIC_ITEMS,WEAK_POINTS,COMBAT_PAGES,FLOORS,KEY_QUESTIONS},
     acq:{bookMaxed,shownBookCount,BOOK_POOLS,BOOK_RULES,poolEntries,burnBookOnce,addBooks,bookCount,totalBooks,ownedCount,deckLimit,DECK_MIN,DECK_MAX,sourcesOf,acqAudit,migrateAcq,rollRecallBooks,loadSave,defaultSave,SAVE_KEY},
     setGifts(owned,equipped){ const L=libOf(save); L.gifts.owned=[...owned]; L.gifts.equipped={...emptyEgoEquip(),...(equipped||{})}; persist(); },

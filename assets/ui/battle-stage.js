@@ -105,7 +105,13 @@
 .bs-cam.fast{transition-duration:.16s}
 @media (prefers-reduced-motion:reduce){ .bs-cam{transition:none} }
 @media (orientation:landscape) and (max-height:500px){ .bs .hand.bs-fan{height:136px} .bs .hand.bs-fan .cc{width:84px;height:122px} }
-@media (orientation:landscape) and (max-height:500px){ .bs-unit{--fh:62px;--uw:70px} .bs-card{width:78px;min-height:50px;font-size:10px} .bs-hand{bottom:4px;padding-top:6px} }
+/* 몸 종류가 있는 적(인간형·기계인간형·꼭두각시형): 온몸 그림이라 조금 크게, 우두머리는 더 크게. 흐트러지면 기울이지 않고 그림이 무너진다 */
+.bs-unit.nb{--fh:88px}
+.bs-unit.nb.lead{--fh:112px;--uw:86px}
+.bs-unit.nb.staggered .bs-fig{transform:none}
+.bs-unit.dead.dying{opacity:1;animation:bsDie .35s ease-in 1s forwards}
+@keyframes bsDie{to{opacity:0}}
+@media (orientation:landscape) and (max-height:500px){ .bs-unit{--fh:62px;--uw:70px} .bs-unit.nb{--fh:72px} .bs-unit.nb.lead{--fh:92px;--uw:80px} .bs-card{width:78px;min-height:50px;font-size:10px} .bs-hand{bottom:4px;padding-top:6px} }
 `;
   const DT={slash:"참",pierce:"관",blunt:"타",guard:"방",evade:"회"};
   let host=null, root=null, last=null, opts={}, sel=null, pickCard=null, drag=null, laidOut=false, info=null, holdT=0, holdT0=null, holdHit=false, focus=null, cam={z:1,x:0,y:0};
@@ -182,6 +188,7 @@
   }
   /* ev = 합/일방 이벤트 {ally, enemy, by, kind}. null 이면 원래 자리·카메라로. fast=true 면 빨리 감기. */
   function setFocus(ev,fast){
+    ev=normEv(ev);
     const el=camEl(); if(el) el.classList.toggle("fast",!!fast);
     focus = ev&&ev.kind!=="skip"&&ev.ally&&ev.enemy ? {ids:[ev.ally,ev.enemy],by:ev.by&&ev.by.unit,kind:ev.kind} : null;
     if(fast&&focus) focus=null;
@@ -208,7 +215,7 @@
     drawArrows(); clearTimeout(arrowT); arrowT=setTimeout(drawArrows,380);
     if(opts.onFloor){ const f=floorBand(); if(f) opts.onFloor(f); }
   }
-  const prevPos={}; let arrowT=0;
+  const prevPos={}, seenHp={}, seenStag={}; let arrowT=0;
 
   function dieHtml(u,i,d){
     const off = u.staggered || u.hp<=0;
@@ -219,7 +226,9 @@
     const p=prevPos[u.id], fig = opts.figure ? opts.figure(u) : `<div class="bs-sil"></div>`;
     const canHit = sel&&pickCard&&u.side==="enemy"&&u.hp>0&&!usableDice(u).length;
     const pct=(a,b)=>Math.max(0,Math.min(100,Math.round(100*a/(b||1))));
-    return `<div class="bs-unit ${u.side} ${u.staggered?"staggered":""} ${u.hp<=0?"dead":""} ${canHit?"can-hit":""}" data-unit="${u.id}"
+    const seen=u.id in seenHp, fall=u.staggered&&seen&&!seenStag[u.id], dying=u.hp<=0&&seen&&seenHp[u.id]>0;
+    const nb=u.side==="enemy"&&u.body?` nb b-${u.body}${u.leader?" lead":""}`:"";
+    return `<div class="bs-unit ${u.side}${nb} ${u.staggered?"staggered":""} ${u.hp<=0?"dead":""} ${fall?"falling":""} ${dying?"dying":""} ${canHit?"can-hit":""}" data-unit="${u.id}"${u.expr?` data-expr="${u.expr}"`:""}
       style="${p?`--x:${p.x}px;--y:${p.y}px;--sc:${p.sc};--br:${p.br};--z:${p.z}`:"visibility:hidden"}">
       ${u.staggered?`<span class="bs-tag">흐트러짐</span>`:""}
       <div class="bs-dice">${(u.dice||[]).map((d,i)=>dieHtml(u,i,d)).join("")}</div>
@@ -297,6 +306,7 @@
     const n=enemyRows();
     root.innerHTML=`<div class="bs-floor"></div>${battle.units.map(u=>unitHtml(u,n)).join("")}<svg class="bs-svg"></svg>${opts.cardHtml?`<div class="hand bs-fan">${handHtml()}</div>`:`<div class="bs-hand">${handHtml()}</div>`}`;
     if(info&&battle.phase==="resolve") info=null;
+    for(const u of battle.units){ seenHp[u.id]=u.hp; seenStag[u.id]=!!u.staggered; }
     markTargets(); layout(); requestAnimationFrame(layout);
     if(opts.cardHtml&&opts.onHand){ const hd=root.querySelector(".hand.bs-fan"); if(hd&&hd.children.length) opts.onHand(hd,API); }
   }
@@ -395,10 +405,32 @@
     window.removeEventListener("pointermove",onMove); window.removeEventListener("pointerup",onUp,true); window.removeEventListener("resize",onResize);
     if(ro){ ro.disconnect(); ro=null; }
     if(root){ root.remove(); } root=null; host=null; last=null; sel=null; pickCard=null; drag=null; laidOut=false; info=null; clearTimeout(holdT); clearTimeout(arrowT); focus=null; cam={z:1,x:0,y:0};
-    for(const k in prevPos) delete prevPos[k];
+    for(const o of [prevPos,seenHp,seenStag]) for(const k in o) delete o[k];
   }
   /* 합/일방 연출: 두 캐릭터가 서로 달려들고 가운데서 불꽃. 진 쪽은 밀려난다. */
+  /* 주사위 종류 → 동작 (slash 휘두르기 · pierce 찌르기 · blunt 내려치기 · guard/evade 막기 · 주사위 없는 책장 = page) */
+  const KO={"참격":"slash","관통":"pierce","타격":"blunt","방어":"guard","회피":"evade"};
+  const mType=t=>KO[t]||(DT[t]?t:null);
+  function motionOf(card,die){
+    if(die&&typeof die==="object"&&die.type) return mType(die.type);
+    const c=typeof card==="string"?(opts.cards&&opts.cards[card]):card; if(!c) return null;
+    const ds=c.dice||[]; if(!ds.length) return "page";
+    const at=ds.find(d=>["slash","pierce","blunt"].includes(mType(d.type))); return mType((at||ds[0]).type);
+  }
+  /* 새 이벤트 모양 {a:{unit,die,card}, b|null, steps:[{winner,dmg}]} → 예전 모양 {ally, enemy, allyDie, ...} */
+  function normEv(ev){
+    if(!ev||!ev.a||ev.ally) return ev;
+    const id=x=>x&&typeof x==="object"?x.id:x, side=x=>{ const u=unit(x); return u&&u.side; };
+    const aId=id(ev.a.unit), bId=ev.b?id(ev.b.unit):id(((ev.steps||[]).find(s=>s.dmg&&id(s.dmg.unit)!==aId)||{dmg:{}}).dmg.unit);
+    const di=d=>typeof d==="number"?d:(d&&typeof d.index==="number"?d.index:null);
+    const w=(ev.steps||[]).reduce((m,s)=>(m[s.winner]=(m[s.winner]||0)+1,m),{}), win=(w.a||0)>(w.b||0)?"a":(w.b||0)>(w.a||0)?"b":"tie";
+    const aAlly=side(aId)!=="enemy", allyS=aAlly?ev.a:ev.b, enemyS=aAlly?ev.b:ev.a;
+    return {...ev,ally:aAlly?aId:bId,enemy:aAlly?bId:aId,allyDie:allyS?di(allyS.die):null,enemyDie:enemyS?di(enemyS.die):null,
+      allyCard:allyS&&allyS.card,enemyCard:enemyS&&enemyS.card,allyDieObj:allyS&&allyS.die,enemyDieObj:enemyS&&enemyS.die,
+      by:{unit:aId,die:di(ev.a.die)},win:ev.kind==="clash"?(win==="tie"?"tie":((win==="a")===aAlly?"ally":"enemy")):null};
+  }
   function clash(ev){
+    ev=normEv(ev);
     if(!root||!ev||ev.kind==="skip") return;
     const ue=id=>root.querySelector(`.bs-unit[data-unit="${id}"]`);
     const A=ue(ev.ally), E=ue(ev.enemy); if(!A||!E) return;
@@ -408,6 +440,13 @@
     dies.forEach(d=>{ d.classList.add("act"); setTimeout(()=>d.classList.remove("act"),460); });
     if(ev.kind==="clash"){ fx(A,ev.win==="enemy"?"lose":"lunge"); fx(E,ev.win==="ally"?"lose":"lunge"); }
     else { fx(attacker,"lunge"); fx(target,"flinch"); }
+    /* 그림 동작: 주사위 종류별 m-*, 표정은 잠깐 이김(e3)/아픔(e1) */
+    const mv=(el,m)=>{ if(!m) return; el.classList.remove("m-slash","m-pierce","m-blunt","m-guard","m-evade","m-page"); void el.offsetWidth; el.classList.add("m-"+m); setTimeout(()=>el.classList.remove("m-"+m),640); };
+    const mA=(ev.allyCard||ev.allyDieObj)!=null?motionOf(ev.allyCard,ev.allyDieObj):null, mE=(ev.enemyCard||ev.enemyDieObj)!=null?motionOf(ev.enemyCard,ev.enemyDieObj):null;
+    mv(A,mA); mv(E,mE);
+    const face=(el,ex)=>{ const sv=el.querySelector("svg.gxn"); if(!sv||sv.classList.contains("down")) return; const was=sv.dataset.ex; sv.dataset.ex=ex; setTimeout(()=>{ if(sv.isConnected&&sv.dataset.ex===ex) sv.dataset.ex=was; },700); };
+    if(ev.kind==="clash"){ if(ev.win==="ally"){ face(E,"e1"); } else if(ev.win==="enemy"){ face(E,"e3"); } }
+    else if(target===E) face(E,"e1"); else face(E,"e3");
     const fa=figPt(A.querySelector(".bs-fig")), fe=figPt(E.querySelector(".bs-fig"));
     const sp=document.createElement("div"); sp.className="bs-spark"+(ev.kind==="clash"?"":" one"); sp.innerHTML="<b></b><b></b><b></b>";
     const at=ev.kind==="clash"?{x:(fa.x+fe.x)/2,y:(fa.y+fe.y)/2}:(target===A?fa:fe);
