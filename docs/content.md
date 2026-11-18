@@ -274,10 +274,11 @@ window.MOON_WORDS = [
 저장소 루트에서 테스트를 한 번에 돌립니다.
 
 ```bash
-node tests/run.mjs
+npm install        # 처음 한 번
+node tests/run.mjs # 전부(약 25분). 골라서: node tests/run.mjs mbdata mbresolve
 ```
 
-`LIB_ROOT`의 기본값은 저장소 루트입니다. 테스트 목록과 밸런스 시뮬(`tools/`)은 [docs/battle.md](battle.md)와 `tests/`를 보세요. 화면 겹침·가로세로는 [docs/ui.md](ui.md)입니다. 학습 데이터 쪽에서는 특히 `acqAudit()`(고아 책장·장서복 없음), 문제 `id`가 적 `q`에 빠짐없이 들어가는지, 주관식 `checkShort`가 `answer`/`accept`를 받는지 확인하면 됩니다.
+`LIB_ROOT`의 기본값은 저장소 루트입니다. 테스트 목록과 밸런스 시뮬(`tools/sim/`, `npm run sim`)은 [docs/battle.md](battle.md)와 `tests/`를 보세요. 화면 겹침·가로세로는 [docs/ui.md](ui.md)입니다. 학습 데이터 쪽에서는 특히 `acqAudit()`(고아 책장·장서복 없음), 문제 `id`가 적 `q`에 빠짐없이 들어가는지, 주관식 `checkShort`가 `answer`/`accept`를 받는지 확인하면 됩니다.
 
 배포 요지(자세한 절차는 [docs/HANDOFF.md](HANDOFF.md)):
 
