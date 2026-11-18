@@ -97,12 +97,18 @@
 .bs-info .i-t{margin-top:4px;opacity:.8;font-size:10px}
 .bs-die.info{box-shadow:0 0 0 2px #ffe6a8}
 @keyframes bsInfo{from{opacity:0;margin-top:4px}to{opacity:1;margin-top:0}}
+.bs-unit.bg{opacity:.22;filter:brightness(.55)!important}
+.bs.focus .bs-svg{opacity:0;transition:opacity .15s}
+.bs.focus .bs-unit.fo{transition:left .3s cubic-bezier(.2,.8,.2,1),top .3s cubic-bezier(.2,.8,.2,1)}
+.bs-cam{transition:transform .32s cubic-bezier(.2,.8,.2,1);transform-origin:0 0;will-change:transform}
+.bs-cam.fast{transition-duration:.16s}
+@media (prefers-reduced-motion:reduce){ .bs-cam{transition:none} }
 @media (orientation:landscape) and (max-height:500px){ .bs .hand.bs-fan{height:136px} .bs .hand.bs-fan .cc{width:84px;height:122px} }
 @media (orientation:landscape) and (max-height:500px){ .bs-unit{--fh:62px;--uw:70px} .bs-card{width:78px;min-height:50px;font-size:10px} .bs-hand{bottom:4px;padding-top:6px} }
 `;
   const DT={slash:"참",pierce:"관",blunt:"타",guard:"방",evade:"회"};
-  let host=null, root=null, last=null, opts={}, sel=null, pickCard=null, drag=null, laidOut=false, info=null, holdT=0, holdT0=null, holdHit=false;
-  const API={ onAssign:null, onUnassign:null };
+  let host=null, root=null, last=null, opts={}, sel=null, pickCard=null, drag=null, laidOut=false, info=null, holdT=0, holdT0=null, holdHit=false, focus=null, cam={z:1,x:0,y:0};
+  const API={ onAssign:null, onUnassign:null, onSkip:null, clashMs:900, hitAt:400, fastMs:300, fastHitAt:110 };
 
   function injectCss(){ if(document.getElementById("bs-css")) return; const s=document.createElement("style"); s.id="bs-css"; s.textContent=CSS; document.head.appendChild(s); }
 
@@ -154,13 +160,41 @@
     const mid=B.y0+(B.y1-B.y0)*.5, ra=rows(mid,B.y1,uh), re=rows(B.y0,mid,uh);
     return {land:false,yb:R.top+re.back-ph*.8-8,yf:R.top+ra.front-ph+14,top:R.top,H:R.height};
   }
+  /* 합 클로즈업: 합을 치는 사서·적 둘만 무대 가운데로 모이고, 카메라(무대를 감싼 칸)가 그 둘에 다가간다 */
+  function focusPos(u,B,uh,p){
+    const W=B.W, gap=Math.max(56,Math.min(W*.085,110)), r=B.land?rows(B.y0,B.y1,uh):rows(B.y0+(B.y1-B.y0)*.25,B.y1-(B.y1-B.y0)*.12,uh);
+    const cx=W*.5, y=r.front-(r.front-r.back)*.25, ally=u.side==="ally";
+    const att=focus.by===u.id, push=focus.kind==="one-sided"&&!att?(ally?-14:14):0;
+    return {...p,x:cx+(ally?-gap:gap)+push,y,sc:1,br:1,z:20+(att?2:1)};
+  }
+  function camEl(){ return opts.camera===undefined ? (host&&host.parentElement) : opts.camera; }
+  function applyCam(B,uh){
+    const el=camEl(); if(!el) return;
+    el.classList.add("bs-cam");
+    if(!focus){ cam={z:1,x:0,y:0}; el.style.transform=""; return; }
+    const W=B.W, H=B.H, z=B.land?1.38:1.22;
+    const r=B.land?rows(B.y0,B.y1,uh):rows(B.y0+(B.y1-B.y0)*.25,B.y1-(B.y1-B.y0)*.12,uh);
+    const fy=r.front-(r.front-r.back)*.25-uh*.42, fx=W*.5;
+    let tx=W*.5-z*fx, ty=H*.5-z*fy;
+    tx=Math.min(0,Math.max(W-z*W,tx)); ty=Math.min(0,Math.max(H-z*H,ty));
+    cam={z,x:tx,y:ty}; el.style.transform=`translate(${tx}px,${ty}px) scale(${z})`;
+  }
+  /* ev = 합/일방 이벤트 {ally, enemy, by, kind}. null 이면 원래 자리·카메라로. fast=true 면 빨리 감기. */
+  function setFocus(ev,fast){
+    const el=camEl(); if(el) el.classList.toggle("fast",!!fast);
+    focus = ev&&ev.kind!=="skip"&&ev.ally&&ev.enemy ? {ids:[ev.ally,ev.enemy],by:ev.by&&ev.by.unit,kind:ev.kind} : null;
+    if(fast&&focus) focus=null;
+    if(root&&last) layout();
+  }
   function enemyRows(){ const en=last.units.filter(u=>u.side==="enemy"); return {front:en.filter(u=>u.slot<3).map(u=>u.slot).sort(),back:en.filter(u=>u.slot>=3).map(u=>u.slot).sort()}; }
   function layout(){
     if(!root||!last) return;
     const B=band(), n=enemyRows();
     const any=root.querySelector(".bs-unit"); const uh=any?any.offsetHeight:120;
     for(const u of last.units){ const el=root.querySelector(`.bs-unit[data-unit="${u.id}"]`); if(!el) continue;
-      const p=place(u,n,B,uh);
+      let p=place(u,n,B,uh);
+      el.classList.toggle("bg",!!focus&&!focus.ids.includes(u.id)); el.classList.toggle("fo",!!focus&&focus.ids.includes(u.id));
+      if(focus&&focus.ids.includes(u.id)) p=focusPos(u,B,uh,p);
       if(!laidOut) el.classList.add("nofx");
       el.style.visibility="";
       el.style.setProperty("--x",p.x+"px"); el.style.setProperty("--y",p.y+"px");
@@ -168,7 +202,7 @@
       el.style.setProperty("--lx",B.land?(u.side==="ally"?"18px":"-18px"):"0px");
       el.style.setProperty("--ly",B.land?"0px":(u.side==="ally"?"-16px":"16px"));
       prevPos[u.id]=p; }
-    root.classList.toggle("port",!B.land);
+    root.classList.toggle("port",!B.land); root.classList.toggle("focus",!!focus); applyCam(B,uh);
     if(!laidOut){ void root.offsetWidth; root.querySelectorAll(".bs-unit.nofx").forEach(e=>e.classList.remove("nofx")); laidOut=true; }
     drawArrows(); clearTimeout(arrowT); arrowT=setTimeout(drawArrows,380);
     if(opts.onFloor){ const f=floorBand(); if(f) opts.onFloor(f); }
@@ -265,9 +299,9 @@
     markTargets(); layout(); requestAnimationFrame(layout);
     if(opts.cardHtml&&opts.onHand){ const hd=root.querySelector(".hand.bs-fan"); if(hd&&hd.children.length) opts.onHand(hd,API); }
   }
-  function rel(el){ const r=el.getBoundingClientRect(), R=root.getBoundingClientRect(); return {x:r.left-R.left+r.width/2,y:r.top-R.top+r.height/2,top:r.top-R.top}; }
+  function rel(el){ const r=el.getBoundingClientRect(), R=root.getBoundingClientRect(), z=cam.z||1; return {x:(r.left-R.left+r.width/2)/z,y:(r.top-R.top+r.height/2)/z,top:(r.top-R.top)/z}; }
   function figEl(uid){ return root.querySelector(`.bs-unit[data-unit="${uid}"] .bs-fig`); }
-  function figPt(el){ const r=rel(el), h=el.getBoundingClientRect().height; return {x:r.x,y:r.y-h*.1+14,top:r.y-h*.4}; }
+  function figPt(el){ const r=rel(el), h=el.getBoundingClientRect().height/(cam.z||1); return {x:r.x,y:r.y-h*.1+14,top:r.y-h*.4}; }
   function dieEl(uid,i){ return root.querySelector(`.bs-die[data-u="${uid}"][data-d="${i}"]`); }
   function drawArrows(){
     if(!root||!last) return; const svg=root.querySelector(".bs-svg"); if(!svg) return;
@@ -300,6 +334,7 @@
   }
   function onTap(e){
     if(holdHit){ holdHit=false; return; }
+    if(last&&last.phase==="resolve"&&API.onSkip){ API.onSkip(); return; }
     if(!last) return;
     const ed=e.target.closest(".bs-unit.enemy .bs-die");
     if(ed&&!(last.phase==="assign"&&sel&&pickCard)){ showInfo(ed.dataset.u,+ed.dataset.d); return; }
@@ -354,9 +389,10 @@
     return root;
   }
   function unmount(){
+    { const ce=host&&camEl(); if(ce){ ce.style.transform=""; ce.classList.remove("bs-cam","fast"); } }
     window.removeEventListener("pointermove",onMove); window.removeEventListener("pointerup",onUp,true); window.removeEventListener("resize",onResize);
     if(ro){ ro.disconnect(); ro=null; }
-    if(root){ root.remove(); } root=null; host=null; last=null; sel=null; pickCard=null; drag=null; laidOut=false; info=null; clearTimeout(holdT);
+    if(root){ root.remove(); } root=null; host=null; last=null; sel=null; pickCard=null; drag=null; laidOut=false; info=null; clearTimeout(holdT); focus=null; cam={z:1,x:0,y:0};
     for(const k in prevPos) delete prevPos[k];
   }
   /* 합/일방 연출: 두 캐릭터가 서로 달려들고 가운데서 불꽃. 진 쪽은 밀려난다. */
@@ -376,6 +412,6 @@
     sp.style.left=at.x+"px"; sp.style.top=at.y+"px"; root.appendChild(sp); setTimeout(()=>sp.remove(),420);
   }
   function unitPoint(id){ if(!root) return null; const f=figEl(id); if(!f) return null; const r=f.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height*.3}; }
-  Object.assign(API,{mount,unmount,render,place,relayout:layout,clash,unitPoint,floor:floorBand,redraw:drawArrows,pickCard:pickCardId,showInfo,_state:()=>({sel,pickCard,info})});
+  Object.assign(API,{mount,unmount,render,place,relayout:layout,clash,unitPoint,floor:floorBand,focus:setFocus,redraw:drawArrows,pickCard:pickCardId,showInfo,_state:()=>({sel,pickCard,info})});
   window.BattleStage=API;
 })();
