@@ -29,7 +29,7 @@ python3 -m http.server 8000   # 저장소 루트에서. 그다음 http://localho
 - Playwright(`playwright-core`) + 시스템 Chrome으로 로컬 서버를 띄워 화면을 찍고 검사한다.
 - 테스트: `npm install` 후 `node tests/run.mjs`(= `npm test`, 약 25분). 골라 돌리기 `node tests/run.mjs mbdata mbresolve`, 겹침 검사 빼기 `NO_OVERLAP=1`. 브라우저는 `tests/lib/browser.mjs`가 찾는다(`CHROME_PATH` 우선). 자세한 건 `docs/battle.md`.
 - 밸런스 시뮬레이션: `npm run sim`(`tools/sim/balance.mjs`), 체력표 `npm run sim:hp`(`tools/sim/hp.mjs`).
-- 겹침 검사: 전투 UI끼리(주사위·체력/흐트러짐 바·화살표·손패·[개막]·상태판) 겹침은 0건이어야 하고, 하나라도 있으면 배포하지 않는다. 캐릭터와 앞쪽 UI를 보는 `fighter-front-ui`는 참고용이라 실패해도 배포를 막지 않는다(무대·캐릭터는 배경층). 배포 전 844×390·390×844 스크린샷을 직접 눈으로 본다.
+- 겹침 검사: 전투 UI끼리(주사위·체력/흐트러짐 바·화살표·손패·[개막]·상태판) 겹침은 0건이어야 하고, 하나라도 있으면 배포하지 않는다. 캐릭터와 앞쪽 UI를 보는 `fighter-front-ui`도 지금은 0건이다. 무대·캐릭터는 배경층이라 가려져도 되므로, 일부러 UI를 캐릭터 위에 두는 변경이면 실패를 넘기지 말고 그 항목을 검사에서 빼는 커밋을 같이 올린다(`docs/ui.md` 5절). 배포 전 844×390·390×844 스크린샷을 직접 눈으로 본다.
 
 ## 배포
 1. `git pull --rebase origin main`
