@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118m">
+<meta name="build" content="library-20261118n">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -1622,7 +1622,8 @@ b,strong{font-weight:700}
 .battle-stage.multi .pass-btn{position:absolute;left:auto!important;top:auto!important;transform:none!important;right:calc(10px + env(safe-area-inset-right,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:55;
   min-width:86px;min-height:44px;padding:0 16px;border-radius:12px;font-weight:800;letter-spacing:.02em;color:#1a1408;background:linear-gradient(180deg,#f2d488,#c9a24e);border:1px solid #ffe6a8;box-shadow:0 6px 18px rgba(0,0,0,.5),0 0 0 3px rgba(233,196,106,.18)}
 .battle-stage.multi .pass-btn:active{transform:translateY(1px)!important}
-@media (orientation:portrait){.battle-stage.multi .pass-btn{bottom:calc(76px + env(safe-area-inset-bottom,0px))}}
+@media (orientation:portrait){.battle-stage.multi .pass-btn{bottom:calc(188px + env(safe-area-inset-bottom,0px))}}
+.bs .hand.bs-fan .card.paper .dice .rng{font-style:normal;font-weight:700;margin-left:2px}
 @media (orientation:landscape) and (max-height:500px){.battle-stage.multi .pass-btn{min-height:40px;min-width:78px;bottom:calc(8px + env(safe-area-inset-bottom,0px))}}
 .dmg.mini{font-size:24px}.dmg.mini.stag,.dmg.mini.rec{font-size:17px}.dmg.mini .dtag{font-size:9px}
 </style>
@@ -3833,7 +3834,7 @@ function dprevHtml(pv,cls=""){
 }
 function paperCardHtml(page, opts={}){
   const mini=!!opts.mini;
-  const dice=(page.dice||[]).map(d=>`<span>${dieMark(d.type, mini?10:12)} ${(mini||opts.prev)?"":(d.type+" ")}${dprevHtml(myDiePreview(d))}</span>`).join("");
+  const dice=(page.dice||[]).map(d=>`<span>${dieMark(d.type, mini?10:12)} ${(mini||opts.prev)?"":(d.type+" ")}${opts.noPrev?`<i class="rng">${d.min}-${d.max}</i>`:dprevHtml(myDiePreview(d))}</span>`).join("");
   const first=(page.dice&&page.dice[0]&&page.dice[0].type)||"참격";
   const flavor=page.flavor?`<div class="flavor">${page.flavor}</div>`:"";
   const tx=mini?"":`<div class="tx">${page.text||""}</div>`;
@@ -4670,7 +4671,7 @@ function handHot(hand,idx){
   });
   hand._hot=idx;
 }
-function bindHandScrub(){
+function bindHandScrub(onPick){
   const hand=$("#hand"); if(!hand) return;
   let active=false, pid=null, last=-1;
   const idxAt=x=>{ const g=hand._geo, r=hand.getBoundingClientRect(); return Math.max(0,Math.min(g.n-1,Math.floor((x-r.left-g.left0)/(g.step||g.cw)))); };
@@ -4679,7 +4680,7 @@ function bindHandScrub(){
     if(!active) return; active=false;
     const i=hand._hot, cs=cards(), c=cs[i];
     handHot(hand,-1);
-    if(select&&c&&!c.classList.contains("off")&&reception&&reception.phase==="select"&&!busy) choosePage(c.dataset.page);
+    if(select&&c&&!c.classList.contains("off")){ if(onPick) onPick(c); else if(reception&&reception.phase==="select"&&!busy) choosePage(c.dataset.page); }
     last=-1;
   };
   hand.addEventListener("pointerdown",ev=>{
@@ -5558,13 +5559,30 @@ function beginMultiReception(guestId){
   persist();
   transit("battle",()=>renderMulti());
 }
+/* 적 주사위를 누르면: 그 주사위가 쓸 책장 이름 · 주사위 종류와 범위 · 속도 · 노리는 대상 */
+function mbDieInfo(u,i,d){
+  if(u.side!=="enemy") return "";
+  const c=d.card&&mb.cards[d.card]; if(!c) return `<span class="i-nm">책장 미정</span>`;
+  const t=d.target&&mbUnitById(d.target.unit);
+  const tg=t?`${t.name||t.id}${d.target.die==null?" (몸)":` · 주사위 ${d.target.die+1}`}`:"";
+  return `<span class="i-nm">${c.name}${c.big?`<span class="i-big">강한 책장</span>`:""}</span>${(c.dice||[]).map(x=>`<div class="i-d">${dieMark(x.type,13)} ${x.type} <b>${x.min}–${x.max}</b></div>`).join("")}
+    <div class="i-t">속도 ${d.speed??"?"}${tg?` · 대상 ${tg}`:""}</div>`;
+}
+function mbUnitById(id){ return mb&&mb.battle.units.find(x=>x.id===id); }
 function mbStageOpts(){
   const hands={}, cards={};
   const card=p=>({name:p.name,cost:p.cost||0,dice:(p.dice||[]).map(d=>({type:MB_TYPE_EN[d.type]||"slash",min:d.min,max:d.max}))});
   for(const u of mbSide("ally")){ const X=mb.x[u.id]; const ids=[...X.handIds,...u.dice.map(d=>d.card).filter(Boolean)]; hands[u.id]=ids; ids.forEach(id=>{ if(PAGE_BY[id]) cards[id]=card(PAGE_BY[id]); }); }
   for(const [id,p] of Object.entries(mb.cards)) cards[id]=card(p);
   const guest=mb.guest;
-  return {hands,cards,figure:u=>u.side==="ally"
+  return {hands,cards,
+    cardHtml:id=>PAGE_BY[id]?paperCardHtml(PAGE_BY[id],{prev:true,noPrev:true}):"",
+    onHand:hd=>{ hd.id="hand"; layoutHand();
+      hd.querySelectorAll(".cc.pick").forEach(c=>{ c._base+=" translateY(-16px)"; c.style.transform=c._base; c.style.zIndex=30; c._z=30; });
+      bindHandScrub(c=>{ if(!busy) BattleStage.pickCard(c.dataset.card); });
+      bindPageInspect("#hand .cc",null); },
+    dieInfo:mbDieInfo,
+    figure:u=>u.side==="ally"
     ?librarianSvg(save,"100%","100%",{keyId:(libsKeyOf(save,u.libId)||KEY_PAGES[0]).id,uid:"mb"+u.id})
     :guestSvg(guest,u.staggered,"100%","100%",true)};
 }

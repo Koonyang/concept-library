@@ -83,10 +83,25 @@
 .bs-spark b:nth-child(2){transform:rotate(60deg)}.bs-spark b:nth-child(3){transform:rotate(-60deg)}
 @keyframes bsSpark{0%{transform:scale(.3);opacity:1}70%{opacity:1}100%{transform:scale(1.5);opacity:0}}
 @media (prefers-reduced-motion:reduce){.bs-unit.lunge .bs-fig,.bs-unit.flinch .bs-fig,.bs-unit.lose .bs-fig{animation:none}}
+.bs .hand.bs-fan{left:calc(8px + env(safe-area-inset-left,0px));right:calc(104px + env(safe-area-inset-right,0px));bottom:calc(4px + env(safe-area-inset-bottom,0px));height:168px;z-index:50}
+.bs .hand.bs-fan .cc{width:108px;height:156px;margin:0}
+.bs .hand.bs-fan .cc.pick .card.paper{box-shadow:0 0 0 2px #ffe6a8,0 0 18px rgba(255,200,90,.55)}
+.bs .hand.bs-fan .cc.used{opacity:.28;filter:grayscale(.6);pointer-events:none}
+.bs.port .hand.bs-fan{left:6px;right:6px;height:176px}
+.bs-info{position:absolute;z-index:70;pointer-events:none;min-width:120px;max-width:200px;padding:7px 9px 8px;border-radius:10px;background:rgba(14,16,24,.94);border:1px solid #c45c4a;box-shadow:0 8px 20px rgba(0,0,0,.55);color:#e8d5b0;font-size:11px;line-height:1.4;transform:translate(-50%,-100%);animation:bsInfo .12s ease-out}
+.bs-info.below{transform:translate(-50%,0)}
+.bs-info .i-nm{display:block;font-weight:800;font-size:12px;color:#ffd9cf;margin-bottom:4px}
+.bs-info .i-big{font-size:10px;color:#ffb35c;margin-left:4px}
+.bs-info .i-d{display:flex;align-items:center;gap:4px;margin:2px 0}
+.bs-info .i-d b{color:#fff3d6}
+.bs-info .i-t{margin-top:4px;opacity:.8;font-size:10px}
+.bs-die.info{box-shadow:0 0 0 2px #ffe6a8}
+@keyframes bsInfo{from{opacity:0;margin-top:4px}to{opacity:1;margin-top:0}}
+@media (orientation:landscape) and (max-height:500px){ .bs .hand.bs-fan{height:136px} .bs .hand.bs-fan .cc{width:84px;height:122px} }
 @media (orientation:landscape) and (max-height:500px){ .bs-unit{--fh:62px;--uw:70px} .bs-card{width:78px;min-height:50px;font-size:10px} .bs-hand{bottom:4px;padding-top:6px} }
 `;
   const DT={slash:"참",pierce:"관",blunt:"타",guard:"방",evade:"회"};
-  let host=null, root=null, last=null, opts={}, sel=null, pickCard=null, drag=null, laidOut=false;
+  let host=null, root=null, last=null, opts={}, sel=null, pickCard=null, drag=null, laidOut=false, info=null, holdT=0, holdT0=null, holdHit=false;
   const API={ onAssign:null, onUnassign:null };
 
   function injectCss(){ if(document.getElementById("bs-css")) return; const s=document.createElement("style"); s.id="bs-css"; s.textContent=CSS; document.head.appendChild(s); }
@@ -96,7 +111,7 @@
   function isLand(){ return !root || root.clientWidth>=root.clientHeight; }
   function band(){
     const H=root.clientHeight, land=isLand(), R=root.getBoundingClientRect();
-    const reserve = last&&last.phase==="question" ? 8 : (land?66:118);
+    const fan=!!opts.cardHtml; const reserve = last&&last.phase==="question" ? 8 : fan ? (land?(H<=500?132:172):182) : (land?66:118);
     let y0=land?44:48, y1=H-reserve;
     const sel=opts.avoid===undefined?"#qpanel.on":opts.avoid, av=sel&&document.querySelector(sel);
     if(av){ const r=av.getBoundingClientRect();
@@ -171,6 +186,7 @@
   /* 같은 카드가 여러 장이면 놓인 장수만큼만 '사용됨' (현재 주사위 카드는 제외) */
   function usedCounts(u,exceptDie){ const m={}; (u.dice||[]).forEach((d,i)=>{ if(d.card&&i!==exceptDie) m[d.card]=(m[d.card]||0)+1; }); return m; }
   function handHtml(){
+    if(opts.cardHtml) return fanHtml();
     if(!sel||!last||last.phase!=="assign") return "";
     const u=unit(sel.unit); if(!u||u.side!=="ally") return "";
     const ids=(opts.hands&&opts.hands[u.id])||[]; const used=usedCounts(u,sel.die); const cur=u.dice[sel.die]&&u.dice[sel.die].card;
@@ -182,6 +198,45 @@
       return `<button class="bs-card ${isPick?"pick":""} ${cant&&!isPick?"cant":""} ${isUsed?"used":""}" type="button" data-card="${id}" data-k="${k}">
         <span class="c">${c.cost||0}</span><span class="n">${c.name}</span><span class="d">${(c.dice||[]).map(d=>`${DT[d.type]||"?"}${d.min}-${d.max}`).join(" ")}</span></button>`; }).join("");
   }
+  /* 양피지 손패(부채꼴): 그림은 opts.cardHtml(id), 펼치기·문지르기는 opts.onHand(handEl) 가 맡는다 */
+  function fanHtml(){
+    if(!sel||!last||last.phase!=="assign") return "";
+    const u=unit(sel.unit); if(!u||u.side!=="ally") return "";
+    const ids=(opts.hands&&opts.hands[u.id])||[]; const used=usedCounts(u,sel.die); const cur=u.dice[sel.die]&&u.dice[sel.die].card;
+    let picked=false;
+    return ids.map((id,k)=>{ const c=(opts.cards&&opts.cards[id])||{cost:0};
+      const isUsed=used[id]>0; if(isUsed) used[id]--;
+      const isPick=!isUsed&&!picked&&pickCard===id; if(isPick) picked=true;
+      const cant=(c.cost||0)>u.light+(cur&&opts.cards[cur]?opts.cards[cur].cost||0:0);
+      return `<div class="cc ${isPick?"pick":""} ${(cant&&!isPick)||isUsed?"off":""} ${isUsed?"used":""}" data-card="${id}" data-page="${id}" data-k="${k}">${opts.cardHtml(id)}</div>`; }).join("");
+  }
+  function pickCardId(id){
+    if(!last||last.phase!=="assign"||!sel) return;
+    const el=root&&root.querySelector(`.hand .cc[data-card="${id}"]:not(.used)`); if(el&&el.classList.contains("off")&&!el.classList.contains("pick")) return;
+    pickCard = pickCard===id?null:id; render(last);
+  }
+  /* 적 주사위 정보: 누르면 그 주사위가 쓸 책장 (opts.dieInfo(unit,i) 가 있으면 그 HTML) */
+  function infoHtml(u,i){
+    const d=u.dice[i]; if(!d) return "";
+    if(opts.dieInfo){ const h=opts.dieInfo(u,i,d); if(h) return h; }
+    const c=d.card&&opts.cards&&opts.cards[d.card];
+    const tg=d.target&&unit(d.target.unit);
+    return `<span class="i-nm">${c?c.name:"책장 미정"}</span>${c?(c.dice||[]).map(x=>`<div class="i-d">${DT[x.type]||"?"} <b>${x.min}-${x.max}</b></div>`).join(""):""}
+      <div class="i-t">속도 ${d.speed??"?"}${tg?` · 대상 ${tg.name||tg.id}`:""}</div>`;
+  }
+  function placeInfo(){
+    if(!root) return; let el=root.querySelector(".bs-info");
+    const u=info&&unit(info.unit), a=u&&u.hp>0&&dieEl(info.unit,info.die);
+    root.querySelectorAll(".bs-die.info").forEach(e=>e.classList.remove("info"));
+    if(!a){ if(el) el.remove(); info=null; return; }
+    a.classList.add("info");
+    if(!el){ el=document.createElement("div"); el.className="bs-info"; root.appendChild(el); }
+    el.innerHTML=infoHtml(u,info.die);
+    const p=rel(a), r=a.getBoundingClientRect(), w=el.offsetWidth||150, h=el.offsetHeight||70, W=root.clientWidth;
+    const below=p.top-h-8<4; el.classList.toggle("below",below);
+    el.style.left=Math.max(w/2+4,Math.min(W-w/2-4,p.x))+"px"; el.style.top=(below?p.top+r.height+6:p.top-6)+"px";
+  }
+  function showInfo(uid,i){ info = info&&info.unit===uid&&info.die===i ? null : {unit:uid,die:i}; placeInfo(); }
   function unit(id){ return last&&last.units.find(u=>u.id===id); }
 
   function render(battle, o){
@@ -192,8 +247,10 @@
     else if(!sel){ /* 빠른 진행: 카드 안 놓은 첫 주사위를 바로 고른다 */
       for(const u of battle.units){ if(u.side!=="ally"||u.hp<=0||u.staggered) continue; const i=(u.dice||[]).findIndex(d=>!d.card); if(i>=0){ sel={unit:u.id,die:i}; pickCard=null; break; } } }
     const n=enemyRows();
-    root.innerHTML=`<div class="bs-floor"></div>${battle.units.map(u=>unitHtml(u,n)).join("")}<svg class="bs-svg"></svg><div class="bs-hand">${handHtml()}</div>`;
+    root.innerHTML=`<div class="bs-floor"></div>${battle.units.map(u=>unitHtml(u,n)).join("")}<svg class="bs-svg"></svg>${opts.cardHtml?`<div class="hand bs-fan">${handHtml()}</div>`:`<div class="bs-hand">${handHtml()}</div>`}`;
+    if(info&&battle.phase==="resolve") info=null;
     markTargets(); layout(); requestAnimationFrame(layout);
+    if(opts.cardHtml&&opts.onHand){ const hd=root.querySelector(".hand.bs-fan"); if(hd&&hd.children.length) opts.onHand(hd,API); }
   }
   function rel(el){ const r=el.getBoundingClientRect(), R=root.getBoundingClientRect(); return {x:r.left-R.left+r.width/2,y:r.top-R.top+r.height/2,top:r.top-R.top}; }
   function figEl(uid){ return root.querySelector(`.bs-unit[data-unit="${uid}"] .bs-fig`); }
@@ -215,6 +272,7 @@
     }); }
     if(drag&&drag.x!=null){ const a=dieEl(drag.unit,drag.die); if(a){ const p=rel(a); h+=`<path d="M${p.x} ${p.y-14} L${drag.x} ${drag.y}" stroke="#ffe6a8" stroke-width="2.4" fill="none" marker-end="url(#bsA)"/>`; } }
     svg.innerHTML=h;
+    placeInfo();
   }
   function markTargets(){
     root.querySelectorAll(".bs-die.can-target").forEach(e=>e.classList.remove("can-target"));
@@ -228,7 +286,13 @@
     if(last) render(last);
   }
   function onTap(e){
-    if(!last||last.phase!=="assign") return;
+    if(holdHit){ holdHit=false; return; }
+    if(!last) return;
+    const ed=e.target.closest(".bs-unit.enemy .bs-die");
+    if(ed&&!(last.phase==="assign"&&sel&&pickCard)){ showInfo(ed.dataset.u,+ed.dataset.d); return; }
+    if(info){ info=null; placeInfo(); }
+    if(last.phase!=="assign") return;
+    const fc=e.target.closest(".hand .cc[data-card]"); if(fc){ pickCardId(fc.dataset.card); return; }
     const card=e.target.closest(".bs-card"); if(card){ if(card.classList.contains("cant")) return; pickCard = pickCard===card.dataset.card?null:card.dataset.card; render(last); return; }
     const die=e.target.closest(".bs-die");
     if(!die){ const eu=e.target.closest(".bs-unit.enemy"); if(eu&&sel&&pickCard){ const u=unit(eu.dataset.unit); if(u&&u.hp>0) assign(bodyTarget(u)); return; }
@@ -249,12 +313,15 @@
   }
   /* 끌기: 카드를 고른 내 주사위를 적 주사위 위로 */
   function onDown(e){
+    clearTimeout(holdT); const ed=e.target.closest&&e.target.closest(".bs-unit.enemy .bs-die");
+    if(ed){ holdT0=[e.clientX,e.clientY]; } if(ed) holdT=setTimeout(()=>{ holdHit=true; info=null; showInfo(ed.dataset.u,+ed.dataset.d); },380);
     const die=e.target.closest(".bs-unit.ally .bs-die"); if(!die||!last||last.phase!=="assign") return;
     if(!(sel&&sel.unit===die.dataset.u&&sel.die===+die.dataset.d&&pickCard)) return;
     drag={unit:die.dataset.u,die:+die.dataset.d,x0:e.clientX,y0:e.clientY,x:null,y:null};
   }
-  function onMove(e){ if(!drag) return; if(Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)<8&&drag.x==null) return; const R=root.getBoundingClientRect(); drag.x=e.clientX-R.left; drag.y=e.clientY-R.top; drawArrows(); }
+  function onMove(e){ if(holdT&&holdT0&&Math.hypot(e.clientX-holdT0[0],e.clientY-holdT0[1])>8) clearTimeout(holdT); if(!drag) return; if(Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)<8&&drag.x==null) return; const R=root.getBoundingClientRect(); drag.x=e.clientX-R.left; drag.y=e.clientY-R.top; drawArrows(); }
   function onUp(e){
+    clearTimeout(holdT);
     if(!drag) return; const moved=drag.x!=null; drag=null;
     if(!moved){ drawArrows(); return; }
     const el=document.elementFromPoint(e.clientX,e.clientY); const die=el&&el.closest(".bs-unit.enemy .bs-die:not(.off)");
@@ -276,7 +343,7 @@
   function unmount(){
     window.removeEventListener("pointermove",onMove); window.removeEventListener("pointerup",onUp,true); window.removeEventListener("resize",onResize);
     if(ro){ ro.disconnect(); ro=null; }
-    if(root){ root.remove(); } root=null; host=null; last=null; sel=null; pickCard=null; drag=null; laidOut=false;
+    if(root){ root.remove(); } root=null; host=null; last=null; sel=null; pickCard=null; drag=null; laidOut=false; info=null; clearTimeout(holdT);
     for(const k in prevPos) delete prevPos[k];
   }
   /* 합/일방 연출: 두 캐릭터가 서로 달려들고 가운데서 불꽃. 진 쪽은 밀려난다. */
@@ -296,6 +363,6 @@
     sp.style.left=at.x+"px"; sp.style.top=at.y+"px"; root.appendChild(sp); setTimeout(()=>sp.remove(),420);
   }
   function unitPoint(id){ if(!root) return null; const f=figEl(id); if(!f) return null; const r=f.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height*.3}; }
-  Object.assign(API,{mount,unmount,render,place,relayout:layout,clash,unitPoint,redraw:drawArrows,_state:()=>({sel,pickCard})});
+  Object.assign(API,{mount,unmount,render,place,relayout:layout,clash,unitPoint,redraw:drawArrows,pickCard:pickCardId,showInfo,_state:()=>({sel,pickCard,info})});
   window.BattleStage=API;
 })();
