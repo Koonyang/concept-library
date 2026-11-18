@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118zf">
+<meta name="build" content="library-20261118zg">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -269,7 +269,8 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 @keyframes idleMage{0%,100%{transform:translateY(0)}50%{transform:translateY(-11px)}}
 @keyframes guestHit{0%{transform:translateX(0)}35%{transform:translateX(16px) rotate(3deg)}100%{transform:translateX(0)}}
 @keyframes guestDown{to{transform:translateY(36px) rotate(10deg);opacity:.25}}
-.hud-top{position:absolute;top:10px;left:16px;right:100px;display:grid;grid-template-columns:1fr auto 1fr;gap:16px;z-index:5;align-items:start}
+.hud-top{position:absolute;top:10px;left:16px;right:100px;display:grid;grid-template-columns:1fr auto 1fr;gap:16px;z-index:5;align-items:start;pointer-events:none}
+.hud-top > *{pointer-events:auto}
 .bars{padding:12px 14px 12px}
 .bar-lab{display:flex;justify-content:space-between;font-size:11px;color:var(--parch2);letter-spacing:.013em;margin-bottom:5px}
 .bar{height:14px;background:linear-gradient(180deg,#05060a,#12141c);border:1px solid var(--gold3);
@@ -951,8 +952,8 @@ b,strong{font-weight:700}
 .clash-zone{width:min(34vw,170px);height:min(34vw,170px);opacity:.75}
 @media (min-width:861px){
   #scene-battle{--fig-h:clamp(110px,15vh,170px);--feet:clamp(240px,29vh,300px)}
-  .fighter.librarian{left:calc(50% - var(--fig-h) * .66 - 90px)}
-  .fighter.guest{right:calc(50% - var(--fig-h) * .66 - 90px)}
+  .fighter.librarian{left:calc(6% + var(--safe-left,0px))}
+  .fighter.guest{right:calc(6% + var(--safe-right,0px))}
 }
 @media (max-width:860px){
   .fighter.librarian{left:5%}.fighter.guest{right:5%}
@@ -1037,7 +1038,7 @@ b,strong{font-weight:700}
 .state-note{position:absolute;left:50%;top:calc(100% - var(--feet) - var(--fig-h) - 28px);transform:translateX(-50%);z-index:9;
   padding:7px 16px;border-radius:999px;font-weight:750;font-size:13px;color:#1b1306;background:linear-gradient(180deg,#ffe38a,#ffc43a);box-shadow:0 8px 24px rgba(255,196,58,.4);pointer-events:none;white-space:nowrap}
 /* intent preview above the guest */
-.intent{position:absolute;right:0;bottom:calc(100% + 2px);width:max-content;max-width:min(62vw,240px);z-index:6;pointer-events:none;
+.intent{position:absolute;right:0;bottom:calc(100% + 8px);width:max-content;max-width:min(62vw,240px);z-index:9;pointer-events:none;
   display:flex;flex-wrap:wrap;align-items:center;gap:3px 6px;
   padding:5px 8px;border-radius:10px;background:rgba(10,13,24,.82);border:1px solid var(--line-hi);
   -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 10px 26px rgba(0,0,0,.5);text-align:left;transition:opacity .2s}
@@ -1526,7 +1527,7 @@ b,strong{font-weight:700}
   .fighter.guest{right:calc(2% + var(--safe-right))}
   .char-plate{font-size:10px;line-height:12px}
   .emo-chip{top:-22px;padding:2px 7px}
-  .intent{right:calc(100% + 6px);left:auto;bottom:auto;top:-4px;transform:none;max-width:min(30vw,230px);padding:4px 8px}
+  .intent{right:0;left:auto;bottom:calc(100% + 8px);top:auto;transform:none;max-width:100%;padding:4px 8px;z-index:9}
   .hand{left:calc(var(--fig-h) * .66 + 3% + var(--safe-left));right:calc(var(--fig-h) * .66 + 3% + var(--safe-right));bottom:calc(16px + var(--safe-bottom));height:min(40dvh,146px)}
   .hand .cc{width:84px;height:122px}
   .lightchip{left:calc(var(--fig-h) * .66 + 3% + var(--safe-left));bottom:auto;top:calc(100% - min(40dvh,146px) - 46px)}
@@ -1768,6 +1769,8 @@ b,strong{font-weight:700}
 .mb-nm span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mb-nm .st-mark{flex:0 0 auto;padding:0 4px;border-radius:5px;background:#8a3a2a;color:#fff;font:700 8px/14px system-ui;letter-spacing:0}
 .mb-stat-row.is-stag{box-shadow:inset 0 0 0 1px rgba(224,180,58,.55)}
+.mb-mini{display:inline-block;margin-left:4px;padding:0 5px;border-radius:6px;border:1px solid rgba(196,163,90,.45);
+  background:rgba(20,16,10,.55);color:var(--gold2,#e6c56a);font:700 8px/1.4 system-ui,sans-serif;letter-spacing:.02em;vertical-align:middle;white-space:nowrap}
 .mb-meters{display:flex;gap:4px;align-items:center;margin-top:1px}
 .mb-meter{flex:1;min-width:0;display:flex;align-items:center;gap:3px}
 .mb-meter .bar{flex:1;min-width:18px;height:4px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden}
@@ -5222,6 +5225,36 @@ function syncResources(){
     rec._shE=e;
   }
 }
+/* 1:1 예고(.intent)는 앞면 UI. 손님 칸에 붙이되 손패·HUD·설정 책갈피와는 겹치지 않게 둔다. */
+function placeIntent(){
+  const el=document.getElementById("intent"); if(!el) return;
+  const guest=document.querySelector(".fighter.guest"); if(!guest) return;
+  const vis=n=>{ if(!n) return false; const s=getComputedStyle(n); return s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity!==0; };
+  const box=n=>n.getBoundingClientRect();
+  const g=box(guest);
+  const cards=[...document.querySelectorAll("#hand .cc, .hand .cc")];
+  const handTops=cards.map(n=>box(n).top).filter(Number.isFinite);
+  const handTop=handTops.length?Math.min(...handTops):innerHeight;
+  const hudBots=[...document.querySelectorAll(".hud-top .bars, .hud-top .turnchip")].filter(vis).map(n=>box(n).bottom);
+  const hudBot=hudBots.length?Math.max(...hudBots):0;
+  const maxW=Math.max(96,Math.min(Math.max(g.width,96), Math.max(8, innerWidth-g.left-6)));
+  el.style.left="auto";
+  el.style.right="0";
+  el.style.maxWidth=maxW+"px";
+  el.style.bottom="auto";
+  el.style.top="0";
+  void el.offsetWidth;
+  const h=Math.max(24,box(el).height||40);
+  const gapTop=hudBot+8, gapBot=handTop-8;
+  const portrait=innerHeight>=innerWidth;
+  let top;
+  if(portrait&&g.top>innerHeight*.42&&gapBot-gapTop>=h){
+    top=gapTop;                                /* 세로: 손님이 손패 아래에 있으면 예고는 HUD 아래 빈 칸(오른쪽) */
+  }else if(gapBot-gapTop>=h) top=gapBot-h;
+  else if(gapBot>gapTop) top=gapTop;
+  else top=Math.max(4,Math.min(g.top-h-8,innerHeight-h-4));
+  el.style.top=Math.round(top-g.top)+"px";
+}
 function renderBattle(){
   if(reception&&reception.multi) return renderMulti();
   const rec=reception, guest=rec&&GUEST_BY[rec.guestId];
@@ -5301,6 +5334,7 @@ function renderBattle(){
   if(rec.phase==="question") showQuestion();
   if(rec.phase==="win") showWin();
   if(rec.phase==="lose") showLose();
+  requestAnimationFrame(()=>{ layoutHand(); placeIntent(); requestAnimationFrame(()=>{ layoutHand(); placeIntent(); }); });
 }
 
 function libraryPhoto(kind){
@@ -5332,15 +5366,15 @@ function paintStage(c,cv,W,H){
   c.save(); c.globalCompositeOperation="screen";
   const cones=[[W*.5,"255,226,170",.2,W*.55],[W*.27,"255,214,150",.2,W*.34],[W*.73,"150,160,255",.18,W*.34]];
   for(const [cx,col,al,spread] of cones){
-    const top=-10, yb=feetY+figH*.08;
+    const top=-10, yb=H;
     const g=c.createLinearGradient(0,top,0,yb);
     g.addColorStop(0,`rgba(${col},${al})`); g.addColorStop(.7,`rgba(${col},${al*.28})`); g.addColorStop(1,`rgba(${col},0)`);
     c.fillStyle=g; c.beginPath();
     c.moveTo(cx-W*.03,top); c.lineTo(cx+W*.03,top); c.lineTo(cx+spread*.5,yb); c.lineTo(cx-spread*.5,yb); c.closePath(); c.fill();
   }
   c.restore();
-  // stage platform (perspective trapezoid)
-  const yb=feetY-figH*.16, yf=feetY+figH*.2, lip=Math.max(8,figH*.05);
+  // stage platform: 바닥은 화면 맨 아래까지 (앞면 UI 뒤로 깔리는 전면 무대)
+  const yb=Math.min(feetY-figH*.16, H*.45), yf=H, lip=Math.max(8,figH*.05);
   const bx=W*.07, fx=-W*.04;
   c.beginPath(); c.moveTo(bx,yb); c.lineTo(W-bx,yb); c.lineTo(W-fx,yf); c.lineTo(fx,yf); c.closePath();
   const sf=c.createLinearGradient(0,yb,0,yf);
@@ -6249,13 +6283,38 @@ function mbAssignReady(B){
   }
   return true;
 }
-function mbStatRow(u){
+/* 기믹 추가 유닛(분신·소환, gimmick.extraUnits)은 본체 줄에만 표기. 연결 필드는 parentId (ownerId·summoner 도 허용). */
+function mbParentId(u){ return (u&&(u.parentId||u.ownerId||u.summoner||u.summonerId))||null; }
+function mbGimmickExtras(B){
+  const src=(B&&B.gimmick&&B.gimmick.extraUnits)||(mb&&mb.gimmick&&mb.gimmick.extraUnits)||(mb&&mb.battle&&mb.battle.gimmick&&mb.battle.gimmick.extraUnits)||[];
+  return Array.isArray(src)?src:[];
+}
+function mbIsExtraUnit(u,B){
+  if(!u||u.side!=="enemy") return false;
+  if(mbParentId(u)) return true;
+  const xs=mbGimmickExtras(B);
+  return xs.some(x=>{ const id=x&&(x.id||x.unit||x); return id&&id===u.id; });
+}
+function mbExtrasOf(main,units,B){
+  const pid=main&&main.id;
+  const byParent=(units||[]).filter(u=>u!==main&&mbParentId(u)===pid);
+  const xs=mbGimmickExtras(B);
+  const ids=new Set(byParent.map(u=>u.id));
+  xs.forEach(x=>{
+    const id=x&&(x.id||x.unit||x), parent=x&&(x.parentId||x.ownerId||x.summoner||x.summonerId);
+    if(id&&parent===pid&&!ids.has(id)){ const u=(units||[]).find(n=>n.id===id); if(u){ byParent.push(u); ids.add(id); } }
+  });
+  return byParent;
+}
+function mbStatRow(u,extras){
   const dead=u.hp<=0, stag=!!u.staggered;
   const hp=Math.max(0,u.hp|0), mhp=Math.max(1,u.maxHp|0);
   const st=Math.max(0,u.stagger|0), mst=Math.max(1,u.maxStagger|0);
   const hpPct=Math.min(100,mhp?hp/mhp*100:0), stPct=Math.min(100,mst?st/mst*100:0);
-  return `<button class="mb-stat-row${dead?" dead":""}${stag?" is-stag":""}" type="button" data-unit="${u.id}" aria-label="${u.name} 체력 ${hp}/${mhp} 흐트러짐 ${st}/${mst}${stag?" 흐트러짐":""}${dead?" 퇴장":""}">
-    <div class="mb-nm"><span>${u.name}</span>${stag?`<em class="st-mark">흐트러짐</em>`:""}</div>
+  const n=(extras&&extras.length)||0;
+  const chip=n?`<i class="mb-mini">+${n} 분신</i>`:"";
+  return `<button class="mb-stat-row${dead?" dead":""}${stag?" is-stag":""}" type="button" data-unit="${u.id}" aria-label="${u.name} 체력 ${hp}/${mhp} 흐트러짐 ${st}/${mst}${stag?" 흐트러짐":""}${dead?" 퇴장":""}${n?` 분신 ${n}`:""}">
+    <div class="mb-nm"><span>${u.name}</span>${chip}${stag?`<em class="st-mark">흐트러짐</em>`:""}</div>
     <div class="mb-meters">
       <span class="mb-meter hp"><span class="bar"><i style="width:${hpPct}%"></i></span><b>${hp}/${mhp}</b></span>
       <span class="mb-meter st"><span class="bar"><i style="width:${stPct}%"></i></span><b>${st}/${mst}</b></span>
@@ -6270,8 +6329,12 @@ function mbHighlightUnit(id){
 function mbPaintStats(B){
   const units=(B&&B.units)||[];
   const ally=$("#mb-stat-ally"), enemy=$("#mb-stat-enemy");
-  if(ally) ally.innerHTML=units.filter(u=>u.side==="ally").map(mbStatRow).join("");
-  if(enemy) enemy.innerHTML=units.filter(u=>u.side==="enemy").map(mbStatRow).join("");
+  if(ally) ally.innerHTML=units.filter(u=>u.side==="ally").map(u=>mbStatRow(u)).join("");
+  if(enemy){
+    const foes=units.filter(u=>u.side==="enemy");
+    const mains=foes.filter(u=>!mbIsExtraUnit(u,B)).slice(0,3);
+    enemy.innerHTML=mains.map(u=>mbStatRow(u,mbExtrasOf(u,foes,B))).join("");
+  }
   $$(".mb-stat-row").forEach(r=>r.onclick=()=>mbHighlightUnit(r.dataset.unit));
 }
 function mbRefresh(display){
@@ -6979,7 +7042,7 @@ renderLobby=withScroll("scene-lobby",renderLobby);
         if(reception.multi&&window.BattleStage&&BattleStage.relayout){
           BattleStage.relayout();
           requestAnimationFrame(()=>{ if(window.BattleStage&&BattleStage.relayout) BattleStage.relayout(); layoutHand(); });
-        } else layoutHand();
+        } else { layoutHand(); requestAnimationFrame(placeIntent); }
         const g=GUEST_BY[reception.guestId]; if(g) paintBattleFloor($("#arena-bg"),g.floorId);
       } else if(scene==="shelf"){
         const w=$(".dress-gridwrap"); if(w) dressKeepTop=w.scrollTop;

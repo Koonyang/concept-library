@@ -27,8 +27,8 @@
 (function(){
   const CSS=`
 .bs{position:absolute;inset:0;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}
-.bs-floor{position:absolute;left:0;right:0;bottom:0;height:62%;pointer-events:none;
-  background:radial-gradient(ellipse 70% 60% at 50% 70%,rgba(230,211,163,.07),transparent 70%)}
+.bs-floor{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 80% 70% at 50% 78%,rgba(230,211,163,.08),transparent 72%)}
 .bs-unit{position:absolute;left:var(--x,50%);top:var(--y,80%);transform:translate(-50%,-100%) scale(var(--sc,1));transform-origin:50% 100%;display:flex;flex-direction:column;align-items:center;
   width:var(--uw,76px);filter:brightness(var(--br,1));transition:filter .2s,opacity .3s,left .35s cubic-bezier(.2,.8,.2,1),top .35s cubic-bezier(.2,.8,.2,1);z-index:var(--z,1)}
 .bs-unit.nofx{transition:none}
@@ -150,6 +150,12 @@
     const H=root.clientHeight, land=isLand(), R=root.getBoundingClientRect();
     const fan=!!opts.cardHtml; const reserve = last&&last.phase==="question" ? 8 : fan ? (land?(H<=500?198:220):360) : (land?66:118);
     let y0=land?44:48, y1=H-reserve;
+    const hud=document.querySelector(".hud-top");
+    if(hud){ const s=getComputedStyle(hud);
+      if(s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity!==0){
+        const hb=hud.getBoundingClientRect().bottom-R.top;
+        if(hb>0) y0=Math.max(y0, Math.ceil(hb)+8);
+      } }
     const sel=opts.avoid===undefined?"#qpanel.on":opts.avoid, av=sel&&document.querySelector(sel);
     if(av){ const r=av.getBoundingClientRect();
       if(r.height>0&&r.width>R.width*.4){ const top=r.top-R.top, bot=r.bottom-R.top;
@@ -157,7 +163,15 @@
     if(y1-y0<120) y1=y0+120;
     return {y0,y1,H,W:root.clientWidth,land};
   }
-  function rows(y0,y1,uh){ const front=y1-2; let back=Math.max(y0+uh*.82+2, front-Math.max(uh*.42,(y1-y0)*.34)); if(back>front-uh*.3) back=front-uh*.3; return {front,back}; }
+  function rows(y0,y1,uh){
+    const front=y1-2;
+    const minBack=y0+uh+2; /* 머리·주사위가 HUD(y0) 아래로 남게. 짧은 화면은 앞뒤 간격을 줄임 */
+    let back=Math.max(minBack, front-Math.max(uh*.58,(y1-y0)*.46));
+    if(back>front-uh*.42) back=front-uh*.42;
+    if(back<minBack) back=minBack;
+    if(back>front-4) back=Math.max(front-4, minBack>front?front:minBack);
+    return {front,back};
+  }
   /* 깊이 t (0=뒤 끝, 1=맨 앞). 모두 같은 바닥 위에 서고, 한 줄로 늘어서지 않게 앞뒤로 엇갈린다. */
   const DEPTH={
     ally:{0:1, 1:.18, 2:.58},
@@ -173,23 +187,28 @@
     let r;
     if(B.land){
       r=rows(B.y0,B.y1,uh);
-      if(ally){ x = u.slot===0 ? 27 : u.slot===1 ? 15 : 37; }
-      else { const X = back ? {1:[79],2:[70,86]} : {1:[78],2:[69,87],3:[63,78,92]}; x=(X[row.length]||X[1])[k]??78; }
+      if(ally){ x = u.slot===0 ? 18 : u.slot===1 ? 8 : 28; }
+      else { const X = back ? {1:[86],2:[76,94]} : {1:[84],2:[74,94],3:[70,84,96]}; x=(X[row.length]||X[1])[k]??84; }
     } else {
       const mid=B.y0+(B.y1-B.y0)*.5; r = ally ? rows(mid,B.y1,uh) : rows(B.y0,mid,uh);
-      if(ally){ x = u.slot===0 ? 50 : u.slot===1 ? 23 : 77; }
-      else { const X = back ? {1:[50],2:[34,66]} : {1:[50],2:[28,72],3:[16,50,84]}; x=(X[row.length]||X[1])[k]??50; }
+      if(ally){ x = u.slot===0 ? 50 : u.slot===1 ? 18 : 82; }
+      else { const X = back ? {1:[50],2:[28,72]} : {1:[50],2:[22,78],3:[12,50,88]}; x=(X[row.length]||X[1])[k]??50; }
     }
     const y=r.back+(r.front-r.back)*t;
-    return {x:x*B.W/100,y,t,sc:+(.8+.2*t).toFixed(3),br:1,z:1+Math.round(t*10),r};
+    const sc=+(.8+.2*t).toFixed(3);
+    /* 가장자리로 밀되 스케일된 몸 너비가 화면 밖으로 나가지 않게 */
+    let px=x*B.W/100;
+    const half=86*sc/2, pad=1;
+    px=Math.max(half+pad, Math.min(B.W-half-pad, px));
+    return {x:px,y,t,sc,br:1,z:1+Math.round(t*10),r};
   }
   /* 바닥(사다리꼴) 위치: 가장 뒤·가장 앞 발 높이 (화면 좌표). 배경 그림이 여기에 맞춰 무대를 깐다. */
   function floorBand(){
     if(!root||!last) return null; const B=band(), n=enemyRows(); const any=root.querySelector(".bs-unit"); const uh=any?any.offsetHeight:120;
     const pl=any&&any.querySelector(".bs-plate"), ph=pl?pl.offsetHeight:26, R=root.getBoundingClientRect();
-    if(B.land){ const r=rows(B.y0,B.y1,uh); return {land:true,yb:R.top+r.back-ph*.8-8,yf:R.top+r.front-ph+14,top:R.top,H:R.height}; }
+    if(B.land){ const r=rows(B.y0,B.y1,uh); return {land:true,yb:R.top+r.back-ph*.8-8,yf:R.bottom,top:R.top,H:R.height}; }
     const mid=B.y0+(B.y1-B.y0)*.5, ra=rows(mid,B.y1,uh), re=rows(B.y0,mid,uh);
-    return {land:false,yb:R.top+re.back-ph*.8-8,yf:R.top+ra.front-ph+14,top:R.top,H:R.height};
+    return {land:false,yb:R.top+re.back-ph*.8-8,yf:R.bottom,top:R.top,H:R.height};
   }
   /* 합 클로즈업: 합을 치는 사서·적 둘만 무대 가운데로 모이고, 카메라(무대를 감싼 칸)가 그 둘에 다가간다 */
   function focusPos(u,B,uh,p){
