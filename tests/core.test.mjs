@@ -16,6 +16,7 @@ await p.goto(BASE); await p.evaluate(()=>localStorage.clear()); await p.goto(BAS
 
 const r=await p.evaluate(()=>{
   const G=Game, out={};
+  { let z=3; Math.random=()=>{z|=0;z=z+0x6D2B79F5|0;let t=Math.imul(z^z>>>15,1|z);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}; }   /* 소각 결과(책장/장서복)가 매번 같게 */
   out.data=[G.data.FLOORS.length,G.data.WEAK_POINTS.length,G.data.COMBAT_PAGES.length,G.data.KEY_PAGES.length,G.data.EGO_GIFTS.length];
   out.cover=G.data.bookCoverSrc(G.data.GUEST_BY.beccaria);
   let s=7; const rng=()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
@@ -38,7 +39,7 @@ const r=await p.evaluate(()=>{
   G.battle.leave(); out.left=G.battle.state===null;
   out.next=(G.battle.nextGuest("pomodoro")||{}).id;
   out.burn=G.books.burn("pomodoro",1); out.burnNone=G.books.burn("pomodoro",1);
-  const pid=out.burn.cards[0]&&out.burn.cards[0].id; out.owned=G.deck.owned().includes(pid);
+  const pc=out.burn.cards.find(c=>c.k==="page"); const pid=pc&&pc.id; out.burnKind=out.burn.cards.map(c=>c.k); out.owned=G.deck.owned().includes(pid);
   const before=G.deck.active().pageIds.length; out.deckAdd=G.deck.toggle(pid).ok; out.deckLen=[before,G.deck.active().pageIds.length];
   out.party=G.libs.toggleParty(); out.libs=G.libs.list().length;
   G.moon.open(); const m=G.moon.start("reveal"); out.moonQ=m.qs.length;
