@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118ze">
+<meta name="build" content="library-20261118zf">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -5743,7 +5743,7 @@ function nextTurn(){
               status:[{id,stacks,turns}], dice:[{speed, card, target:{unit,die}|null}]}]}
    무대 그리기·조작은 assets/ui/battle-stage.js (UI/UX 담당). 기믹 훅: MB_HOOKS.onSceneStart/onSceneEnd/onAnswer/onClash */
 const MB={ allyDice:2, allySpeed:[2,6], leaderSpeed:[2,6], followerSpeed:[1,5], followerHp:.5, followerSt:.6, followerDie:-1,
-  maxEnemies:5, stepMs:520 };
+  maxEnemies:5, ENEMY_MAX:3, stepMs:520 };
 /* 적 key별 덮어쓰기: {maxHp, maxStagger, speedDice, speed:[lo,hi], resist, pages:[{name,dice}], big, bigEvery} — 비어 있으면 공식대로 */
 const ENEMY_STATS={};
 const MB_TYPE_EN={참격:"slash",관통:"pierce",타격:"blunt",방어:"guard",회피:"evade"};
@@ -5793,7 +5793,7 @@ const ENEMY_BODY={};
 for(const [b,ks] of Object.entries({
   human:["beccaria-author","beccaria-no-revenge","tc-scale-knight","bentham-preacher","bentham-warden","legality-gatekeeper","legality-whim-judge","deterrence-brakeman","limits-article-ten","meta-scribe","defamation-advocate","defamation-accuser"],
   machine:["tc-fine-collector","bentham-accountant","deterrence-tracker","limits-dim-lobe","pomodoro-clockwork","pomodoro-intruder","recall-echo","spaced-sentinel","meta-mirror"],
-  puppet:["beccaria-rack-ghost","tc-harshness","deterrence-same-price","limits-shadow","recall-reread","spaced-cram-night","defamation-rumormonger","defamation-casebook"]})) for(const k of ks) ENEMY_BODY[k]=b;
+  puppet:["beccaria-rack-ghost","tc-harshness","deterrence-same-price","limits-shadow","recall-reread","spaced-cram-night","defamation-rumormonger"]})) for(const k of ks) ENEMY_BODY[k]=b;
 const MB_ARCH_FORM={fixer:"basic",knight:"basic",beast:"basic",scholar:"knowledge",mage:"knowledge",puppet:"ritual"};
 const MB_BODIES=["human","machine","puppet"], MB_FLOOR_BODY={crime:"human","criminal-law":"human",cognition:"machine",memory:"puppet"};
 function mbHash(str){ let h=0; for(const ch of String(str)) h=(h*31+ch.charCodeAt(0))>>>0; return h; }
@@ -5826,6 +5826,13 @@ const mbLive=side=>mbSide(side).filter(u=>u.hp>0);
 /* expr(표정): "shock" 흐트러진 동안 · "hurt" 방금 교환에서 피해(체력·흐트러짐)를 입음 · "win" 방금 합에서 이김(피해 없이) · 그 밖 "idle".
    교환마다 그 교환에 나온 둘만 바뀌고, 다음 막 시작에 idle(흐트러졌으면 shock)로 돌아간다 */
 function mbSync(u){ const c=mb.x[u.id].cu; u.hp=c.hp; u.stagger=c.st; u.staggered=c.stag>0; if(u.staggered) u.expr="shock"; else if(u.expr==="shock") u.expr="idle"; }
+/* 한 접대에 나오는 적 수 상한: 기본 MB.ENEMY_MAX(3). guest.enemyMax(1~5)가 있으면 그 값,
+   guest.manyEnemies===true(다수 적 기믹)면 MB.maxEnemies(5). 넘치면 우두머리는 반드시 남기고 나머지는 enemies[] 앞에서부터 */
+function mbEnemyCap(guest){
+  if(guest&&Number.isFinite(+guest.enemyMax)&&+guest.enemyMax>0) return Math.max(1,Math.min(MB.maxEnemies,Math.floor(+guest.enemyMax)));
+  if(guest&&guest.manyEnemies===true) return MB.maxEnemies;
+  return MB.ENEMY_MAX;
+}
 function mbCreate(guestId,o){
   o=o||{};
   const guest=GUEST_BY[guestId]; if(!guest) return null;
@@ -5841,15 +5848,18 @@ function mbCreate(guestId,o){
     x[id]={cu:mkUnit(hpMax,stMax,FLAT_RESIST),mods:t,charge:0,deckIds:shuffle(libDeckIds(libId)),handIds:[],discardIds:[],
       seq:[],pendingDraw:0,pendingLight:0,breathe:0,nDice:MB.allyDice,speed:MB.allySpeed.slice(),log:null};
   });
-  const list=(guest.enemies&&guest.enemies.length?guest.enemies:[{key:guest.id,name:guest.concept,topic:guest.concept,leader:true,q:(guest.questions||[]).map(q=>q.id)}]).slice(0,MB.maxEnemies);
-  const lead=list.filter(e=>e.leader), ordered=[...lead,...list.filter(e=>!e.leader)];
+  const all=(guest.enemies&&guest.enemies.length?guest.enemies:[{key:guest.id,name:guest.concept,topic:guest.concept,leader:true,q:(guest.questions||[]).map(q=>q.id)}]);
+  const cap=mbEnemyCap(guest), lead=all.filter(e=>e.leader).slice(0,cap), keep=[...lead,...all.filter(e=>!e.leader).slice(0,Math.max(0,cap-lead.length))];
+  /* 임시 안전장치: 상한으로 빠진 적의 문제(q id)는 남은 적에게 차례로 골고루 넘겨 문제 풀에서 사라지지 않게 한다 */
+  const ordered=keep.map(e=>({...e,q:(e.q||[]).slice()})), dropped=[];
+  all.filter(e=>!keep.includes(e)).forEach((e,j)=>{ const moved=[]; (e.q||[]).forEach((qid,k)=>{ const t=ordered[(j+k)%ordered.length]; if(!t.q.includes(qid)) t.q.push(qid); moved.push({q:qid,to:t.key}); }); dropped.push({key:e.key,moved}); });
   ordered.forEach((e,i)=>{
     const S=enemyStats(guest,e,i), id="e"+(i+1);
     units.push({id,side:"enemy",slot:i,key:e.key,topic:e.topic,name:e.name,hp:S.maxHp,maxHp:S.maxHp,stagger:S.maxStagger,maxStagger:S.maxStagger,staggered:false,
       light:0,maxLight:0,emotion:0,status:[],dice:[],leader:!!S.leader,body:enemyBody(guest,e),form:enemyForm(guest,e,S),expr:"idle"});
     x[id]={cu:mkUnit(S.maxHp,S.maxStagger,S.resist),S,e,pageIdx:0,qIdx:Math.floor(rng()*Math.max(1,(e.q||[]).length)),diePages:[],orig:[]};
   });
-  const m={guestId,guest,isRecall:save.conqueredIds.includes(guest.id),rng,x,qpool:mbQuestionPool(guest),bonus:0,cur:null,log:[],events:[],
+  const m={droppedEnemies:dropped,guestId,guest,isRecall:save.conqueredIds.includes(guest.id),rng,x,qpool:mbQuestionPool(guest),bonus:0,cur:null,log:[],events:[],
     seq:0,outcome:null,cards:{},battle:{scene:0,phase:"question",question:{fromUnit:null,id:null,answered:false,correct:null},units}};
   for(const u of units) if(u.side==="ally"){ x[u.id].log=m.log; }
   return m;
@@ -6060,7 +6070,8 @@ function mbResolveNext(R){
     const pDice=allyDie!=null?mbDiceOf(ally,allyDie):null, gDice=enemyDie!=null?mbDiceOf(enemy,enemyDie):null;
     const AX=mb.x[ally.id], EX=mb.x[enemy.id];
     const qc=mbQState();
-    const steps=resolveScene({P:AX.cu,G:EX.cu,pDice,gDice,correct:qc.correct,isKey:qc.isKey,emotion:ally.emotion||0,rng:mb.rng,mods:AX.mods,stMul:1});
+    /* 흐트러짐 배율은 1:1 과 같다: 정답이면 사서→적 흐트러짐 피해만 ×correctStagger(핵심 ×keyCorrectStagger), 적→사서 는 ×1 (resolveScene 기본값) */
+    const steps=resolveScene({P:AX.cu,G:EX.cu,pDice,gDice,correct:qc.correct,isKey:qc.isKey,emotion:ally.emotion||0,rng:mb.rng,mods:AX.mods});
     mbSync(ally); mbSync(enemy);
     const clash=!!(pDice&&gDice);
     const res={kind:clash?"clash":"one-sided",by:{unit:a.u.id,die:a.i},speed:a.d.speed,ally:ally.id,allyDie,enemy:enemy.id,enemyDie,
@@ -7218,7 +7229,7 @@ function boot(){
       answer(correct){ return mbAnswer(correct); }, answerUI:(c)=>mbAnswerUI(c),
       assign(unitId,dieIdx,cardId,target){ const r=mbAssign(unitId,dieIdx,cardId,target); mbRefresh(); return r; },
       unassign(unitId,dieIdx){ const r=mbUnassign(unitId,dieIdx); mbRefresh(); return r; },
-      resolve(o){ return mbRunResolve(!(o&&o.animate)); }, resolveOnly:()=>mbResolve(), resolving:()=>(mb&&mb.resolving)||null, resolveBegin:()=>mbResolveBegin(), resolveNext:R=>mbResolveNext(R), resolveEnd:R=>mbResolveEnd(R), usable:(uid,cid)=>mbUsable(mbUnit(uid),PAGE_BY[cid]), ENEMY_BODY, enemyBody:(gid,e)=>enemyBody(GUEST_BY[gid],e||{}), startScene(){ mbStartScene(); mbRefresh(); return mb.battle; },
+      resolve(o){ return mbRunResolve(!(o&&o.animate)); }, resolveOnly:()=>mbResolve(), enemyCap:(gid)=>mbEnemyCap(GUEST_BY[gid]), resolving:()=>(mb&&mb.resolving)||null, resolveBegin:()=>mbResolveBegin(), resolveNext:R=>mbResolveNext(R), resolveEnd:R=>mbResolveEnd(R), usable:(uid,cid)=>mbUsable(mbUnit(uid),PAGE_BY[cid]), ENEMY_BODY, enemyBody:(gid,e)=>enemyBody(GUEST_BY[gid],e||{}), startScene(){ mbStartScene(); mbRefresh(); return mb.battle; },
       relink:()=>mbRelink(), refresh:()=>mbRefresh(), isClash:(u,i)=>mbIsClash(u,i),
       setRng(fn){ if(mb) mb.rng=fn; },
       setEnemyTarget(eid,k,target){ const X=mb.x[eid]; X.orig[k]=target?{unit:target.unit,die:target.die}:null; mbRelink(); mbRefresh(); },
