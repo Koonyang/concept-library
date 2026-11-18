@@ -115,6 +115,19 @@ const fix=await p.evaluate(async()=>{ const o={};
   Game.battle.leave(); return o; });
 ok(fix.hidden&&fix.books===1&&fix.books2===1,"syncUnits: 연출 없이 죽은 적도 숨기고 책은 한 번만",fix);
 ok(fix.b.k<=fix.a.k&&fix.b.g<=fix.a.g+2&&fix.b.t<=fix.a.t+2,"setUnits 반복해도 ticker·지오메트리·텍스처가 늘지 않음",fix);
+/* ---------- 휴대폰이 3D 메모리를 회수했다가 돌려줌(컨텍스트 손실·복구) ---------- */
+await goStage();
+const cl=await p.evaluate(async()=>{ const S=await __stageMod.createStage(document.getElementById("stage")); S.setFloor(Game.data.floorStage("crime"));
+  Game.battle.leave(); Game.battle.begin("pomodoro"); await S.setUnits(Game.battle.state.units,Game.data.GUEST_BY.pomodoro);
+  const gl=S.renderer.getContext(), ext=gl.getExtension("WEBGL_lose_context"); if(!ext) return {skip:true};
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+  ext.loseContext(); await wait(300); const f1=S.debug.frames; await wait(300); const lostFrames=S.debug.frames-f1, lostFlag=S.debug.contextLost;
+  ext.restoreContext(); await wait(600); const f2=S.debug.frames; await wait(300);
+  S.renderer.render(S.scene,S.camera); const c=document.getElementById("stage"), g=document.createElement("canvas"); g.width=c.width; g.height=c.height; const x=g.getContext("2d"); x.drawImage(c,0,0);
+  const d=x.getImageData(0,0,g.width,g.height).data; const set=new Set(); for(let i=0;i<d.length;i+=4*97) set.add(d[i]<<16|d[i+1]<<8|d[i+2]);
+  return {lostFlag,lostFrames,resumed:S.debug.frames-f2,colors:set.size,after:S.debug.contextLost}; });
+ok(cl.skip||(cl.lostFlag===true&&cl.lostFrames===0),"컨텍스트 손실 중엔 그리기 멈춤",cl);
+ok(cl.skip||(cl.after===false&&cl.resumed>0&&cl.colors>20),"복구되면 다시 그려짐(검은 화면 아님)",cl);
 /* @@NEXT@@ */
 ok(errs.filter(e=>!/Error creating WebGL context/.test(e)).length===0,"오류 없음 (nogl 페이지의 WebGL 생성 실패 로그는 의도)",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

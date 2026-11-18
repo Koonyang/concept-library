@@ -185,10 +185,15 @@ export async function createStage(canvas) {
     camShake.amp *= 0.86;
     placeCamera(now);
     renderer.render(scene, cam); debug.frames++;
-    if (!document.hidden) raf = requestAnimationFrame(frame);
+    if (!document.hidden && !debug.contextLost) raf = requestAnimationFrame(frame);
   }
-  const wake = () => { if (!raf && !document.hidden) { last = performance.now(); raf = requestAnimationFrame(frame); } };
+  const wake = () => { if (!raf && !document.hidden && !debug.contextLost) { last = performance.now(); raf = requestAnimationFrame(frame); } };
   document.addEventListener("visibilitychange", wake);
+  /* 휴대폰이 앱을 내리거나 메모리가 모자라면 3D 메모리를 회수한다(컨텍스트 손실). 그동안은 그리지 않고,
+     돌려받으면(복구) three.js 가 재질·텍스처를 다시 올리므로 그리기만 다시 시작한다 → 검은 화면으로 남지 않게 */
+  debug.contextLost = false;
+  canvas.addEventListener("webglcontextlost", e => { e.preventDefault(); debug.contextLost = true; cancelAnimationFrame(raf); raf = 0; }, false);
+  canvas.addEventListener("webglcontextrestored", () => { debug.contextLost = false; resize(); wake(); }, false);
   wake();
 
   /* ---------- 유닛 ---------- */
