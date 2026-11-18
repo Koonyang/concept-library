@@ -23,7 +23,7 @@
      개막 전까지는 언제든 다시 고를 수 있다. 카드가 놓인 내 주사위 또는 그 화살표를 탭하면 해제(opts.onUnassign || onUnassign).
      고른 카드를 다시 탭하면 선택만 해제. 감정 조건이 안 되는 카드(cardInfo.usable / emotionReq)는 흐리고 고를 수 없다.
    자리: 아래쪽 손패·개막 버튼 몫(가로 약 186px, 세로 손패+개막+상태판 약 360px)은 비워 둔다. 좌우 상태판은 손패 옆 여백.
-   배치: 아군 slot 0 앞줄, 1·2 뒷줄 / 적 slot 0~2 앞줄, 3·4 뒷줄. 뒷줄은 작고 어둡게. */
+   배치: 아군 slot 0 앞줄, 1·2 뒷줄 / 적 slot 0~2 앞줄, 3·4 뒷줄. 어둡게 하지 않음(br:1), 깊이에 따라 sc=0.8+0.2t 로 뒤쪽만 조금 작게. */
 (function(){
   const CSS=`
 .bs{position:absolute;inset:0;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}
