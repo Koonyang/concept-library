@@ -12,7 +12,7 @@
      await BattleStage.clash(ev, {fast})  // 합 하나 연출 전부(카메라 다가감 → steps 마다 부딪침 → 빠짐). 끝나면 풀리는 Promise (기다리지 않아도 됨)
         ev = {kind:"clash"|"one-sided", a:{unit,die,card,values}, b:{...}|null, steps:[{aVal,bVal,winner:"a"|"b"|"tie",dmg}], result}
            또는 예전 모양 {kind, ally, allyDie, enemy, enemyDie, allyCard, enemyCard, win, by}
-        시간: 합 하나 clashMs(900), 부딪침 hitAt(400), steps 하나 더할 때마다 stepMs(240), 최대 maxClashMs(1600). fast 면 fastMs(300).
+        시간: 합 하나 clashMs(1000), 부딪침 hitAt(400), steps 하나 더할 때마다 stepMs(300), 최대 maxClashMs(1600). fast 면 fastMs(300).
         카메라가 들어가 있는 동안 .battle-stage 에 bs-cam-on → 손패·개막 버튼·상태판 숨김.
         연출 중 탭 = 이번 합 빨리 감기(+onSkip), 길게 누르기(holdMs 450) = 다음 배치 단계 render 전까지 모든 clash 즉시 끝남(+onSkip)
      BattleStage.focus(ev, fast) // (예전 흐름) 카메라만. 이걸로 맞춰 둔 뒤 clash(ev) 를 부르면 clash 는 카메라를 건드리지 않는다
@@ -134,10 +134,64 @@
 .bs-unit.dead.dying{opacity:1;animation:bsDie .35s ease-in 1s forwards}
 @keyframes bsDie{to{opacity:0}}
 @media (orientation:landscape) and (max-height:500px){ .bs-unit{--fh:62px;--uw:70px} .bs-unit.nb{--fh:72px} .bs-unit.nb.lead{--fh:92px;--uw:80px} .bs-card{width:78px;min-height:50px;font-size:10px} .bs-hand{bottom:4px;padding-top:6px} .bs-emo .pip{border-left-width:3px;border-right-width:3px;border-bottom-width:5px} .bs-card.emo-lock .emo-need,.bs .hand.bs-fan .cc.emo-lock .emo-need{font-size:8px;padding:1px 5px;bottom:4px} }
+/* 합 책장 대결: 합 클로즈업 동안 두 캐릭터 옆(아군 왼쪽·적 오른쪽, 자리가 없으면 아래·위)에 양피지 책장 + 굴린 값 */
+.bs-cc-layer{position:absolute;inset:0;pointer-events:none;z-index:60;overflow:hidden}
+.bs-cc{position:absolute;left:0;top:0;display:flex;align-items:flex-start;gap:5px;opacity:0;transition:opacity .14s ease-out;pointer-events:none}
+.bs-cc.on{opacity:1}
+.bs-cc.out{opacity:0;transition:opacity .16s ease-in}
+.bs-cc.enemy{flex-direction:row-reverse}
+.bs-cc-card{position:relative;width:108px;box-sizing:border-box;padding:6px 7px 6px;color:#2a1c10;border:1px solid #7a5a32;border-radius:2px 4px 3px 5px;
+  background-image:radial-gradient(ellipse at 16% 10%,rgba(120,70,25,.08),transparent 42%),radial-gradient(ellipse at 84% 90%,rgba(90,45,15,.1),transparent 44%),linear-gradient(180deg,rgba(244,232,204,.92),rgba(220,196,154,.88)),url("assets/textures/parchment.webp");
+  background-size:auto,auto,auto,cover;box-shadow:inset 0 1px 0 rgba(255,248,230,.45),1px 3px 10px rgba(0,0,0,.5)}
+.bs-cc-card:before{content:"";position:absolute;inset:3px;border:1px solid rgba(60,35,15,.25);pointer-events:none}
+.bs-cc.enemy .bs-cc-card{border-color:#8a3a2a}
+.bs-cc-top{display:flex;align-items:flex-start;gap:4px}
+.bs-cc-gem{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 3px;box-sizing:border-box;border-radius:999px;background:radial-gradient(circle at 35% 30%,#f4e4c4,#e2c48a);border:1.5px solid #3a2410;font:800 10px/1 var(--display,system-ui);color:#2a1a0c}
+.bs-cc-nm{font:800 11px/1.22 var(--sans,system-ui);letter-spacing:-.02em;color:#1a120a;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;word-break:keep-all;overflow-wrap:anywhere}
+.bs-cc-tag{display:inline-block;margin-top:4px;padding:1px 6px;border-radius:6px;background:#7a2018;color:#ffe9d6;font:800 9.5px/1.3 var(--sans,system-ui)}
+.bs-cc-dice{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}
+.bs-cc-die{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:21px;padding:2px 2px 1px;border-radius:5px;border:1px solid rgba(74,50,24,.45);background:rgba(255,248,230,.35);color:#4a3218;font:700 8.5px/1.1 var(--display,system-ui);transition:transform .12s,opacity .15s}
+.bs-cc-die svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bs-cc-die.on{border-color:#b8860b;background:#fff3c4;color:#1a120a;transform:translateY(-2px) scale(1.12);box-shadow:0 0 0 2px rgba(255,200,80,.85),0 0 10px rgba(255,190,60,.7)}
+.bs-cc-die.won{border-color:#b8860b;color:#6a4a08}
+.bs-cc-die.lost{opacity:.42;filter:grayscale(1)}
+.bs-cc-die.lost:after,.bs-cc-roll.lose .bs-cc-val:after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(115deg,transparent 44%,rgba(40,20,8,.85) 46%,transparent 49%),linear-gradient(60deg,transparent 52%,rgba(40,20,8,.7) 54%,transparent 57%)}
+.bs-cc-roll{position:relative;width:62px;min-height:84px;display:flex;flex-direction:column;align-items:center;gap:1px;color:#ffe9c0;text-shadow:0 1px 3px #000,0 0 6px rgba(0,0,0,.8)}
+.bs-cc-roll:empty{visibility:hidden}
+.bs-cc-type{display:inline-flex;align-items:center;gap:2px;padding:1px 5px;border-radius:7px;background:rgba(14,16,24,.82);border:1px solid rgba(232,213,176,.45);font:800 10px/1.25 var(--sans,system-ui);white-space:nowrap}
+.bs-cc-type svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.bs-cc-roll.t-guard .bs-cc-type{color:#9fd0ff;border-color:#5b8fc4}
+.bs-cc-roll.t-evade .bs-cc-type{color:#a8f0c0;border-color:#4fa877}
+.bs-cc-val{position:relative;display:block;font:800 30px/1.02 var(--display,system-ui);color:#fff3d6;animation:bsCcPop .22s cubic-bezier(.2,1.4,.4,1)}
+.bs-cc-rng{font:700 9.5px/1.1 var(--display,system-ui);font-style:normal;opacity:.85}
+.bs-cc-stamp{margin-top:1px;padding:0 6px;border-radius:5px;font:900 13px/1.35 var(--sans,system-ui);white-space:nowrap;opacity:0;transform:scale(1.6) rotate(-8deg);animation:bsCcStamp .16s ease-out forwards}
+.bs-cc-sub{font:800 9.5px/1.2 var(--sans,system-ui);white-space:nowrap;opacity:0;animation:bsCcFade .14s ease-out .05s forwards}
+.bs-cc-roll.win .bs-cc-val{animation:bsCcPop .22s cubic-bezier(.2,1.4,.4,1),bsCcWin .26s ease-out forwards;color:#ffe08a}
+.bs-cc-roll.win .bs-cc-stamp{background:#c99a2e;color:#1a1004;box-shadow:0 0 10px rgba(255,200,80,.85);text-shadow:none}
+.bs-cc-roll.win.t-guard .bs-cc-stamp{background:#3d78b8;color:#fff;box-shadow:0 0 10px rgba(120,180,255,.8)}
+.bs-cc-roll.win.t-evade .bs-cc-stamp{background:#2f8f5c;color:#fff;box-shadow:0 0 10px rgba(120,230,160,.8)}
+.bs-cc-roll.lose .bs-cc-val{animation:bsCcPop .22s cubic-bezier(.2,1.4,.4,1),bsCcLose .22s ease-out forwards}
+.bs-cc-roll.lose .bs-cc-stamp{background:#5a2420;color:#ffd8cc;border:1px solid #a04a3c;text-shadow:none}
+.bs-cc-re{font:800 9px/1.2 var(--sans,system-ui);padding:0 4px;border-radius:5px;background:#2f8f5c;color:#fff;text-shadow:none}
+.bs-cc-die.re:before{content:"↻";position:absolute;top:-7px;right:-5px;font:900 9px/1 system-ui;color:#2f8f5c}
+.bs-cc-roll.part .bs-cc-stamp{background:#3d78b8;color:#fff;text-shadow:none}
+.bs-cc-roll.tie{animation:bsCcBounce .34s ease-out}
+.bs-cc.enemy .bs-cc-roll.tie{--bx:8px}
+.bs-cc-roll.tie .bs-cc-stamp{background:#6a5a3a;color:#fff3d6;text-shadow:none}
+.bs-cc-roll.one .bs-cc-val{color:#ffd0c4}
+@keyframes bsCcPop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes bsCcWin{to{transform:scale(1.28);text-shadow:0 0 10px rgba(255,210,90,.95),0 0 22px rgba(255,170,40,.7),0 1px 2px #000}}
+@keyframes bsCcLose{to{opacity:.45;filter:grayscale(1);transform:scale(.9)}}
+@keyframes bsCcStamp{to{opacity:1;transform:scale(1) rotate(-6deg)}}
+@keyframes bsCcFade{to{opacity:1}}
+@keyframes bsCcBounce{40%{transform:translateX(var(--bx,-8px))}100%{transform:none}}
+@media (orientation:landscape) and (max-height:500px){ .bs-cc-card{width:100px} .bs-cc-val{font-size:27px} .bs-cc-roll{min-height:78px;width:56px} }
+@media (prefers-reduced-motion:reduce){ .bs-cc-val,.bs-cc-roll.tie,.bs-cc-roll.win .bs-cc-val,.bs-cc-roll.lose .bs-cc-val{animation:none} .bs-cc-stamp,.bs-cc-sub{animation:none;opacity:1;transform:none} }
 `;
   const DT={slash:"참",pierce:"관",blunt:"타",guard:"방",evade:"회"};
   let host=null, root=null, last=null, opts={}, sel=null, pickCard=null, drag=null, laidOut=false, info=null, holdT=0, holdT0=null, holdHit=false, focus=null, cam={z:1,x:0,y:0};
-  const API={ onAssign:null, onUnassign:null, onSkip:null, clashMs:900, hitAt:400, fastMs:300, fastHitAt:110, stepMs:240, maxClashMs:1600, holdMs:450, camOutMs:320 };
+  const API={ onAssign:null, onUnassign:null, onSkip:null, clashMs:1000, hitAt:400, fastMs:300, fastHitAt:110, stepMs:300, maxClashMs:1600, holdMs:450, camOutMs:320 };
   const runs=new Set(); const liveOwn=r=>[...runs].some(x=>x!==r&&!x.done&&!x.fast);
   const cur={ get done(){ return !runs.size; }, ff(){ runs.forEach(r=>r.ff()); }, skip(){ [...runs].forEach(r=>r.skip()); } };
   let skipAll=false, camOffT=0, holdSkipT=0, holdSkip0=null;
@@ -452,7 +506,7 @@
       const clash = td&&td.target&&td.target.unit===u.id&&td.target.die===i;
       const key=[u.id+":"+i,d.target.unit+":"+d.target.die].sort().join("|"); if(clash&&seen.has(key)){ if(info&&info.unit===u.id&&info.die===i) hi=g; return; } seen.add(key);
       const col= clash?"#ffe6a8": u.side==="ally"?"#c4a35a":"#e06a55";
-      h+=`<path class="bs-arr" data-u="${u.id}" data-d="${i}" data-side="${u.side||""}" d="${g.d}" fill="none" stroke="${col}" stroke-width="${clash?2.6:1.45}" ${clash?"":"stroke-dasharray=\"5 4\""} marker-end="url(#bsA)" ${clash?"marker-start=\"url(#bsA)\"":""} opacity=".92"/>`;
+      h+=`<path class="bs-arr${clash?" bs-arr-clash":""}" data-u="${u.id}" data-d="${i}" data-side="${u.side||""}" ${clash?`data-pu="${d.target.unit}" data-pd="${d.target.die}"`:""} d="${g.d}" fill="none" stroke="${col}" stroke-width="${clash?2.6:1.45}" ${clash?"":"stroke-dasharray=\"5 4\""} marker-end="url(#bsA)" ${clash?"marker-start=\"url(#bsA)\"":""} opacity=".92"/>`;
       if(clash) h+=`<circle cx="${g.mx}" cy="${(g.my+Math.min(g.p.y,g.q.y))/2-6}" r="9" fill="#1a1f2c" stroke="${col}" stroke-width="1.5"/><text x="${g.mx}" y="${(g.my+Math.min(g.p.y,g.q.y))/2-2}" font-size="10" font-weight="800" text-anchor="middle" fill="${col}">합</text>`;
       if(info&&info.unit===u.id&&info.die===i) hi=g;
     }); }
@@ -579,7 +633,7 @@
     window.removeEventListener("pointermove",onMove); window.removeEventListener("pointerup",onUp,true); window.removeEventListener("resize",onResize);
     window.removeEventListener("pointerdown",onAnyDown,true); window.removeEventListener("pointerup",onAnyUp,true); window.removeEventListener("pointercancel",onAnyUp,true); window.removeEventListener("click",onAnyClick,true);
     if(ro){ ro.disconnect(); ro=null; }
-    if(cur&&!cur.done) cur.skip(); clearTimeout(holdSkipT); clearTimeout(camOffT); { const h=camHost(); if(h) h.classList.remove("bs-cam-on"); } skipAll=false;
+    if(cur&&!cur.done) cur.skip(); clearTimeout(holdSkipT); clearTimeout(camOffT); { const h=camHost(); if(h){ h.classList.remove("bs-cam-on"); const L=h.querySelector(":scope > .bs-cc-layer"); if(L) L.remove(); } } skipAll=false;
     if(root){ root.remove(); } root=null; host=null; last=null; sel=null; pickCard=null; drag=null; laidOut=false; info=null; clearTimeout(holdT); clearTimeout(arrowT); focus=null; cam={z:1,x:0,y:0};
     for(const o of [prevPos,seenHp,seenStag]) for(const k in o) delete o[k];
   }
@@ -605,6 +659,155 @@
       allyCard:allyS&&allyS.card,enemyCard:enemyS&&enemyS.card,allyDieObj:allyS&&allyS.die,enemyDieObj:enemyS&&enemyS.die,
       by:{unit:aId,die:di(ev.a.die)},win:ev.kind==="clash"?(win==="tie"?"tie":((win==="a")===aAlly?"ally":"enemy")):null};
   }
+  /* ---- 합 책장 대결 (cc): 두 쪽 책장·쓰는 주사위 칸·굴린 값·승패/방어/회피를 클로즈업 옆에 ----
+     주사위: step.aDie/bDie {type,min,max,index?,keeps?} 가 있으면 그것, 없으면 전투 원래 필드(pd/gd·pRange/gRange·keeps), 그것도 없으면 ev.a.card 의 dice[칸].
+     결과: step.aOutcome/bOutcome("win"|"lose"|"draw"|"evade"|"block") 가 있으면 그것, 없으면 winner·주사위 종류·dmg 로. 값 계산은 하지 않는다. */
+  const CC_T={slash:"참격",pierce:"관통",blunt:"타격",guard:"방어",evade:"회피"};
+  const CC_P={slash:'<path d="M5 19 19 4"/><path d="M8 20 20 8"/>',pierce:'<path d="M12 2 14.2 10 22 11.2 12 22 2 11.2 9.8 10 Z"/>',
+    blunt:'<path d="M5 19 L12 12"/><rect x="10.5" y="4" width="9" height="6.5" rx="1.4" transform="rotate(42 15 7.2)"/>',
+    guard:'<path d="M12 2.5 20 6.2v6.2c0 5.2-3.6 8.4-8 9.6-4.4-1.2-8-4.4-8-9.6V6.2Z"/>',evade:'<path d="M4 16 Q12 3 20 10 Q13 12 16 20"/>'};
+  const ccIco=t=>`<svg viewBox="0 0 24 24" aria-hidden="true">${CC_P[t]||CC_P.slash}</svg>`;
+  const CC_GAP=28; const ccAtk=t=>t==="slash"||t==="pierce"||t==="blunt";
+  const ccEsc=x=>String(x==null?"":x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const ccId=x=>x&&typeof x==="object"?x.id:x;
+  function ccCard(sd){
+    const c=sd&&sd.card, uid=ccId(sd&&sd.unit); let info=null;
+    if(c&&typeof c==="object") info=c;
+    else if(c!=null){ try{ info=(opts.cardInfo&&opts.cardInfo(c,uid))||null; }catch(e){} if(!info&&opts.cards) info=opts.cards[c]||null; }
+    info=info||{};
+    return {name:info.name||(typeof c==="string"&&c.indexOf("@")<0?c:"책장"),cost:info.cost!=null?info.cost:0,
+      dice:(info.dice||[]).map(d=>({type:mType(d.type)||mType(d.ko)||"slash",min:d.min!=null?d.min:d.baseMin,max:d.max!=null?d.max:d.baseMax}))};
+  }
+  /* 교환 하나를 칸별 계획으로: [{a:{slot,type,val,rng}|null, b:…, out}] */
+  function ccPlan(ev){
+    const aAlly=!(ev.by&&ev.by.unit===ev.enemy), S={a:ev.a,b:ev.b}, cards={a:ccCard(ev.a),b:ev.b?ccCard(ev.b):null}, cnt={a:0,b:0};
+    const steps=(ev.steps||[]).map(st=>{
+      st=st||{}; const o={};
+      for(const X of ["a","b"]){
+        if(!S[X]){ o[X]=null; continue; }
+        const xAlly=X==="a"?aAlly:!aAlly, eng=st[xAlly?"pd":"gd"], g=st[X+"Die"], val=g&&g.value!=null?g.value:st[X+"Val"]!=null?st[X+"Val"]:(eng&&eng.roll);
+        if(g===null&&("aDie" in st||"bDie" in st)){ o[X]=null; continue; }
+        if(val==null&&!g&&!eng){ o[X]=null; continue; }
+        const gi=g&&[g.idx,g.index,g.slot].find(Number.isInteger), slot=gi!=null?gi:cnt[X], cd=cards[X].dice[slot]||{};
+        const er=st[xAlly?"pRange":"gRange"];
+        const rng=g&&g.min!=null?[g.min,g.max]:Array.isArray(er)?er:(cd.min!=null?[cd.min,cd.max]:null);
+        const reused=!!(g&&g.reused!=null?g.reused:eng&&eng.reused);
+        o[X]={slot,type:mType(g&&g.type)||mType(eng&&eng.type)||cd.type||"slash",val,rng,reused,xAlly};
+        const keeps=g&&g.keeps!=null?g.keeps:eng&&eng.keeps; cnt[X]=keeps?slot:slot+1;
+      }
+      o.out=ccOut(ev,st,o); return o; });
+    return {aAlly,cards,steps};
+  }
+  /* 칸 하나의 결과를 쪽마다 {cls, stamp, sub}. 전투 필드(aResult/bResult·blocked·recovered)가 있으면 그것, 없으면 winner·pd/gd·events 로 */
+  function ccOut(ev,st,o){
+    const dmg=st.dmg||null, uOf=X=>ccId(ev[X]&&ev[X].unit), hit=X=>dmg&&ccId(dmg.unit)===uOf(X)?dmg:null;
+    const R={a:null,b:null}, other=X=>X==="a"?"b":"a";
+    const recOf=X=>{ if(st.recovered!=null) return st.recovered; let n=0; (st.events||[]).forEach(e=>{ if(e&&e.kind==="recover"&&o[X]&&(e.target==="P")===o[X].xAlly) n+=e.st||0; }); return n; };
+    if(ev.kind!=="clash"||!o.a||!o.b){
+      const X=o.a?"a":"b", t=dmg&&ccId(dmg.unit)!==uOf(X)?dmg:null;
+      R[X]={cls:"one",stamp:"",sub:t&&t.hp?`피해 ${t.hp}`:t&&t.stagger?`흐트러짐 ${t.stagger}`:""}; return R;
+    }
+    let res={a:st.aResult,b:st.bResult};
+    if(!res.a&&!res.b){   /* 지금 엔진: winner + 이긴 주사위 종류 */
+      const w=st.winner;
+      if(w==="a"||w==="b"){ const l=other(w), wt=o[w].type; res[w]=wt==="guard"?"block":wt==="evade"?"evade":"win"; res[l]=o[l].type==="guard"&&ccAtk(o[w].type)?"lose-block":"lose"; }
+      else res={a:"draw",b:"draw"};
+    }
+    for(const X of ["a","b"]){
+      const r=res[X], Y=other(X), h=hit(X), hy=hit(Y);
+      const blocked=st.blocked!=null?st.blocked:(r==="block"?(o[Y].val||0):r==="lose-block"?(o[X].val||0):0);
+      if(r==="win") R[X]={cls:"win",stamp:"승",sub:""};
+      else if(r==="block"){ const hp=h&&h.hp||0; R[X]={cls:hp?"part":"win",stamp:"방어",sub:hp?`피해 ${hp}`+(blocked?` · ${blocked} 막음`:""):"피해 0"}; }
+      else if(r==="evade"){ const rc=recOf(X); R[X]={cls:"win",stamp:"회피",sub:"피해 0"+(rc>0?` · 흐트러짐 +${rc}`:"")}; }
+      else if(r==="lose"||r==="lose-block"){ const gb=(r==="lose-block"||o[X].type==="guard")&&blocked>0;   /* 진 방어도 줄인 만큼 보여 줌 */
+        R[X]={cls:"lose",stamp:"패",sub:h?(h.hp?`피해 ${h.hp}`+(gb?` · ${blocked} 막음`:""):h.stagger?`흐트러짐 ${h.stagger}`:""):""}; }
+      else if(r==="draw") R[X]={cls:"tie",stamp:"무승부",sub:""};
+      else R[X]={cls:"",stamp:"",sub:""};
+      void hy;
+    }
+    return R;
+  }
+  function ccLayer(){ const h=camHost(); if(!h) return null; let L=h.querySelector(":scope > .bs-cc-layer"); if(!L){ L=document.createElement("div"); L.className="bs-cc-layer"; h.appendChild(L); } return L; }
+  function ccPanelHtml(X,side,card,one){
+    return `<div class="bs-cc-card"><div class="bs-cc-top"><span class="bs-cc-gem" title="빛 ${card.cost}">${card.cost}</span><span class="bs-cc-nm">${ccEsc(card.name)}</span></div>`+
+      (one?`<span class="bs-cc-tag">일방 공격</span>`:"")+
+      `<div class="bs-cc-dice">${card.dice.map((d,i)=>`<span class="bs-cc-die" data-i="${i}" data-t="${d.type}" title="${CC_T[d.type]||""}">${ccIco(d.type)}<i>${d.min!=null?d.min+"~"+d.max:""}</i></span>`).join("")}</div></div>`+
+      `<div class="bs-cc-roll"></div>`;
+  }
+  function ccOpen(ev,run){
+    if(!ev.a||!Array.isArray(ev.steps)||!ev.steps.length) return null;
+    const L=ccLayer(); if(!L) return null;
+    L.querySelectorAll(".bs-cc").forEach(e=>e.remove());
+    const plan=ccPlan(ev), one=ev.kind!=="clash"||!ev.b, els={};
+    for(const X of one?["a"]:["a","b"]){
+      const ally=X==="a"?plan.aAlly:!plan.aAlly, side=ally?"ally":"enemy";
+      const el=document.createElement("div"); el.className=`bs-cc ${side}${one?" one":""}`; el.dataset.role=X; el.dataset.side=side; el.dataset.unit=ccId(ev[X].unit);
+      el.innerHTML=ccPanelHtml(X,side,plan.cards[X],one); L.appendChild(el); els[X]=el;
+    }
+    return {ev,plan,els,L,run,k:-1,open:true};
+  }
+  function ccRect(u){ const rs=[...u.querySelectorAll(".bs-dice,.bs-fig,.bs-plate")].map(e=>e.getBoundingClientRect()).filter(r=>r.width>1&&r.height>1);
+    if(!rs.length) return u.getBoundingClientRect(); const r={left:Math.min(...rs.map(r=>r.left)),top:Math.min(...rs.map(r=>r.top)),right:Math.max(...rs.map(r=>r.right)),bottom:Math.max(...rs.map(r=>r.bottom))};
+    const f=u.querySelector(".bs-fig"); r.figTop=f?f.getBoundingClientRect().top:r.top; return r; }
+  function ccPlace(cc){
+    if(!cc||!cc.open||!root) return;
+    const L=cc.L.getBoundingClientRect(), hud=camHost()&&camHost().querySelector(".hud-top .turnchip,.hud-top");
+    const top0=Math.max(L.top+4,hud?hud.getBoundingClientRect().bottom+4:L.top+4), bot0=L.bottom-4, l0=L.left+4, r0=L.right-4, mid=(L.left+L.right)/2;
+    const U={}; for(const X of ["a","b"]){ const u=cc.ev[X]&&root.querySelector(`.bs-unit[data-unit="${ccId(cc.ev[X].unit)}"]`); if(u) U[X]=ccRect(u); }
+    const us=Object.values(U), placed=[];
+    const hitR=(a,b)=>a.left<b.right-1&&a.right>b.left+1&&a.top<b.bottom-1&&a.bottom>b.top+1;
+    const fits=r=>r.left>=l0-.5&&r.right<=r0+.5&&r.top>=top0-.5&&r.bottom<=bot0+.5&&!us.some(u=>hitR(r,u))&&!placed.some(p=>hitR(r,p));
+    const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+    for(const X of Object.keys(cc.els)){
+      const el=cc.els[X], ally=el.dataset.side==="ally", u=U[X]; if(!u){ el.style.display="none"; continue; }
+      const pw=el.offsetWidth, ph=el.offsetHeight, cx=(u.left+u.right)/2;
+      const hx0=ally?l0:Math.max(l0,mid+3), hx1=ally?Math.min(r0,mid-3):r0;
+      const R=(x,y)=>({left:x,top:y,right:x+pw,bottom:y+ph});
+      const lo=Math.max(...us.map(v=>v.bottom)), hi=Math.min(...us.map(v=>v.top));
+      const cands=[
+        R(ally?u.left-CC_GAP-pw:u.right+CC_GAP, clamp(u.figTop-8,top0,bot0-ph)),   /* 밀려나는 동작(14px × 카메라 1.38배)만큼 띄움 */
+        R(clamp(cx-pw/2,hx0,hx1-pw), lo+CC_GAP-4),   /* 세로 화면은 위아래로 달려듦 */
+        R(clamp(cx-pw/2,hx0,hx1-pw), hi-(CC_GAP-4)-ph)];
+      let r=cands.find(fits);
+      if(!r){   /* 다 안 맞으면 화면 안으로 당긴 자리 중 캐릭터와 가장 덜 겹치는 곳 */
+        const area=(a,b)=>Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left))*Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top));
+        r=cands.map(c=>R(clamp(c.left,l0,r0-pw),clamp(c.top,top0,bot0-ph))).map(c=>({c,a:us.concat(placed).reduce((m,u)=>m+area(c,u),0)})).sort((x,y)=>x.a-y.a)[0].c; }
+      placed.push(r);
+      el.style.left=Math.round(r.left-L.left)+"px"; el.style.top=Math.round(r.top-L.top)+"px"; el.classList.add("on");
+    }
+  }
+  /* 칸 k: 먼저 쓰는 주사위 칸·종류·굴린 값(roll), 부딪치는 순간 승패 도장(res) */
+  function ccRoll(cc,k){
+    if(!cc||!cc.open) return; const S=cc.plan.steps[k]; if(!S) return; cc.k=k;
+    for(const X of Object.keys(cc.els)){
+      const el=cc.els[X], d=S[X], dies=el.querySelectorAll(".bs-cc-die");
+      dies.forEach(e=>e.classList.remove("on"));
+      const old=el.querySelector(".bs-cc-roll"), ro=document.createElement("div"); ro.className="bs-cc-roll";
+      if(d){
+        const de=dies[d.slot]; if(de){ de.classList.remove("won","lost"); de.classList.add("on"); de.classList.toggle("re",!!d.reused); }
+        ro.className=`bs-cc-roll t-${d.type}`; ro.dataset.step=k;
+        ro.innerHTML=`<span class="bs-cc-type">${ccIco(d.type)}${CC_T[d.type]||""}</span><b class="bs-cc-val">${d.val!=null?d.val:"–"}</b><i class="bs-cc-rng">${d.rng?d.rng[0]+"~"+d.rng[1]:""}</i>`+(d.reused?`<span class="bs-cc-re">재사용</span>`:"");
+      }
+      if(old) old.replaceWith(ro); else el.appendChild(ro);
+    }
+  }
+  function ccRes(cc,k){
+    if(!cc||!cc.open) return; const S=cc.plan.steps[k]; if(!S) return;
+    if(cc.k!==k) ccRoll(cc,k);
+    const out=S.out;
+    for(const X of Object.keys(cc.els)){
+      const el=cc.els[X], d=S[X], ro=el.querySelector(".bs-cc-roll"); if(!d||!ro) continue;
+      const q=out[X]||{}, cls=q.cls||"", stamp=q.stamp||"", sub=q.sub||"";
+      if(cls) ro.classList.add(cls);
+      if(stamp){ const e=document.createElement("span"); e.className="bs-cc-stamp"; e.textContent=stamp; ro.appendChild(e); }
+      if(sub){ const e=document.createElement("span"); e.className="bs-cc-sub"; e.textContent=sub; ro.appendChild(e); }
+      const de=el.querySelectorAll(".bs-cc-die")[d.slot]; if(de&&(cls==="win"||cls==="lose")) de.classList.add(cls==="win"?"won":"lost");
+    }
+  }
+  function ccClose(cc,now){
+    if(!cc||!cc.open) return; cc.open=false;
+    Object.values(cc.els).forEach(el=>{ if(now) el.remove(); else { el.classList.add("out"); setTimeout(()=>el.remove(),API.camOutMs); } });
+  }
   /* 합 한 번의 연출 전부: 카메라 다가감 → 합(steps 마다 한 번씩 부딪침) → 카메라 빠짐. 끝나면 풀리는 Promise.
      o.fast: 카메라 없이 빨리 (fastMs). 연출 중 탭 = 이번 합 빨리 감기, 길게 누르기 = 다음 배치 전까지 남은 합 모두 즉시.
      바깥에서 BattleStage.focus(ev) 로 이미 카메라를 맞춰 둔 경우(예전 흐름)엔 부딪침만 하고 카메라는 건드리지 않는다. */
@@ -617,15 +820,20 @@
     const steps=Array.isArray(ev.steps)&&ev.a&&ev.steps.length?ev.steps:[null];
     const run={done:false,fast:!!o.fast,wake:null}; runs.add(run);
     const sleep=ms=>new Promise(r=>{ if(run.done||ms<=0) return r(); const t=setTimeout(()=>{ run.wake=null; r(); },ms); run.wake=()=>{ clearTimeout(t); run.wake=null; r(); }; });
-    run.ff=()=>{ if(run.fast) return; run.fast=true; if(!ext&&focus&&!focus.ext) setFocus(null,true,true); if(run.wake) run.wake(); };
+    run.ff=()=>{ if(run.fast) return; run.fast=true; ccClose(run.cc,true); if(!ext&&focus&&!focus.ext) setFocus(null,true,true); if(run.wake) run.wake(); };
     let fin; const p=new Promise(r=>fin=r);
-    run.skip=()=>{ if(run.done) return; run.done=true; if(run.wake) run.wake(); if(!ext&&focus&&!focus.ext&&!liveOwn(run)) setFocus(null,true,true); runs.delete(run); fin(); };
+    run.skip=()=>{ if(run.done) return; run.done=true; ccClose(run.cc,true); if(run.wake) run.wake(); if(!ext&&focus&&!focus.ext&&!liveOwn(run)) setFocus(null,true,true); runs.delete(run); fin(); };
     (async()=>{
       const n=steps.length, gap=n>1?Math.min(API.stepMs,Math.max(80,(API.maxClashMs-API.clashMs)/(n-1))):0;
       if(!ext&&!run.fast){ setFocus(ev,false,true); }
-      if(!ext) await sleep(run.fast?API.fastHitAt:API.hitAt);
+      if(!run.fast&&focus){ try{ run.cc=ccOpen(ev,run); }catch(e){ console.warn(e); } }
+      if(!ext){ const pre=run.cc?Math.min(API.hitAt,90):0; await sleep((run.fast?API.fastHitAt:API.hitAt)-pre); if(run.cc&&!run.fast&&!run.done){ ccPlace(run.cc); ccRoll(run.cc,0); } await sleep(run.fast?0:pre); }
+      else if(run.cc){ ccPlace(run.cc); ccRoll(run.cc,0); }
       for(let k=0;k<n&&!run.done;k++){
-        if(k) await sleep(run.fast?Math.min(60,gap):gap); if(run.done) break;
+        const pre=run.cc&&!run.fast&&k?Math.min(90,Math.round(gap/3)):0;
+        if(k) await sleep(run.fast?Math.min(60,gap):gap-pre); if(run.done) break;
+        if(pre){ ccRoll(run.cc,k); await sleep(pre); if(run.done) break; }
+        if(run.cc&&!run.fast) ccRes(run.cc,k);
         hit(ev,steps[k],ue);   /* 카메라를 바깥에서 맞춰 둔 경우 첫 부딪침은 부르는 즉시(예전처럼) */
       }
       if(run.done) return;
@@ -633,9 +841,9 @@
       (res.staggered||[]).forEach(id=>{ const el=ue(id); if(!el) return; el.classList.add("staggered"); if(!el.querySelector(".bs-tag")){ const tag=document.createElement("span"); tag.className="bs-tag"; tag.textContent="흐트러짐"; el.prepend(tag); } });
       (res.dead||[]).forEach(id=>{ const el=ue(id); if(el) el.classList.add("dead","dying"); });
       const tail=run.fast?API.fastMs-API.fastHitAt:API.clashMs-API.hitAt;
-      if(!ext){ await sleep(Math.max(0,tail-API.camOutMs)); if(focus&&!focus.ext&&!run.done&&!liveOwn(run)) setFocus(null,run.fast,true); await sleep(run.fast?0:API.camOutMs); }
-      else await sleep(Math.min(tail,API.clashMs-API.hitAt));
-      run.done=true; runs.delete(run);
+      if(!ext){ await sleep(Math.max(0,tail-API.camOutMs)); ccClose(run.cc,run.fast||run.done); if(focus&&!focus.ext&&!run.done&&!liveOwn(run)) setFocus(null,run.fast,true); await sleep(run.fast?0:API.camOutMs); }
+      else { await sleep(Math.min(tail,API.clashMs-API.hitAt)); ccClose(run.cc,run.fast||run.done); }
+      run.done=true; runs.delete(run); ccClose(run.cc,false);
       if(focus&&!focus.ext&&!liveOwn(run)) setFocus(null,false,true);   /* 겹쳐 부른 경우: 마지막 연출이 카메라를 뺀다 */
       fin();
     })();
@@ -649,7 +857,7 @@
     const fx=(el,c)=>{ el.classList.remove("lunge","flinch","lose","act"); void el.offsetWidth; el.classList.add(c,"act"); setTimeout(()=>el.classList.remove(c,"act"),460); };
     const dies=[[ev.ally,ev.allyDie],[ev.enemy,ev.enemyDie]].map(([u,i])=>i!=null&&dieEl(u,i)).filter(Boolean);
     dies.forEach(d=>{ d.classList.add("act"); setTimeout(()=>d.classList.remove("act"),460); });
-    if(ev.kind==="clash"){ fx(A,ev.win==="enemy"?"lose":"lunge"); fx(E,ev.win==="ally"?"lose":"lunge"); }
+    if(ev.kind==="clash"){ const tie=ev.win==="tie"; fx(A,ev.win==="enemy"||tie?"lose":"lunge"); fx(E,ev.win==="ally"||tie?"lose":"lunge"); }   /* 무승부: 둘 다 튕겨 물러남 */
     else { fx(attacker,"lunge"); fx(target,"flinch"); }
     /* 그림 동작: 주사위 종류별 m-*, 표정은 잠깐 이김(e3)/아픔(e1) */
     const mv=(el,m)=>{ if(!m) return; el.classList.remove("m-slash","m-pierce","m-blunt","m-guard","m-evade","m-page"); void el.offsetWidth; el.classList.add("m-"+m); setTimeout(()=>el.classList.remove("m-"+m),640); };
