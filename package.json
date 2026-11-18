@@ -1,0 +1,13 @@
+{
+  "name": "concept-library",
+  "private": true,
+  "description": "개념의 서고 — 테스트·시뮬레이션 실행용 (게임 자체는 index.html 하나로 빌드 없이 동작)",
+  "scripts": {
+    "test": "node tests/run.mjs",
+    "sim": "node tools/sim/balance.mjs",
+    "sim:hp": "node tools/sim/hp.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.55.0"
+  }
+}
