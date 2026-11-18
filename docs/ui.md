@@ -8,7 +8,7 @@ UI/UX 담당이 맡았던 화면·연출 부분을 이어받을 사람을 위한
 - 기준 해상도: 가로 `844×390`, 세로 `390×844` (아이폰 12~14급). 가로 미디어쿼리는 `(orientation:landscape) and (max-height:500px)`.
 - **원작(Library of Ruina / Limbus Company) 에셋 금지.** 그림·아이콘·폰트·소리 전부. 들여온 에셋은 `CREDITS.md`, `LICENSES.md`에 출처를 적는다.
 - **팝업 금지, 빠른 템포.** 확인창·모달 대신 화면 안에서 바로 바뀌게. 연출은 탭하면 빨리 감기, 길게 누르면 건너뛰기.
-- **캐릭터는 앞면 UI(손패, 개막 버튼, 상태판, 책장 카드)에 가리면 안 된다.** 겹침 검사(아래 5절)가 이걸 잡는다.
+- **무대와 캐릭터는 배경층이다.** 전투 UI 뒤에 가려져도 된다. 서로 겹치면 안 되는 건 전투 UI끼리다: 주사위, 체력/흐트러짐 바, 대상 화살표, 손패, [개막] 버튼, 상태 패널, 합 책장 카드. 겹침 검사(아래 5절)가 이걸 잡는다.
 - 큐 양이 마음에 들어 한 연출은 묻지 않고 바꾸지 않는다.
 - UI는 주사위·결과를 직접 계산하지 않는다. 전투 엔진이 준 필드를 그대로 그린다(없을 때만 예전 필드로 대신).
 
@@ -60,6 +60,11 @@ UI/UX 담당이 맡았던 화면·연출 부분을 이어받을 사람을 위한
 - 무대 배경(`assets/bg/library-battle.webp`)은 화면 끝까지 까는 배경층이다.
 - 1:1 전투는 `?multi=0`. 기본은 다대다.
 
+## 4-1. 달의 계시
+
+- `Moon` 모듈(`index.html` 끝부분). 단어는 `assets/data/moon-words.js`의 `window.MOON_WORDS`, 없으면 `moon-words.sample.js`의 `window.MOON_WORDS_SAMPLE`.
+- 단어 형식은 `{id, en, ko, pos}`. `Moon` 안의 `words()`가 읽을 때 `w`/`m`을 같은 객체에 채워 쓴다(예전 형식도 읽힘).
+
 ## 5. 테스트와 확인
 
 테스트는 지금 **저장소 밖** `/workspace/lib-tests`(봇 공용 컴퓨터)에 있다. Playwright(`playwright-core`) + 시스템 Chrome(`/usr/bin/google-chrome`)로 로컬 서버를 띄워 화면을 찍고 검사한다.
@@ -71,9 +76,9 @@ LIB_ROOT=/path/to/repo node landscape.test.mjs     # 가로 화면들
 LIB_ROOT=/path/to/repo node orient.test.mjs        # 가로/세로 전환
 ```
 
-UI 쪽 주요 테스트: `overlap-check`, `landscape`, `orient`, `fanhand`, `battlestage`, `clashcards`, `clashpromise`, `arrowhi`, `resultfit`, `hpstatus`, `unassign`, `settings`, `scroll`/`scrollkeep`/`deckscroll`/`receptionscroll`, `sheet`, `dress`, `bookcovers`, `center`. 스크린샷은 `$LIB_ROOT/shots/`에 떨어진다(저장소에 올리지 않음).
+UI 쪽 주요 테스트: `overlap-check`(지금 들어 있는 `fighter-front-ui` 항목은 캐릭터와 앞면 UI 겹침을 잡는데, 위 규칙상 실패해도 막는 기준은 아니다), `landscape`, `orient`, `fanhand`, `battlestage`, `clashcards`, `clashpromise`, `arrowhi`, `resultfit`, `hpstatus`, `unassign`, `settings`, `scroll`/`scrollkeep`/`deckscroll`/`receptionscroll`, `sheet`, `dress`, `bookcovers`, `center`. 스크린샷은 `$LIB_ROOT/shots/`에 떨어진다(저장소에 올리지 않음).
 
-- 배포 전에 **스크린샷을 직접 눈으로 본다.** 테스트가 통과해도 캐릭터가 가려진 적이 있다(zh, 되돌림).
+- 배포 전에 **스크린샷을 직접 눈으로 본다.** 테스트가 통과해도 화면이 어긋난 적이 있다(zh, 되돌림).
 - 새 화면을 만들면 844×390과 390×844 둘 다 찍어 본다.
 
 ## 6. 배포
