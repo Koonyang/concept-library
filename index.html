@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118y">
+<meta name="build" content="library-20261118z">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -4899,6 +4899,9 @@ function cardInspectHtml(page, unitId){
 function openCardInspect(pageId){
   const page=PAGE_BY[pageId]; const el=$("#card-inspect"); if(!page||!el) return;
   el.innerHTML=`<div class="ci-card paper rar-${page.rarity||"N"}">${paperLayers()}${waxHtml(page.rarity)}${cardInspectHtml(page)}</div>`;
+  /* 다대다 양피지 부채꼴 손패는 1:1 손패보다 높다 → 세로 화면에서 보기 카드가 손패를 덮지 않게 아래 여백을 손패 위까지 */
+  el.style.paddingBottom="";
+  try{ const h=mb&&$("#mb-host")&&$("#hand"); if(h&&innerHeight>innerWidth){ const cs=[...h.querySelectorAll(".cc")].map(c=>c.getBoundingClientRect().top).filter(Number.isFinite); const top=Math.min(h.getBoundingClientRect().top,...cs); const er=el.getBoundingClientRect(); if(top<er.bottom) el.style.paddingBottom=Math.max(0,Math.round(er.bottom-top+6))+"px"; } }catch(e){}
   el.classList.add("on"); el.setAttribute("aria-hidden","false");
   inspectState.pageId=pageId;
 }
@@ -5641,7 +5644,8 @@ const ENEMY_STATS={};
 const MB_TYPE_EN={참격:"slash",관통:"pierce",타격:"blunt",방어:"guard",회피:"evade"};
 const MB_HOOKS={onSceneStart:[],onSceneEnd:[],onAnswer:[],onClash:[]};
 let mb=null;
-function multiEnabled(){ try{ if(/[?&]multi=1(&|$)/.test(location.search)) return true; }catch(e){} return save.multiBattle===true; }
+/* 다대다가 기본. ?multi=0 또는 save.multiBattle===false 면 기존 1:1 접대 (?multi=1 은 저장값보다 우선해 다대다) */
+function multiEnabled(){ try{ if(/[?&]multi=0(&|$)/.test(location.search)) return false; if(/[?&]multi=1(&|$)/.test(location.search)) return true; }catch(e){} return save.multiBattle!==false; }
 function mbEmit(name,payload){ for(const f of MB_HOOKS[name]||[]){ try{ f(mb,payload); }catch(e){ console.warn("[mb hook]",name,e); } } }
 /* 사서별 장서복(핵심 책장)·기프트 효과 — keyPerk(활성 사서) 대신 그 사서의 것 */
 function libPerk(libId){ return (libsKeyOf(save,libId)||KEY_PAGES[0]).perk; }
@@ -5836,6 +5840,20 @@ function mbUnassign(unitId,dieIdx){
   const X=mb.x[u.id]; X.handIds.push(d.card); u.light+=(PAGE_BY[d.card].cost||0);
   d.card=null; d.target=null; X.seq[dieIdx]=0; mbRelink(); return true;
 }
+/* 카드 정보 (UI가 주사위를 탭했을 때 보여 줄 것). 사서 책장 id, 적 주사위 카드 id(e1@막.주사위), 또는 적 책장 이름+unitId.
+   적 부하의 책장은 주사위 −1 이 반영된 값. type 은 무대와 같은 영어(slash/pierce/blunt/guard/evade), ko 는 한국어 유형 */
+function mbCardInfo(cid,uid){
+  const dice=ds=>(ds||[]).map(d=>({type:MB_TYPE_EN[d.type]||d.type,min:d.min,max:d.max,ko:d.type}));
+  const P=PAGE_BY[cid];
+  if(P) return {id:P.id,name:P.name,cost:P.cost||0,dice:dice(P.dice),text:P.text||"",side:"ally",emotion:P.emotion||0};
+  if(!mb) return null;
+  const C=mb.cards[cid];
+  if(C) return {id:cid,name:C.name,cost:0,dice:dice(C.dice),text:C.big?"이 손님의 큰 일격":"",side:"enemy",big:!!C.big,unit:cid.split("@")[0]};
+  const X=uid&&mb.x[uid];
+  if(X&&X.S){ const pg=[...X.S.pages,...(X.S.big?[X.S.big]:[])].find(p=>p.name===cid);
+    if(pg) return {id:cid,name:pg.name,cost:0,dice:dice(pg.dice),text:pg===X.S.big?"이 손님의 큰 일격":"",side:"enemy",big:pg===X.S.big,unit:uid}; }
+  return null;
+}
 function mbDiceOf(u,i){ return u.side==="ally"?PAGE_BY[u.dice[i].card].dice:mb.x[u.id].diePages[i].dice; }
 /* 막 풀기: 모든 주사위를 속도 순(빠른 것부터)으로. 서로 노린 두 주사위는 합(기존 resolveScene), 아니면 일방 공격 */
 function mbResolve(){
@@ -5901,6 +5919,7 @@ function mbFinish(){
 /* ---------- 다대다 화면 연결 (그림은 BattleStage, 여기선 붙이기만) ---------- */
 function beginMultiReception(guestId){
   mb=mbCreate(guestId); if(!mb) return;
+  busy=false;
   reception={guestId,multi:true,isRecall:mb.isRecall,librarianIds:mbSide("ally").map(u=>u.libId),sessionCorrect:0,sessionTotal:0,
     droppedGift:null,phase:"multi",log:mb.log,bookGain:0,levelUpMessage:""};
   mb.log.push(`${mb.guest.concept} 손님 무리(${mbSide("enemy").length})가 서고 문 앞에 서 있다.`);
@@ -6125,7 +6144,12 @@ function finishReceptionStats(guest, won){
   if(tot){ st.history=[...(st.history||[]), ok/tot].slice(-5); }
   save.recallStats={...save.recallStats, [guest.id]:st};
 }
+/* 다대다 접대가 끝나면(승·패) 전투 상태의 주사위 대상을 모두 비운다 → 마지막 렌더에 화살표가 남지 않게 (화면 쪽 숨김은 UI 담당이 openResult 에서) */
+function mbClearTargets(){
+  if(mb&&mb.battle&&(mb.outcome||mb.battle.phase==="end")) for(const u of mb.battle.units) for(const d of (u.dice||[])) d.target=null;
+}
 function openResult(){
+  mbClearTargets();
   SFX.setBgmMode("lobby");   /* 승리·패배로 접대가 끝나면 접대곡을 내리고 로비곡을 되살린다 */
   const b=$("#rbanner");
   $("#learn-toast")?.classList.remove("on");
@@ -6921,13 +6945,13 @@ function boot(){
       answer(correct){ return mbAnswer(correct); }, answerUI:(c)=>mbAnswerUI(c),
       assign(unitId,dieIdx,cardId,target){ const r=mbAssign(unitId,dieIdx,cardId,target); mbRefresh(); return r; },
       unassign(unitId,dieIdx){ const r=mbUnassign(unitId,dieIdx); mbRefresh(); return r; },
-      cardInfo:(cid,uid)=>typeof mbCardInfo==="function"?mbCardInfo(cid,uid):null,
       resolve(o){ return mbRunResolve(!(o&&o.animate)); }, resolveOnly:()=>mbResolve(), startScene(){ mbStartScene(); mbRefresh(); return mb.battle; },
       relink:()=>mbRelink(), isClash:(u,i)=>mbIsClash(u,i),
       setRng(fn){ if(mb) mb.rng=fn; },
       setEnemyTarget(eid,k,target){ const X=mb.x[eid]; X.orig[k]=target?{unit:target.unit,die:target.die}:null; mbRelink(); mbRefresh(); },
       hand:(uid)=>mb.x[uid].handIds, cardOf:(cid)=>mb.cards[cid]||PAGE_BY[cid]||null, internals:()=>mb.x, get mb(){ return mb; },
       get outcome(){ return mb&&mb.outcome; }, get current(){ return mb&&mb.cur; },
+      cardInfo:(cid,uid)=>mbCardInfo(cid,uid),
       enemyStats, hooks:MB_HOOKS, ENEMY_STATS, MB, libMods, libStartLight, libStartEmotion, libLightRegen, libDeckIds
     },
     libs:{unlockedCount:libUnlockedCount,nextAt:libNextAt,list:libsList,equipKey:libsEquipKey,setParty:libsSetParty,keyOf:libsKeyOf,sync:syncLibs,UNLOCK_AT:LIB_UNLOCK_AT,ORDER:LIB_ORDER,PARTY_MAX},
