@@ -79,7 +79,7 @@ NO_OVERLAP=1 node tests/run.mjs            # 겹침 검사 빼고
 - 브라우저는 `tests/lib/browser.mjs`가 찾는다(`CHROME_PATH` 환경 변수가 먼저). `LIB_ROOT`가 없으면 저장소 맨 위를 쓴다.
 - 스크린샷은 `shots/`에 떨어진다(git 무시).
 - 이 저장소의 로컬 git 설정은 `*.mjs`를 무시하므로, 새 테스트 파일은 `git add -f`로 올린다.
-- **겹침 검사 `tests/overlap-check.mjs`는 0개여야 배포한다.** 전투 UI끼리(주사위, 바, 화살표, 손패, [개막], 상태 패널, 합 책장 카드) 겹치면 안 된다. `fighter-front-ui` 항목은 캐릭터와 앞면 UI의 겹침을 보는데, 지금 화면은 0개다. 1절 규칙상 캐릭터는 가려져도 되므로, 일부러 UI를 캐릭터 위에 두는 변경이면 실패를 무시하지 말고 그 항목을 검사에서 빼는 커밋을 같이 올린다.
+- **겹침 검사 `tests/overlap-check.mjs`:** 전투 UI끼리(주사위, 체력/흐트러짐 바, 화살표, 손패, [개막], 상태 패널, 합 책장 카드) 겹치는 항목은 0건이어야 하고, 하나라도 있으면 배포하지 않는다. `fighter-front-ui`(캐릭터와 앞면 UI 겹침)는 참고용이라 개수만 따로 출력하고 실패로 치지 않는다(무대·캐릭터는 배경층).
 
 UI 쪽 주요 테스트: `overlap-check`, `landscape`, `orient`, `fanhand`, `battlestage`, `clashcards`, `clashpromise`, `arrowhi`, `resultfit`, `hpstatus`, `unassign`, `settings`, `scroll`/`scrollkeep`/`deckscroll`/`receptionscroll`, `sheet`, `dress`, `bookcovers`, `center`, `moon`/`moonwords`.
 
