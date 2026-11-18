@@ -81,5 +81,35 @@ const st=await p.evaluate(()=>{ const G=Game, o={};
   o.a=run(false); o.b=run(true); Math.random=MR; return o; });
 ok(st.qPhase===null,"문제 단계에서 stepBegin 은 null",st.qPhase);
 ok(JSON.stringify(st.a)===JSON.stringify(st.b)&&st.n>0,"한 교환씩 진행한 결과 = resolve() 결과",st);
+
+/* ---------- 주관식 채점 · 지금 문제 정보 · 빛/감정 ---------- */
+const qi=await p.evaluate(()=>{ const G=Game, o={};
+  const sq=G.data.KEY_QUESTIONS.beccaria.find(q=>q.type==="short");
+  o.has=typeof G.checkShort==="function";
+  if(o.has) o.short=[G.checkShort(sq.answer,sq),G.checkShort(sq.accept[0],sq),G.checkShort("  BECCARIA ",sq),G.checkShort("몽테스키외",sq),G.checkShort("",sq)];
+  const mk=s=>()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+  G.battle.leave(); o.none=G.battle.questionInfo?G.battle.questionInfo():"no-fn"; o.noLight=G.battle.lightOf?G.battle.lightOf("x"):"no-fn";
+  G.battle.begin("beccaria",{rng:mk(3)});
+  const B=G.battle.state; o.info=G.battle.questionInfo();
+  o.infoOk=!!o.info&&o.info.q===G.battle.question()&&o.info.fromUnit===B.question.fromUnit&&B.units.some(u=>u.id===o.info.fromUnit&&u.side==="enemy")&&typeof o.info.isKey==="boolean";
+  const ally=B.units.find(u=>u.side==="ally"); o.light=G.battle.lightOf(ally.id);
+  o.lightOk=JSON.stringify(o.light)===JSON.stringify({light:ally.light,maxLight:ally.maxLight,emotion:ally.emotion});
+  o.badUnit=G.battle.lightOf("없는유닛");
+  G.battle.answer(true); o.afterAnswer=G.battle.questionInfo();
+  /* 빛을 쓰면 lightOf 가 따라 바뀐다 */
+  const en=B.units.find(u=>u.side==="enemy"); const c=G.battle.hand(ally.id).find(c=>G.battle.usable(ally.id,c).usable&&(G.data.PAGE_BY[c].cost||0)>0);
+  if(c){ const before=G.battle.lightOf(ally.id).light; G.battle.assign(ally.id,0,c,{unit:en.id,die:0}); o.spent=before-G.battle.lightOf(ally.id).light===G.data.PAGE_BY[c].cost; } else o.spent=true;
+  /* 핵심 문제가 나오면 isKey true */
+  let tries=0; o.keySeen=false;
+  while(!G.battle.outcome&&tries<40&&!o.keySeen){ tries++; G.battle.resolve(); if(G.battle.state&&G.battle.state.phase==="question"){ const I=G.battle.questionInfo(); if(I&&I.isKey) o.keySeen=true; G.battle.answer(true);
+    const B2=G.battle.state, en2=B2.units.filter(u=>u.side==="enemy"&&u.hp>0);
+    for(const u of B2.units.filter(u=>u.side==="ally"&&u.hp>0)) u.dice.forEach((d,i)=>{ const c=G.battle.hand(u.id).find(c=>G.battle.usable(u.id,c).usable); if(c&&en2[0]) G.battle.assign(u.id,i,c,{unit:en2[0].id,die:0}); }); } }
+  G.battle.leave(); return o; });
+ok(qi.has&&JSON.stringify(qi.short)===JSON.stringify([true,true,true,false,false]),"Game.checkShort: 정답·accept·대소문자/공백 허용, 오답·빈 답은 false",qi.short);
+ok(qi.none===null&&qi.noLight===null,"전투 없을 때 questionInfo·lightOf 는 null",{q:qi.none,l:qi.noLight});
+ok(qi.infoOk,"questionInfo: 지금 문제·낸 적 유닛·핵심 여부",qi.info&&{from:qi.info.fromUnit,isKey:qi.info.isKey});
+ok(qi.afterAnswer===null,"문제 단계가 아니면 questionInfo 는 null",qi.afterAnswer);
+ok(qi.lightOk&&qi.badUnit===null&&qi.spent,"lightOf: 사서 빛·최대 빛·감정, 없는 유닛 null, 배치하면 빛이 줄어듦",qi.light);
+ok(qi.keySeen,"핵심 문제 막에서 questionInfo.isKey === true");
 ok(errs.length===0,"오류 없음",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

@@ -1,7 +1,7 @@
 # 개념의 서고 — 전투/시스템 인수인계
 
 전투 엔진(1:1, 다대다)과 저장 데이터, 밸런스, 테스트·시뮬 실행법. 화면 쪽은 `docs/ui.md`, 학습내용(손님·문제·적 무리 데이터)은 `docs/content.md`, 전체 그림·결정 기록은 `CLAUDE.md`, `docs/HANDOFF.md`, `docs/decisions.md` 를 본다.
-코드는 거의 전부 `index.html` 한 파일 안의 `<script>`. 아래 위치는 **함수/상수 이름**으로 적는다(줄번호는 자주 바뀜). 무대 그리기는 `assets/ui/battle-stage.js`(`BattleStage`).
+규칙 코드는 `js/core/`(`data.js`·`engine.js`·`save.js`·`battle.js`·`moon.js`·`api.js`, 화면 없음, 일반 `<script>` 로 전역 공유). 공개 API 는 `api.js` 의 `Game`(3절). 아래 위치는 **함수/상수 이름**으로 적는다(줄번호는 자주 바뀜). 무대 그리기는 3D 무대 `js/stage/stage.js`(옛 `BattleStage` 는 `legacy/`).
 
 ## 1. 확정 규칙 (바꾸려면 큐 양 확인)
 
@@ -48,31 +48,65 @@
 - 적 하나: `hp = max(minHp, round(전체 × 그 적의 문제 수 / 전체 문제 수)) × SCALE_ENEMY[사서 수]`, 흐트러짐 = `max(minSt, round(배율 전 hp × leaderSt 1.1 | followerSt 0.7)) × 같은 배율`.
 - 적 주사위: 손님 키트 값을 `MB.DICE.scale[weakness] × partyScale[사서 수−1] / GUEST_SCALE[weakness]` 로 다시 맞춤(scale {1:1.15, 2:1.15, 3:1.32}, partyScale [1, 1.1, 1.2], 큰 공격 ×bigScale 0.9). 주사위 수: 우두머리 `leaderDice[w] + partyLeader`, 부하 `1 + partyFollower`.
 
-## 3. `__studyGame.battleApi` (테스트·UI·시뮬용)
+## 3. 공개 API `Game` (`js/core/api.js`)
+
+새 UI는 `window.Game` 만 부른다. 부른 다음 `Game.save`, `Game.battle.state`(= `mb.battle`) 를 읽어 그린다.
+옛 `window.__studyGame.battleApi`(아래 3-3)는 **테스트·시뮬용으로 남김**(`tools/sim`, `tests/mbdata`·`sim` 등이 쓴다). 새 화면은 쓰지 않는다.
+
+### 3-1. `Game.battle` (다대다 접대)
+| 이름 | 인자 → 반환 |
+|---|---|
+| `begin(guestId, {rng, party}?)` | 접대 시작(덱 검사·접대 기록 `reception`·1막 시작·저장) → `{ok:true, battle}` 또는 `{ok:false, why}` |
+| `answer(correct)` | 이번 막 답(bool). 문제 단계가 아니면 false. 주관식 판정은 `Game.checkShort` 로 먼저 |
+| `question()` | 이번 막 문제 객체(단계와 상관없이) \| null |
+| `questionInfo()` | **문제 단계일 때만** `{q, fromUnit, isKey}`: 문제, 그 문제를 낸 적 유닛 id(`battle.question.fromUnit`), 핵심 문제 여부(`mb.cur.isKey`). 아니면 null |
+| `lightOf(unitId)` | `{light, maxLight, emotion}`(손패 위 빛·감정 표시용, 배치·해제에 따라 바뀜). 전투가 없거나 없는 유닛이면 null. 적은 모두 0 |
+| `assign(unitId, dieIdx, cardId, {unit, die\|null})` | → `{ok, clash}` 또는 `{ok:false, reason:"phase"\|"unit"\|"die"\|"card"\|"not-in-hand"\|"emotion"\|"light"\|"target"\|"target-die"}` |
+| `unassign(unitId, dieIdx)` | → bool (카드 손패로, 빛 환불) |
+| `resolve({holdNextScene}?)` | 막을 한 번에 끝까지 → 교환 이벤트 배열(4절). 끝나지 않았으면 다음 막을 연다(`holdNextScene` 이면 안 엶). 배치 단계가 아니면 null |
+| `stepBegin()` | 개막을 한 교환씩: 배치 단계면 진행 객체 `R`, 아니면(문제 단계 등) null |
+| `stepNext(R)` | 교환 하나를 처리하고 그 이벤트 `ev` 를 돌려준다(상태는 이미 반영). `kind:"skip"`(흐트러짐·사망으로 못 움직인 주사위)도 나오니 화면은 건너뛴다. 더 없으면 null. 화면은 `ev` 를 `stage.play(ev,{fast})` 에 넘기고 기다린다 |
+| `stepEnd(R)` | 막 마무리(승패 판정·막 끝 훅). 끝나지 않았으면 다음 막을 연다. 결과는 `resolve()` 와 같다(테스트로 확인) |
+| `settle()` | 승패가 난 뒤 한 번: 회상 기록·사서별 E.G.O 기프트 판정·체력 회복·저장 → `{won, guestId, isRecall, bookGain, books, gifts:[{libId, libName, item}], correct, total, explanation}`. 두 번 불러도 같은 객체 |
+| `leave()` | 전투 비움 |
+| `cardInfo(cid, uid)` / `usable(uid, cid)` / `hand(uid)` / `isClash(u, i)` / `unit(id)` | 카드 표시 정보 / 사용 가능 `{usable, reason}` / 손패 id / 합 여부 / 유닛 |
+| `enemyBody(gid, e)` / `nextGuest(gid)` / `hooks` | 적 몸 / 다음 손님 / `MB_HOOKS` |
+| `state` / `outcome` / `log` / `reception` | `mb.battle` / "win"\|"lose"\|null / 기록 / 접대 기록 |
+
+### 3-2. 그 밖의 `Game.*`
+| 이름 | 내용 |
+|---|---|
+| `Game.checkShort(input, q)` | 주관식 채점(`engine.js` `checkShort` 그대로). `q.answer`·`q.accept[]` 와 비교, 대소문자·공백·기호 무시, 답을 포함한 짧은 문장도 정답(숫자 경계 확인). 빈 답 false |
+| `Game.data.floorStage(floorId)` | 층 무대 겉모습 `{mood, accent, props[]}`. `FLOORS[].stage` 한 줄에서 읽고 빈 칸은 기본값(`lamp`, `#d9a35a`, `["candles","bookpile"]`). 없는 층도 기본값. 무대 `S.setFloor()` 에 그대로 넘긴다 |
+| `Game.data.*` | `FLOORS`, `WEAK_POINTS`, `GUEST_BY`, `COMBAT_PAGES`, `PAGE_BY`, `KEY_PAGES`, `EGO_GIFTS`, `KEY_QUESTIONS`, `BOOK_POOLS`, 수치(`DECK_MIN` 등), `bookCoverSrc` … |
+| `Game.books` / `Game.deck` / `Game.libs` | 책 소각·보유 / 덱 편성 / 사서·장서복·기프트 착용 |
+| `Game.moon`, `Game.moonBonus()` | 달의 계시(`MoonCore`) |
+| `Game.save`, `Game.persist()`, `Game.setAudio(o)`, `Game.reset()` | 저장 |
+
+### 3-3. `__studyGame.battleApi` (테스트·시뮬용으로 남김)
 
 | 이름 | 인자 → 반환 |
 |---|---|
 | `enable(on)` / `enabled()` | 다대다 켜기(저장) → bool |
-| `begin(guestId, {rng}?)` | 화면 포함 다대다 접대 시작 → `battle` |
-| `create(guestId, {rng, party}?)` | 화면 없이 만들고 1막 시작 → `battle` |
+| `begin(guestId, {rng}?)` | `Game.battle.begin` 과 같고 `battle` 을 돌려줌(실패면 null) |
+| `create(guestId, {rng, party}?)` | 덱 검사 없이 만들고 1막 시작 → `battle` |
 | `startScene()` / `nextScene()` | 다음 막(시뮬용 `nextScene` 은 끝났으면 null) → `battle` |
-| `answer(correct)` / `answerUI(correct)` | 이번 막 답 (엔진만 / 화면 흐름) |
-| `assign(unitId, dieIdx, cardId, {unit, die\|null})` | → `{ok, clash}` 또는 `{ok:false, reason:"phase"\|"unit"\|"die"\|"card"\|"not-in-hand"\|"emotion"\|"light"\|"target"\|"target-die"}` |
-| `unassign(unitId, dieIdx)` | → bool (카드 손패로, 빛 환불) |
-| `resolve({animate}?)` | 막 풀기(기본 동기) |
-| `resolveOnly()` | 동기로 막 전부 → 교환 이벤트 배열 |
-| `resolveBegin()` / `resolveNext(R)` / `resolveEnd(R)` / `resolving()` | 한 교환씩 / 진행 중 Promise |
+| `answer(correct)` | 이번 막 답 |
+| `assign(…)` / `unassign(…)` | `Game.battle` 과 같음 |
+| `resolve()` / `resolveOnly()` | 막 풀기 / 다음 막을 열지 않고 풀기 → 교환 이벤트 배열 |
+| `resolveBegin()` / `resolveNext(R)` / `resolveEnd(R)` | 한 교환씩(코어 그대로. `resolveEnd` 는 다음 막을 열지 않음) |
 | `usable(uid, cid)` / `cardInfo(cid, uid)` | 카드 사용 가능 여부·범위 등 |
-| `isClash(u, i)` / `relink()` / `refresh()` / `setEnemyTarget(eid, k, target)` | 합 여부 / 적 목표 다시 / 화면 갱신 / 적 목표 지정(테스트) |
+| `isClash(u, i)` / `relink()` / `setEnemyTarget(eid, k, target)` | 합 여부 / 적 목표 다시 / 적 목표 지정(테스트) |
 | `setRng(fn)` | 난수 교체 |
-| `hand(uid)` / `cardOf(cid)` / `internals()` / `mb` / `outcome` / `current` | 손패 id / 카드 / `mb.x`(유닛별 내부: `cu`, `mods`, `handIds`, `diePages`, `e`, `S`) / 전체 상태 / "win"\|"lose"\|null / 이번 문제 |
+| `hand(uid)` / `cardOf(cid)` / `internals()` / `mb` / `outcome` / `current` | 손패 id / 카드 / `mb.x`(유닛별 내부: `cu`, `mods`, `handIds`, `diePages`, `e`, `S`) / 전체 상태 / "win"\|"lose"\|null / `mb.cur`(`{q, isKey}`) |
 | `questionCount(gid)` / `enemyCap(gid)` / `enemyHpTotal(gid, n)` | 문제 수 / 적 수 상한 / 무리 체력(배율 전) |
 | `allyStats(mods, gid)` / `enemyScale(n)` / `enemyStats(guest, e, idx, ctx)` | 사서 `{hp, st}` / `SCALE_ENEMY[n]` / 적 스탯 |
 | `ENEMY_BODY`, `enemyBody(gid, e)`, `ENEMY_STATS` | 적 몸 표 / 몸 결정 / 적 key 별 덮어쓰기 |
 | `MB`, `hooks` | 설정값, `MB_HOOKS` |
 | `libMods`, `libStartLight`, `libStartEmotion`, `libLightRegen`, `libDeckIds` | 사서별 기프트·장서복 효과 |
+| `settle()` | `Game.battle.settle` 과 같음 |
 
-### 훅 (`battleApi.hooks.이름.push((mb, payload) => {})`)
+### 3-4. 훅 (`Game.battle.hooks.이름.push((mb, payload) => {})`, `battleApi.hooks` 와 같은 것)
 | 훅 | payload |
 |---|---|
 | `onSceneStart` | `{scene}` |
@@ -82,12 +116,13 @@
 | `onClash` | 합 교환 이벤트 `ev` (아래) |
 | `onSceneEnd` | `{scene, events, pace}` |
 
-## 4. `BattleStage.clash(ev, {fast})` 계약과 이벤트 필드
+## 4. 교환 이벤트 `ev` — 무대 `stage.play(ev, {fast})` 가 받는다
 
-엔진은 교환마다 상태를 먼저 반영하고 `BattleStage.clash(ev,{fast})` 를 부른 뒤 Promise 를 기다린다(안 돌려주면 `MB.stepMs` 만큼). 그리는 쪽 사용법은 `assets/ui/battle-stage.js` 맨 위 주석.
+새 화면은 `Game.battle.stepBegin()` → `stepNext(R)` 로 교환 하나를 얻을 때마다 그 `ev` 를 3D 무대 `stage.play(ev,{fast})`(`js/stage/stage.js`, Promise)에 넘겨 기다리고, 맞는 순간에 막대·숫자를 갱신한다. 다 끝나면 `stepEnd(R)`. 엔진(코어)은 화면을 모르고 교환마다 상태를 먼저 반영해 둔다.
+(legacy: 옛 UI 는 `mbRunResolve` 가 교환마다 `BattleStage.clash(ev,{fast})`(`legacy/` 의 `assets/ui/battle-stage.js`)를 부르고 Promise 를 기다렸다. 지금 코어에는 없음.)
 
 교환 이벤트 `ev`:
-- `kind`: `"clash"`(서로 노린 두 주사위) | `"one-sided"` | (`resolveOnly` 결과에는 `"skip"` 도: 흐트러짐·사망으로 못 움직임)
+- `kind`: `"clash"`(서로 노린 두 주사위) | `"one-sided"` | `"skip"`(흐트러짐·사망으로 못 움직임. `stepNext`·`resolve` 결과에도 나옴)
 - `a`: `{unit, die, card, values:[굴린 값…], expr, side?, body?, form?, leader?}` — 먼저 움직인(빠른) 주사위
 - `b`: 같은 모양 | `null`(일방 공격), `target`: 맞는 유닛 id
 - `result`: `{staggered:[새로 흐트러진 id], dead:[쓰러진 id]}`, `expr`: `{유닛id: "idle"|"win"|"hurt"|"shock"}`

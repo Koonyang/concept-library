@@ -60,6 +60,17 @@ function floorStage(floorId){
   const f=FLOORS.find(x=>x.id===floorId), st=(f&&f.stage)||{}, D=FLOOR_STAGE_DEFAULT;
   return {mood:st.mood||D.mood,accent:st.accent||D.accent,props:(Array.isArray(st.props)?st.props:D.props).slice()};
 }
+/* ---------- 문제·빛 읽기 (화면용) ---------- */
+/* 문제 단계일 때만: 지금 문제, 그 문제를 낸 적 유닛 id, 핵심 문제 여부. 아니면 null */
+function battleQuestionInfo(){
+  const B=mb&&mb.battle; if(!B||B.phase!=="question"||!mb.cur||!B.question) return null;
+  return {q:mb.cur.q,fromUnit:B.question.fromUnit,isKey:!!mb.cur.isKey};
+}
+/* 유닛 하나의 빛·최대 빛·감정 단계. 전투가 없거나 없는 유닛이면 null */
+function battleLightOf(unitId){
+  const u=mb&&mbUnit(unitId); if(!u) return null;
+  return {light:u.light||0,maxLight:u.maxLight||0,emotion:u.emotion||0};
+}
 /* ---------- 개막을 한 교환씩 (연출용) ---------- */
 function battleStepEnd(R){ const ev=mbResolveEnd(R); if(mb&&!mb.outcome) mbStartScene(); return ev; }
 
@@ -136,7 +147,7 @@ const Game={
   battle:{
     begin:beginBattle, answer:mbAnswer, assign:mbAssign, unassign:mbUnassign, resolve:battleResolve, stepBegin:()=>(mb?mbResolveBegin():null), stepNext:R=>mbResolveNext(R), stepEnd:battleStepEnd, settle:battleSettle, leave:battleLeave,
     cardInfo:mbCardInfo, usable:(uid,cid)=>mbUsable(mbUnit(uid),PAGE_BY[cid]||(mb&&mb.cards[cid])), hand:uid=>mb?mb.x[uid].handIds:[],
-    question:()=>mb&&mb.cur?mb.cur.q:null, isClash:mbIsClash, unit:mbUnit, enemyBody:(gid,e)=>enemyBody(GUEST_BY[gid],e||{}),
+    question:()=>mb&&mb.cur?mb.cur.q:null, questionInfo:battleQuestionInfo, lightOf:battleLightOf, isClash:mbIsClash, unit:mbUnit, enemyBody:(gid,e)=>enemyBody(GUEST_BY[gid],e||{}),
     nextGuest:nextGuestAfter, hooks:MB_HOOKS,
     get state(){ return mb?mb.battle:null; }, get outcome(){ return mb&&mb.outcome; }, get log(){ return mb?mb.log:[]; }, get reception(){ return reception; }
   },
@@ -145,7 +156,7 @@ const Game={
   libs:{list:()=>libsList(save),pick:pickLibrarian,toggleParty,equipKey,equipGift,unlockedCount:()=>libUnlockedCount(save),nextAt:()=>libNextAt(save),
     keyOf:id=>libsKeyOf(save,id),giftTotals:id=>giftTotals(save,id),activeSets:id=>activeSets(save,id),bonusLabel},
   moon:MoonCore, moonBonus:()=>moonBonus(save,todaySeoul()),
-  setAudio, persist,
+  checkShort, setAudio, persist,
   reset(){ save=defaultSave(); ensureDecks(save); persist(); return save; }
 };
 window.Game=Game;
