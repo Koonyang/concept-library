@@ -40,3 +40,4 @@ No Library of Ruina / Project Moon assets are included.
 
 Attribution is not required by CC0, but it is gratefully given. Pretendard and Space Grotesk are included under the OFL 1.1 (fonts are not sold by themselves; no Reserved Font Name is modified).
 - BGM (assets/audio/bgm.mp3): 사용자 제공 음원, 태그 없음 (re-encoded 128kbps, loop crossfade).
+- 손님 책 표지 (assets/books/book-1.webp … book-8.webp): 큐 양 제공 (owner-provided covers).
