@@ -9,7 +9,13 @@
      BattleStage.onAssign = (unitId, dieIdx, cardId, target) => {}   // target = {unit, die} | null
      BattleStage.onUnassign = (unitId, dieIdx) => {}
         avoid   : (선택) 무대가 피해야 할 요소 선택자, 기본 "#qpanel.on". 보이면 그 위/아래 남는 칸에 유닛을 몰아 세운다.
-     BattleStage.clash(ev)  // 합/일방 연출. ev = 전투 쪽 resolve 이벤트 {kind:"clash"|"one-sided", ally, allyDie, enemy, enemyDie, win, by}
+     await BattleStage.clash(ev, {fast})  // 합 하나 연출 전부(카메라 다가감 → steps 마다 부딪침 → 빠짐). 끝나면 풀리는 Promise (기다리지 않아도 됨)
+        ev = {kind:"clash"|"one-sided", a:{unit,die,card,values}, b:{...}|null, steps:[{aVal,bVal,winner:"a"|"b"|"tie",dmg}], result}
+           또는 예전 모양 {kind, ally, allyDie, enemy, enemyDie, allyCard, enemyCard, win, by}
+        시간: 합 하나 clashMs(900), 부딪침 hitAt(400), steps 하나 더할 때마다 stepMs(240), 최대 maxClashMs(1600). fast 면 fastMs(300).
+        카메라가 들어가 있는 동안 .battle-stage 에 bs-cam-on → 손패·합 진행 버튼 숨김.
+        연출 중 탭 = 이번 합 빨리 감기(+onSkip), 길게 누르기(holdMs 450) = 다음 배치 단계 render 전까지 모든 clash 즉시 끝남(+onSkip)
+     BattleStage.focus(ev, fast) // (예전 흐름) 카메라만. 이걸로 맞춰 둔 뒤 clash(ev) 를 부르면 clash 는 카메라를 건드리지 않는다
      BattleStage.unitPoint(unitId) // 피해 숫자 띄울 화면 좌표 {x,y} (캐릭터 가슴께)
      BattleStage.relayout() // 바깥 요소(문제 칸 등)가 바뀐 뒤 자리만 다시 잡기
    조작: 배치 단계면 카드 안 놓은 첫 주사위가 자동으로 골라져 손패가 바로 뜬다.
@@ -103,6 +109,8 @@
 .bs.focus .bs-unit.fo{transition:left .3s cubic-bezier(.2,.8,.2,1),top .3s cubic-bezier(.2,.8,.2,1)}
 .bs-cam{transition:transform .32s cubic-bezier(.2,.8,.2,1);transform-origin:0 0;will-change:transform}
 .bs-cam.fast{transition-duration:.16s}
+/* 카메라가 들어가 있는 동안(다가감~빠짐 끝) 손패·합 진행 버튼 숨김 */
+.bs-cam-on .bs-fan,.bs-cam-on .bs-hand,.bs-cam-on #btn-mb-go,.bs-cam-on .pass-btn{opacity:0!important;visibility:hidden!important;pointer-events:none!important;transition:opacity .12s,visibility 0s .12s}
 @media (prefers-reduced-motion:reduce){ .bs-cam{transition:none} }
 @media (orientation:landscape) and (max-height:500px){ .bs .hand.bs-fan{height:136px} .bs .hand.bs-fan .cc{width:84px;height:122px} }
 /* 몸 종류가 있는 적(인간형·기계인간형·꼭두각시형): 온몸 그림이라 조금 크게, 우두머리는 더 크게. 흐트러지면 기울이지 않고 그림이 무너진다 */
@@ -115,7 +123,10 @@
 `;
   const DT={slash:"참",pierce:"관",blunt:"타",guard:"방",evade:"회"};
   let host=null, root=null, last=null, opts={}, sel=null, pickCard=null, drag=null, laidOut=false, info=null, holdT=0, holdT0=null, holdHit=false, focus=null, cam={z:1,x:0,y:0};
-  const API={ onAssign:null, onUnassign:null, onSkip:null, clashMs:900, hitAt:400, fastMs:300, fastHitAt:110 };
+  const API={ onAssign:null, onUnassign:null, onSkip:null, clashMs:900, hitAt:400, fastMs:300, fastHitAt:110, stepMs:240, maxClashMs:1600, holdMs:450, camOutMs:320 };
+  const runs=new Set(); const liveOwn=r=>[...runs].some(x=>x!==r&&!x.done&&!x.fast);
+  const cur={ get done(){ return !runs.size; }, ff(){ runs.forEach(r=>r.ff()); }, skip(){ [...runs].forEach(r=>r.skip()); } };
+  let skipAll=false, camOffT=0, holdSkipT=0, holdSkip0=null;
 
   function injectCss(){ if(document.getElementById("bs-css")) return; const s=document.createElement("style"); s.id="bs-css"; s.textContent=CSS; document.head.appendChild(s); }
 
@@ -187,12 +198,21 @@
     cam={z,x:tx,y:ty}; el.style.transform=`translate(${tx}px,${ty}px) scale(${z})`;
   }
   /* ev = 합/일방 이벤트 {ally, enemy, by, kind}. null 이면 원래 자리·카메라로. fast=true 면 빨리 감기. */
-  function setFocus(ev,fast){
+  function setFocus(ev,fast,own){
     ev=normEv(ev);
     const el=camEl(); if(el) el.classList.toggle("fast",!!fast);
-    focus = ev&&ev.kind!=="skip"&&ev.ally&&ev.enemy ? {ids:[ev.ally,ev.enemy],by:ev.by&&ev.by.unit,kind:ev.kind} : null;
+    focus = ev&&ev.kind!=="skip"&&ev.ally&&ev.enemy ? {ids:[ev.ally,ev.enemy],by:ev.by&&ev.by.unit,kind:ev.kind,ext:!own} : null;
     if(fast&&focus) focus=null;
+    camOn(!!focus,fast);
     if(root&&last) layout();
+  }
+  /* 손패·버튼 숨김 표시: .battle-stage(없으면 무대 바깥 칸)에 bs-cam-on. 끌 때는 카메라가 다 빠진 뒤 */
+  function camHost(){ return host&&(host.closest(".battle-stage")||host.parentElement||host); }
+  function camOn(on,fast){
+    const h=camHost(); clearTimeout(camOffT); if(!h) return;
+    if(on){ h.classList.add("bs-cam-on"); return; }
+    if(!h.classList.contains("bs-cam-on")) return;
+    camOffT=setTimeout(()=>{ if(!focus) h.classList.remove("bs-cam-on"); },fast?0:API.camOutMs);
   }
   function enemyRows(){ const en=last.units.filter(u=>u.side==="enemy"); return {front:en.filter(u=>u.slot<3).map(u=>u.slot).sort(),back:en.filter(u=>u.slot>=3).map(u=>u.slot).sort()}; }
   function layout(){
@@ -299,6 +319,7 @@
   function render(battle, o){
     if(!root) throw new Error("BattleStage.mount(host) 먼저");
     last=battle; if(o) opts=o;
+    if(battle.phase==="assign") skipAll=false;
     if(sel){ const su=unit(sel.unit); if(!su||su.hp<=0||su.staggered||!su.dice[sel.die]) { sel=null; pickCard=null; } }
     if(battle.phase!=="assign"){ sel=null; pickCard=null; }
     else if(!sel){ /* 빠른 진행: 카드 안 놓은 첫 주사위를 바로 고른다 */
@@ -346,6 +367,7 @@
   }
   function onTap(e){
     if(holdHit){ holdHit=false; return; }
+    if(cur&&!cur.done){ cur.ff(); if(API.onSkip) API.onSkip(); return; }
     if(last&&last.phase==="resolve"&&API.onSkip){ API.onSkip(); return; }
     if(!last) return;
     const ed=e.target.closest(".bs-unit.enemy .bs-die");
@@ -373,21 +395,44 @@
   }
   /* 끌기: 카드를 고른 내 주사위를 적 주사위 위로 */
   function onDown(e){
-    clearTimeout(holdT); const ed=e.target.closest&&e.target.closest(".bs-unit.enemy .bs-die");
+    clearTimeout(holdT);
+    if((cur&&!cur.done)||(last&&last.phase==="resolve")) return; const ed=e.target.closest&&e.target.closest(".bs-unit.enemy .bs-die");
     if(ed){ holdT0=[e.clientX,e.clientY]; } if(ed) holdT=setTimeout(()=>{ holdHit=true; info=null; showInfo(ed.dataset.u,+ed.dataset.d); },380);
     const die=e.target.closest(".bs-unit.ally .bs-die"); if(!die||!last||last.phase!=="assign") return;
     if(!(sel&&sel.unit===die.dataset.u&&sel.die===+die.dataset.d&&pickCard)) return;
     drag={unit:die.dataset.u,die:+die.dataset.d,x0:e.clientX,y0:e.clientY,x:null,y:null};
   }
-  function onMove(e){ if(holdT&&holdT0&&Math.hypot(e.clientX-holdT0[0],e.clientY-holdT0[1])>8) clearTimeout(holdT); if(!drag) return; if(Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)<8&&drag.x==null) return; const R=root.getBoundingClientRect(); drag.x=e.clientX-R.left; drag.y=e.clientY-R.top; drawArrows(); }
+  function onMove(e){ if(holdSkipT&&holdSkip0&&Math.hypot(e.clientX-holdSkip0[0],e.clientY-holdSkip0[1])>24) clearTimeout(holdSkipT); if(holdT&&holdT0&&Math.hypot(e.clientX-holdT0[0],e.clientY-holdT0[1])>8) clearTimeout(holdT); if(!drag) return; if(Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)<8&&drag.x==null) return; const R=root.getBoundingClientRect(); drag.x=e.clientX-R.left; drag.y=e.clientY-R.top; drawArrows(); }
   function onUp(e){
-    clearTimeout(holdT);
+    clearTimeout(holdT); clearTimeout(holdSkipT);
     if(!drag) return; const moved=drag.x!=null; drag=null;
     if(!moved){ drawArrows(); return; }
     const el=document.elementFromPoint(e.clientX,e.clientY); const die=el&&el.closest(".bs-unit.enemy .bs-die:not(.off)");
     const body=!die&&el&&el.closest(".bs-unit.enemy:not(.dead)");
     if(die) assign({unit:die.dataset.u,die:+die.dataset.d}); else if(body){ const u=unit(body.dataset.unit); if(u) assign(bodyTarget(u)); } else drawArrows();
     e.stopPropagation(); root.__noTap=true; setTimeout(()=>root.__noTap=false,0);
+  }
+  /* 합 연출 중에는 화면 어디를 눌러도: 탭 = 이번 합 빨리 감기, 길게 누르기 = 남은 합 모두 건너뛰기 */
+  const busyNow=()=>!!root&&((cur&&!cur.done)||(last&&last.phase==="resolve"));
+  function onAnyDown(e){
+    clearTimeout(holdSkipT); if(!busyNow()) return;
+    holdSkip0=[e.clientX,e.clientY];
+    holdSkipT=setTimeout(()=>{ holdSkipT=0; skipHeld=true; skipAll=true; if(cur&&!cur.done) cur.skip(); if(API.onSkip) API.onSkip(); },API.holdMs);
+  }
+  /* 탭은 pointerup 으로 판단 (터치에서 click 이 안 올 수도 있어서). 뒤따르는 click 은 삼킨다 */
+  let eatClickT=0, skipHeld=false;
+  function onAnyUp(e){
+    const pending=!!holdSkipT&&holdSkip0; clearTimeout(holdSkipT); holdSkipT=0;
+    if(skipHeld){ skipHeld=false; eatClickT=Date.now()+500; return; }
+    if(!pending||!(cur&&!cur.done)) return;
+    if(e&&Math.hypot(e.clientX-holdSkip0[0],e.clientY-holdSkip0[1])>24) return;
+    cur.ff(); if(API.onSkip) API.onSkip();
+    eatClickT=Date.now()+500;
+  }
+  function onAnyClick(e){
+    if(!root) return;
+    if(Date.now()<eatClickT){ eatClickT=0; e.stopPropagation(); e.preventDefault(); return; }
+    if(cur&&!cur.done){ e.stopPropagation(); e.preventDefault(); cur.ff(); if(API.onSkip) API.onSkip(); }
   }
   const onResize=()=>{ if(root&&last) render(last); };
   let ro=null;
@@ -397,13 +442,16 @@
     root.addEventListener("click",e=>{ if(root.__noTap) return; onTap(e); });
     root.addEventListener("pointerdown",onDown); window.addEventListener("pointermove",onMove); window.addEventListener("pointerup",onUp,true);
     window.addEventListener("resize",onResize);
+    window.addEventListener("pointerdown",onAnyDown,true); window.addEventListener("pointerup",onAnyUp,true); window.addEventListener("pointercancel",onAnyUp,true); window.addEventListener("click",onAnyClick,true);
     if(window.ResizeObserver){ ro=new ResizeObserver(()=>layout()); ro.observe(root); }
     return root;
   }
   function unmount(){
     { const ce=host&&camEl(); if(ce){ ce.style.transform=""; ce.classList.remove("bs-cam","fast"); } }
     window.removeEventListener("pointermove",onMove); window.removeEventListener("pointerup",onUp,true); window.removeEventListener("resize",onResize);
+    window.removeEventListener("pointerdown",onAnyDown,true); window.removeEventListener("pointerup",onAnyUp,true); window.removeEventListener("pointercancel",onAnyUp,true); window.removeEventListener("click",onAnyClick,true);
     if(ro){ ro.disconnect(); ro=null; }
+    if(cur&&!cur.done) cur.skip(); clearTimeout(holdSkipT); clearTimeout(camOffT); { const h=camHost(); if(h) h.classList.remove("bs-cam-on"); } skipAll=false;
     if(root){ root.remove(); } root=null; host=null; last=null; sel=null; pickCard=null; drag=null; laidOut=false; info=null; clearTimeout(holdT); clearTimeout(arrowT); focus=null; cam={z:1,x:0,y:0};
     for(const o of [prevPos,seenHp,seenStag]) for(const k in o) delete o[k];
   }
@@ -429,11 +477,43 @@
       allyCard:allyS&&allyS.card,enemyCard:enemyS&&enemyS.card,allyDieObj:allyS&&allyS.die,enemyDieObj:enemyS&&enemyS.die,
       by:{unit:aId,die:di(ev.a.die)},win:ev.kind==="clash"?(win==="tie"?"tie":((win==="a")===aAlly?"ally":"enemy")):null};
   }
-  function clash(ev){
-    ev=normEv(ev);
-    if(!root||!ev||ev.kind==="skip") return;
-    const ue=id=>root.querySelector(`.bs-unit[data-unit="${id}"]`);
+  /* 합 한 번의 연출 전부: 카메라 다가감 → 합(steps 마다 한 번씩 부딪침) → 카메라 빠짐. 끝나면 풀리는 Promise.
+     o.fast: 카메라 없이 빨리 (fastMs). 연출 중 탭 = 이번 합 빨리 감기, 길게 누르기 = 다음 배치 전까지 남은 합 모두 즉시.
+     바깥에서 BattleStage.focus(ev) 로 이미 카메라를 맞춰 둔 경우(예전 흐름)엔 부딪침만 하고 카메라는 건드리지 않는다. */
+  function clash(ev,o){
+    ev=normEv(ev); o=o||{};
+    if(!root||!ev||ev.kind==="skip"||skipAll) return Promise.resolve();
+    const ue=id=>root&&root.querySelector(`.bs-unit[data-unit="${id}"]`);
+    if(!ue(ev.ally)||!ue(ev.enemy)) return Promise.resolve();
+    const ext=!!(focus&&focus.ext&&focus.ids.includes(ev.ally)&&focus.ids.includes(ev.enemy));
+    const steps=Array.isArray(ev.steps)&&ev.a&&ev.steps.length?ev.steps:[null];
+    const run={done:false,fast:!!o.fast,wake:null}; runs.add(run);
+    const sleep=ms=>new Promise(r=>{ if(run.done||ms<=0) return r(); const t=setTimeout(()=>{ run.wake=null; r(); },ms); run.wake=()=>{ clearTimeout(t); run.wake=null; r(); }; });
+    run.ff=()=>{ if(run.fast) return; run.fast=true; if(!ext&&focus&&!focus.ext) setFocus(null,true,true); if(run.wake) run.wake(); };
+    let fin; const p=new Promise(r=>fin=r);
+    run.skip=()=>{ if(run.done) return; run.done=true; if(run.wake) run.wake(); if(!ext&&focus&&!focus.ext&&!liveOwn(run)) setFocus(null,true,true); runs.delete(run); fin(); };
+    (async()=>{
+      const n=steps.length, gap=n>1?Math.min(API.stepMs,Math.max(80,(API.maxClashMs-API.clashMs)/(n-1))):0;
+      if(!ext&&!run.fast){ setFocus(ev,false,true); }
+      if(!ext) await sleep(run.fast?API.fastHitAt:API.hitAt);
+      for(let k=0;k<n&&!run.done;k++){
+        if(k) await sleep(run.fast?Math.min(60,gap):gap); if(run.done) break;
+        hit(ev,steps[k],ue);   /* 카메라를 바깥에서 맞춰 둔 경우 첫 부딪침은 부르는 즉시(예전처럼) */
+      }
+      if(run.done) return;
+      const tail=run.fast?API.fastMs-API.fastHitAt:API.clashMs-API.hitAt;
+      if(!ext){ await sleep(Math.max(0,tail-API.camOutMs)); if(focus&&!focus.ext&&!run.done&&!liveOwn(run)) setFocus(null,run.fast,true); await sleep(run.fast?0:API.camOutMs); }
+      else await sleep(Math.min(tail,API.clashMs-API.hitAt));
+      run.done=true; runs.delete(run);
+      if(focus&&!focus.ext&&!liveOwn(run)) setFocus(null,false,true);   /* 겹쳐 부른 경우: 마지막 연출이 카메라를 뺀다 */
+      fin();
+    })();
+    return p;
+  }
+  /* 부딪침 한 번 (step 없으면 이벤트 전체 승패로) */
+  function hit(ev,st,ue){
     const A=ue(ev.ally), E=ue(ev.enemy); if(!A||!E) return;
+    if(st&&ev.kind==="clash"){ const aAlly=ev.by&&ev.by.unit===ev.ally; const w=st.winner==="a"?(aAlly?"ally":"enemy"):st.winner==="b"?(aAlly?"enemy":"ally"):"tie"; ev={...ev,win:w}; }
     const attacker=ev.by&&ev.by.unit===ev.enemy?E:A, target=attacker===A?E:A;
     const fx=(el,c)=>{ el.classList.remove("lunge","flinch","lose","act"); void el.offsetWidth; el.classList.add(c,"act"); setTimeout(()=>el.classList.remove(c,"act"),460); };
     const dies=[[ev.ally,ev.allyDie],[ev.enemy,ev.enemyDie]].map(([u,i])=>i!=null&&dieEl(u,i)).filter(Boolean);

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118u">
+<meta name="build" content="library-20261118v">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -5980,7 +5980,7 @@ function mbRunResolve(instant){
     const disp={...B,phase:"resolve",units:B.units.map(u=>({...u,...ev.snap[u.id]}))};
     mbRefresh(disp);
     const fast=my.fast||!BS.focus; if(BS.focus) BS.focus(fast?null:ev,fast);
-    SFX.dice(); setTimeout(()=>{ if(my!==mb) return; if(window.BattleStage&&BattleStage.clash) BattleStage.clash(ev); SFX.clash(ev.win!=="enemy"); flash(.14); shake(5); ev.steps.forEach(st=>mbShowStepEvents(ev,st)); if(ev.steps.some(s=>s.newStag.length)) SFX.stagger(); },fast?(BS.fastHitAt||160):(BS.hitAt||400));
+    SFX.dice(); setTimeout(()=>{ if(my!==mb) return; if(window.BattleStage&&BattleStage.clash) BattleStage.clash(ev,{fast}); SFX.clash(ev.win!=="enemy"); flash(.14); shake(5); ev.steps.forEach(st=>mbShowStepEvents(ev,st)); if(ev.steps.some(s=>s.newStag.length)) SFX.stagger(); },fast?(BS.fastHitAt||160):(BS.hitAt||400));
     setTimeout(step,fast?Math.min(MB.stepMs,BS.fastMs||MB.stepMs):Math.max(MB.stepMs,BS.clashMs||MB.stepMs));
   };
   mbRefresh({...B,phase:"resolve",units:pre});
