@@ -5,9 +5,14 @@
   "scripts": {
     "test": "node tests/run.mjs",
     "sim": "node tools/sim/balance.mjs",
-    "sim:hp": "node tools/sim/hp.mjs"
+    "sim:hp": "node tools/sim/hp.mjs",
+    "assets:characters": "node tools/assets/build-characters.mjs"
   },
   "devDependencies": {
-    "playwright-core": "^1.55.0"
+    "@gltf-transform/cli": "^4.5.1",
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
+    "playwright-core": "^1.55.0",
+    "three": "^0.180.0"
   }
 }

@@ -25,6 +25,16 @@ No Library of Ruina / Project Moon assets are included.
 - URL: https://commons.wikimedia.org/wiki/File:AbbeyLibrary-SaintGallen.jpg
 - Used for (old UI, archived): lobby, title, and battle backgrounds (`legacy/assets/bg/`)
 
+## Kay Lousberg — KayKit Character Pack: Adventurers 1.0
+- License: CC0 1.0 Universal
+- URL: https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0 (also https://kaylousberg.itch.io/kaykit-adventurers)
+- Used for: 3D characters and animations (`assets/models/characters/`, built by `tools/assets/build-characters.mjs`: animations split into `anims.glb`, textures 256×256). License text: `assets/models/LICENSE-KayKit.txt`
+
+## three.js — three.js authors
+- License: MIT
+- URL: https://github.com/mrdoob/three.js (npm three@0.180.0)
+- Used for: 3D stage rendering (`vendor/three/`, license text `vendor/three/LICENSE`)
+
 ## Pretendard — Kil Hyung-jin
 - License: SIL Open Font License 1.1
 - URL: https://github.com/orioncactus/pretendard
