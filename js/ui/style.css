@@ -1,0 +1,149 @@
+/* 개념의 서고 — 새 UI. 무대(#stage 캔버스)는 맨 아래 배경층, UI(#ui)는 그 위.
+   기준 화면 844×390(가로), 390×844(세로). 전투 정보 UI(주사위·막대·화살표·손패·[개막]·상태판)는 서로 겹치지 않게 자리를 나눈다. */
+:root {
+  --ink: #0b0d10;
+  --glass: rgba(14, 16, 20, 0.72);
+  --glass-hi: rgba(26, 29, 36, 0.86);
+  --line: rgba(255, 255, 255, 0.10);
+  --fg: #ece8df;
+  --muted: #9d998f;
+  --accent: #d9a35a;          /* 층 포인트 색으로 바뀐다 (--accent 를 #ui 에 덮어씀) */
+  --ally: #8fd3c8;
+  --enemy: #e88a7e;
+  --hp: #e4c88e;
+  --st: #b9a6ff;
+  --good: #9fe0a4;
+  --bad: #ef8b80;
+  --sans: "Pretendard Variable", Pretendard, system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+  --num: "Space Grotesk", "Pretendard Variable", Pretendard, system-ui, sans-serif;
+  --r: 10px;
+  color-scheme: dark;
+}
+html, body { margin: 0; height: 100%; background: var(--ink); color: var(--fg); font-family: var(--sans); -webkit-tap-highlight-color: transparent; overflow: hidden; }
+#stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
+#ui { position: fixed; inset: 0; z-index: 1; pointer-events: none; font-size: 13px; line-height: 1.35; user-select: none; -webkit-user-select: none; }
+#ui > * { pointer-events: auto; }
+button { font: inherit; color: inherit; }
+.num { font-family: var(--num); font-variant-numeric: tabular-nums; }
+
+/* ---------- 상태판: 위 가운데 ---------- */
+#status { position: absolute; top: max(8px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: flex; gap: 10px; align-items: center;
+  padding: 4px 12px; border-radius: 999px; background: var(--glass); border: 1px solid var(--line); white-space: nowrap; font-size: 12px; pointer-events: none; }
+#status .scene { font-family: var(--num); font-weight: 700; color: var(--accent); }
+#status .msg { color: var(--muted); max-width: 30vw; overflow: hidden; text-overflow: ellipsis; }
+#status .msg.good { color: var(--good); } #status .msg.bad { color: var(--bad); }
+
+/* ---------- 체력·흐트러짐 막대: 위 왼쪽(사서) / 위 오른쪽(적) ---------- */
+#hud-bars { position: absolute; inset: 0; pointer-events: none; }
+#hud-bars .side { position: absolute; top: max(8px, env(safe-area-inset-top)); width: min(210px, 26vw); display: grid; gap: 4px; }
+#hud-bars .side.ally { left: max(10px, env(safe-area-inset-left)); }
+#hud-bars .side.enemy { right: max(10px, env(safe-area-inset-right)); }
+.unit-bar { display: grid; grid-template-columns: 1fr auto; column-gap: 6px; row-gap: 2px; align-items: center; padding: 3px 7px 4px; border-radius: 7px; background: var(--glass); border: 1px solid var(--line); }
+.unit-bar .nm { font-size: 11px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.unit-bar .v { font-size: 10px; color: var(--muted); }
+.unit-bar .bars { grid-column: 1 / -1; display: grid; gap: 2px; }
+.unit-bar .hp, .unit-bar .st { height: 4px; border-radius: 2px; background: rgba(255,255,255,.08); overflow: hidden; }
+.unit-bar .st { height: 3px; }
+.unit-bar .hp i, .unit-bar .st i { display: block; height: 100%; transform-origin: left; transition: transform .25s ease-out; }
+.unit-bar .hp i { background: var(--hp); } .unit-bar .st i { background: var(--st); }
+.unit-bar.enemy .nm { color: var(--enemy); } .unit-bar.ally .nm { color: var(--ally); }
+.unit-bar.dead { opacity: .35; } .unit-bar.stag .st i { background: var(--bad); }
+.unit-bar.hot { border-color: var(--accent); }
+
+/* ---------- 속도 주사위: 유닛 머리 위 ---------- */
+#dice-layer { position: absolute; inset: 0; pointer-events: none; }
+.die-row { position: absolute; display: flex; gap: 4px; transform: translate(-50%, -100%); pointer-events: none; }
+.speed-die { pointer-events: auto; min-width: 26px; height: 24px; padding: 0 5px; border-radius: 7px; display: grid; place-items: center; cursor: pointer;
+  font-family: var(--num); font-weight: 700; font-size: 13px; background: var(--glass-hi); border: 1.5px solid var(--line); transition: transform .12s, border-color .12s; }
+.speed-die[data-side="ally"] { color: var(--ally); }
+.speed-die[data-side="enemy"] { color: var(--enemy); }
+.speed-die.set { border-color: var(--ally); box-shadow: 0 0 0 2px rgba(143,211,200,.18); }
+.speed-die.sel { border-color: var(--accent); transform: translateY(-2px) scale(1.08); }
+.speed-die.can-target { border-color: var(--enemy); animation: pulse 1s ease-in-out infinite; }
+.enemy-target { pointer-events: auto; position: absolute; width: 56px; height: 90px; transform: translate(-50%, 0); border-radius: 12px; cursor: pointer; }
+.enemy-target.can-target { outline: 1.5px dashed var(--enemy); }
+@keyframes pulse { 50% { box-shadow: 0 0 0 4px rgba(232,138,126,.25); } }
+
+/* ---------- 대상 화살표 ---------- */
+#target-arrows { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+#target-arrows path { fill: none; stroke-width: 2; stroke-linecap: round; }
+#target-arrows path.ally { stroke: var(--ally); }
+#target-arrows path.enemy { stroke: var(--enemy); stroke-dasharray: 4 5; opacity: .55; }
+#target-arrows path.clash { stroke: var(--accent); stroke-width: 2.5; }
+
+/* ---------- 손패: 아래 가운데 ---------- */
+#hand { position: absolute; bottom: max(8px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: flex; align-items: flex-end; gap: 8px;
+  max-width: calc(100vw - 140px - env(safe-area-inset-left) - env(safe-area-inset-right)); }
+#hand[hidden] { display: none; }
+#hand .info { display: grid; gap: 2px; padding: 6px 8px; border-radius: 8px; background: var(--glass); border: 1px solid var(--line); font-size: 11px; min-width: 52px; }
+#hand .info b { font-family: var(--num); color: var(--accent); }
+#hand .cards { display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; padding-top: 6px; }
+#hand .cards::-webkit-scrollbar { display: none; }
+.card { flex: 0 0 auto; width: 66px; height: 88px; border-radius: 8px; padding: 5px 6px; box-sizing: border-box; display: grid; grid-template-rows: auto 1fr auto; cursor: pointer;
+  background: linear-gradient(180deg, #23262d, #17191e); border: 1px solid var(--line); transition: transform .12s, border-color .12s, opacity .12s; text-align: left; }
+.card .nm { font-size: 10.5px; font-weight: 700; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.card .dice { display: grid; gap: 1px; align-content: end; font-size: 10px; }
+.card .dice span { font-family: var(--num); }
+.card .cost { display: flex; justify-content: space-between; font-family: var(--num); font-size: 10px; color: var(--accent); }
+.card.r-R { border-color: rgba(127,200,232,.35); } .card.r-SR { border-color: rgba(185,166,255,.5); } .card.r-SSR { border-color: rgba(217,163,90,.7); }
+.card:hover { transform: translateY(-3px); }
+.card.sel { transform: translateY(-6px); border-color: var(--accent); }
+.card.disabled { opacity: .38; cursor: default; transform: none; }
+.t-참격 { color: #f0b08a; } .t-관통 { color: #9fd0f0; } .t-타격 { color: #f0d08a; } .t-방어 { color: #a8e0b0; } .t-회피 { color: #c8b0f0; }
+
+/* ---------- [개막] ---------- */
+#btn-open { position: absolute; right: max(12px, env(safe-area-inset-right)); bottom: max(10px, env(safe-area-inset-bottom)); width: 96px; height: 46px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--accent); background: linear-gradient(180deg, rgba(217,163,90,.28), rgba(217,163,90,.12)); color: var(--fg); font-weight: 800; letter-spacing: .08em; font-size: 15px; }
+#btn-open:disabled { opacity: .35; cursor: default; }
+#btn-open[hidden] { display: none; }
+
+/* ---------- 문제 패널: 아래 ---------- */
+#question { position: absolute; left: 50%; bottom: max(8px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(760px, calc(100vw - 24px)); box-sizing: border-box;
+  padding: 10px 12px 12px; border-radius: 14px; background: var(--glass-hi); border: 1px solid var(--line); display: none; gap: 8px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+#question.on { display: grid; }
+#question .who { font-size: 11px; color: var(--muted); display: flex; gap: 8px; }
+#question .who b { color: var(--enemy); font-weight: 600; }
+#question .key { color: var(--accent); font-weight: 700; }
+#question .prompt { font-size: 14.5px; font-weight: 600; line-height: 1.4; }
+#question .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+#question .opts.ox { grid-template-columns: 1fr 1fr; }
+.q-opt { text-align: left; padding: 8px 10px; border-radius: 9px; border: 1px solid var(--line); background: rgba(255,255,255,.04); cursor: pointer; font-size: 13px; line-height: 1.3; }
+.q-opt:hover { border-color: var(--accent); }
+.q-opt.ok { border-color: var(--good); background: rgba(159,224,164,.12); }
+.q-opt.no { border-color: var(--bad); background: rgba(239,139,128,.12); }
+.opts.ox .q-opt { text-align: center; font-family: var(--num); font-size: 20px; font-weight: 700; padding: 6px; }
+#question form { display: flex; gap: 6px; }
+#q-short { flex: 1; min-width: 0; padding: 9px 10px; border-radius: 9px; border: 1px solid var(--line); background: rgba(0,0,0,.3); color: var(--fg); font: inherit; font-size: 15px; }
+#q-submit { padding: 0 16px; border-radius: 9px; border: 1px solid var(--accent); background: rgba(217,163,90,.18); cursor: pointer; font-weight: 700; }
+
+/* ---------- 오답 해설: 위 가운데 (상태판 아래) ---------- */
+#learn { position: absolute; top: calc(max(8px, env(safe-area-inset-top)) + 32px); left: 50%; transform: translateX(-50%); width: min(380px, 42vw); box-sizing: border-box;
+  padding: 7px 10px; border-radius: 10px; background: var(--glass-hi); border: 1px solid rgba(239,139,128,.35); font-size: 11.5px; line-height: 1.4; cursor: pointer; display: none; }
+#learn.on { display: block; }
+#learn b { color: var(--bad); display: block; margin-bottom: 2px; }
+#learn p { margin: 0; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+#learn.open p { -webkit-line-clamp: unset; }
+
+/* ---------- 연출 중: 화면 전체가 탭(빨리 감기)·길게(건너뛰기) 받기 ---------- */
+#skip-layer { position: absolute; inset: 0; display: none; cursor: pointer; }
+#skip-layer.on { display: block; }
+#skip-layer .hint { position: absolute; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); font-size: 11px; color: var(--muted); padding: 3px 10px; border-radius: 999px; background: var(--glass); }
+.float-num { position: absolute; transform: translate(-50%, -100%); font-family: var(--num); font-weight: 800; font-size: 18px; pointer-events: none; text-shadow: 0 2px 6px rgba(0,0,0,.6); animation: floatUp .9s ease-out forwards; }
+.float-num.hp { color: var(--hp); } .float-num.st { color: var(--st); font-size: 14px; } .float-num.ally { color: var(--bad); }
+@keyframes floatUp { from { opacity: 1; transform: translate(-50%, -100%); } to { opacity: 0; transform: translate(-50%, -190%); } }
+
+/* ---------- 세로 화면 ---------- */
+@media (max-aspect-ratio: 1/1) {
+  #hud-bars .side { width: calc(50vw - 16px); }
+  #status { top: auto; bottom: calc(max(8px, env(safe-area-inset-bottom)) + 210px); }
+  #learn { top: auto; bottom: calc(max(8px, env(safe-area-inset-bottom)) + 244px); width: calc(100vw - 24px); }
+  #hand { left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); transform: none; max-width: none; bottom: calc(max(8px, env(safe-area-inset-bottom)) + 58px); flex-direction: column; align-items: stretch; }
+  #hand .info { display: flex; gap: 10px; }
+  #hand .cards { flex-wrap: wrap; overflow: visible; justify-content: center; }
+  .card { width: 64px; height: 84px; }
+  #btn-open { left: 50%; right: auto; transform: translateX(-50%); width: min(260px, 70vw); }
+  #question .opts { grid-template-columns: 1fr; }
+  #question .opts.ox { grid-template-columns: 1fr 1fr; }
+  #question .prompt { font-size: 15.5px; }
+}
+@media (prefers-reduced-motion: reduce) { .speed-die.can-target { animation: none; } .float-num { animation-duration: .01s; } }
