@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>stage test</title><link rel="icon" href="data:,">
+<style>html,body{margin:0;height:100%;background:#000}#stage{display:block;width:100vw;height:100vh}</style>
+<script type="importmap">{"imports":{"three":"../vendor/three/three.module.min.js","three/addons/":"../vendor/three/addons/"}}</script>
+</head><body>
+<canvas id="stage"></canvas>
+<!-- 무대 테스트용 빈 페이지: 코어 + 무대 모듈만. 테스트가 window.__stageMod 로 모듈을 쓴다 -->
+<script src="../assets/data/moon-words.sample.js"></script>
+<script src="../js/core/data.js"></script><script src="../js/core/engine.js"></script><script src="../js/core/save.js"></script>
+<script src="../js/core/battle.js"></script><script src="../js/core/moon.js"></script><script src="../js/core/api.js"></script>
+<script type="module">
+  if(new URLSearchParams(location.search).has("nogl")) HTMLCanvasElement.prototype.getContext=()=>null;
+  const mod=await import("../js/stage/stage.js"); window.__stageMod=mod;
+</script>
+</body></html>
