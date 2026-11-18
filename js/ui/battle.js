@@ -70,14 +70,21 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     if (n.dataset.x != null && Math.abs(ox - x) <= 1 && Math.abs(oy - y) <= 1) return; n.dataset.x = x; n.dataset.y = y; n.style.left = x + "px"; n.style.top = y + "px"; }
   /* 막대 묶음 아래쪽 경계(주사위·화살표가 막대와 겹치지 않게) */
   function barsFloor(xL, xR) {
-    let y = 0; for (const s of el.bars.querySelectorAll(".side")) { const r = s.getBoundingClientRect(); if (r.width && xR > r.left && xL < r.right) y = Math.max(y, r.bottom); }
+    let y = 0; const tops = [...el.bars.querySelectorAll(".side"), el.status, el.learn.classList.contains("on") ? el.learn : null];
+    for (const s of tops) { if (!s) continue; const r = s.getBoundingClientRect(); if (r.width && r.top < innerHeight * 0.5 && xR > r.left && xL < r.right) y = Math.max(y, r.bottom); }
     return y;
   }
+  /* 머리 위에 두되: 화면 안으로, 위쪽 막대·상태판 아래로, 다른 유닛의 주사위 줄과 안 겹치게 */
   function placeDice() {
-    for (const row of el.dice.querySelectorAll(".die-row")) {
-      const p = pointOf(row.dataset.unit); setPos(row, p.x, p.y);
-      const r = row.getBoundingClientRect(), floor = barsFloor(r.left, r.right) + 4;
-      if (r.height && r.top < floor - 0.5) setPos(row, p.x, p.y + floor - r.top);
+    const rows = [...el.dice.querySelectorAll(".die-row")], W = innerWidth, placed = [];
+    const want = rows.map(row => { const p = pointOf(row.dataset.unit), w = row.offsetWidth || 30, h = row.offsetHeight || 24;
+      let x = Math.min(Math.max(p.x, w / 2 + 6), W - w / 2 - 6), y = p.y;               /* (x, y) = 줄의 가운데 아래 */
+      return { row, x, y, w, h }; }).sort((a, b) => a.y - b.y);
+    for (const r of want) {
+      const floor = barsFloor(r.x - r.w / 2, r.x + r.w / 2) + 4; if (r.y - r.h < floor) r.y = floor + r.h;
+      for (let k = 0; k < 6; k++) { const hit = placed.find(o => Math.abs(o.x - r.x) < (o.w + r.w) / 2 + 3 && Math.abs(o.y - r.y) < (o.h + r.h) / 2 + 3);
+        if (!hit) break; r.y = hit.y + hit.h + 4; }
+      placed.push(r); setPos(r.row, r.x, r.y);
     }
     for (const t of el.dice.querySelectorAll(".enemy-target")) { const p = pointOf(t.dataset.unit); setPos(t, p.x, p.y); }
   }

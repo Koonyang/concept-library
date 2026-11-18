@@ -73,7 +73,7 @@ button { font: inherit; color: inherit; }
 
 /* ---------- 손패: 아래 가운데 ---------- */
 #hand { position: absolute; bottom: max(8px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: flex; align-items: flex-end; gap: 8px;
-  max-width: calc(100vw - 140px - env(safe-area-inset-left) - env(safe-area-inset-right)); }
+  max-width: calc(100vw - 2 * (96px + 20px) - env(safe-area-inset-left) - env(safe-area-inset-right)); }
 #hand[hidden] { display: none; }
 #hand .info { display: grid; gap: 2px; padding: 6px 8px; border-radius: 8px; background: var(--glass); border: 1px solid var(--line); font-size: 11px; min-width: 52px; }
 #hand .info b { font-family: var(--num); color: var(--accent); }
@@ -135,8 +135,9 @@ button { font: inherit; color: inherit; }
 /* ---------- 세로 화면 ---------- */
 @media (max-aspect-ratio: 1/1) {
   #hud-bars .side { width: calc(50vw - 16px); }
-  #status { top: auto; bottom: calc(max(8px, env(safe-area-inset-bottom)) + 210px); }
-  #learn { top: auto; bottom: calc(max(8px, env(safe-area-inset-bottom)) + 244px); width: calc(100vw - 24px); }
+  #status { top: calc(max(8px, env(safe-area-inset-top)) + 116px); }
+  #learn { top: calc(max(8px, env(safe-area-inset-top)) + 148px); width: calc(100vw - 24px); }
+  #status .msg { max-width: 46vw; }
   #hand { left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); transform: none; max-width: none; bottom: calc(max(8px, env(safe-area-inset-bottom)) + 58px); flex-direction: column; align-items: stretch; }
   #hand .info { display: flex; gap: 10px; }
   #hand .cards { flex-wrap: wrap; overflow: visible; justify-content: center; }
