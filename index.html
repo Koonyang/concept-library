@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118n">
+<meta name="build" content="library-20261118o">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -4862,7 +4862,9 @@ function libraryPhoto(kind){
 // Whole-stage framing: backdrop, spotlights and a perspective stage floor.
 function paintStage(c,cv,W,H){
   let feetY=H*.64, figH=Math.min(H*.34,300);
-  try{
+  const fl=cv._floor;
+  if(fl){ const cr=cv.getBoundingClientRect(), b=fl.yb-cr.top, f=fl.yf-cr.top; figH=Math.max(60,(f-b)/.36); feetY=b+figH*.16; }
+  else try{
     const cr=cv.getBoundingClientRect(), ch=document.querySelector("#fig-lib .char");
     if(ch){ const r=ch.getBoundingClientRect(); if(r.height>20){ feetY=r.bottom-cr.top; figH=r.height; } }
   }catch(e){}
@@ -5582,6 +5584,7 @@ function mbStageOpts(){
       bindHandScrub(c=>{ if(!busy) BattleStage.pickCard(c.dataset.card); });
       bindPageInspect("#hand .cc",null); },
     dieInfo:mbDieInfo,
+    onFloor:f=>{ const cv=$("#arena-bg"); if(!cv) return; const o=cv._floor; if(o&&Math.abs(o.yb-f.yb)<3&&Math.abs(o.yf-f.yf)<3) return; cv._floor=f; paintBattleFloor(cv,mb&&mb.guest.floorId); },
     figure:u=>u.side==="ally"
     ?librarianSvg(save,"100%","100%",{keyId:(libsKeyOf(save,u.libId)||KEY_PAGES[0]).id,uid:"mb"+u.id})
     :guestSvg(guest,u.staggered,"100%","100%",true)};
