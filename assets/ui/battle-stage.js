@@ -7,7 +7,7 @@
         cards   : { [cardId]: {name, cost, dice:[{type:"slash|pierce|blunt|guard|evade", min, max}]} }
         figure  : (unit) => html  캐릭터 그림 (없으면 실루엣)
      BattleStage.onAssign = (unitId, dieIdx, cardId, target) => {}   // target = {unit, die} | null
-     BattleStage.onUnassign = (unitId, dieIdx) => {}
+     BattleStage.onUnassign = (unitId, dieIdx) => {}  // 또는 opts.onUnassign. 놓은 주사위/화살표를 탭하면 호출
         avoid   : (선택) 무대가 피해야 할 요소 선택자, 기본 "#qpanel.on". 보이면 그 위/아래 남는 칸에 유닛을 몰아 세운다.
      await BattleStage.clash(ev, {fast})  // 합 하나 연출 전부(카메라 다가감 → steps 마다 부딪침 → 빠짐). 끝나면 풀리는 Promise (기다리지 않아도 됨)
         ev = {kind:"clash"|"one-sided", a:{unit,die,card,values}, b:{...}|null, steps:[{aVal,bVal,winner:"a"|"b"|"tie",dmg}], result}
@@ -20,6 +20,8 @@
      BattleStage.relayout() // 바깥 요소(문제 칸 등)가 바뀐 뒤 자리만 다시 잡기
    조작: 배치 단계면 카드 안 놓은 첫 주사위가 자동으로 골라져 손패가 바로 뜬다.
      내 주사위 탭 → 손패에서 카드 탭 → 적 주사위 탭(또는 끌기). 흐트러져 주사위가 없는 적은 캐릭터를 탭하면 {unit, die:null}.
+     합 진행 전까지는 언제든 다시 고를 수 있다. 카드가 놓인 내 주사위 또는 그 화살표를 탭하면 해제(opts.onUnassign || onUnassign).
+     고른 카드를 다시 탭하면 선택만 해제. 감정 조건이 안 되는 카드(cardInfo.usable / emotionReq)는 흐리고 고를 수 없다.
    자리: 아래쪽 손패·합 진행 버튼 몫(가로 66px, 세로 118px)은 비워 둔다.
    배치: 아군 slot 0 앞줄, 1·2 뒷줄 / 적 slot 0~2 앞줄, 3·4 뒷줄. 뒷줄은 작고 어둡게. */
 (function(){
@@ -41,6 +43,7 @@
 .bs-unit.enemy .bs-die{border-color:#c45c4a}
 .bs-die.has-card{background:#2a2414}
 .bs-unit.enemy .bs-die.has-card{background:#2a1614}
+.bs-die .bs-x{position:absolute;top:-5px;right:-5px;width:12px;height:12px;border-radius:50%;background:#3a2a10;color:#ffe6a8;font:700 9px/12px system-ui,sans-serif;text-align:center;border:1px solid #c4a35a;pointer-events:none;z-index:1}
 .bs-die.sel{outline:2px solid #ffe6a8;outline-offset:2px;transform:scale(1.12)}
 .bs-die.can-target{animation:bsPulse 1s ease-in-out infinite;border-color:#ffe6a8}
 .bs-die.off{opacity:.35;pointer-events:none}
@@ -56,8 +59,14 @@
 .bs-light{display:flex;gap:2px;justify-content:center;margin-top:3px}
 .bs-light b{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.15)}
 .bs-light b.on{background:#ffe6a8;box-shadow:0 0 5px rgba(255,230,168,.8)}
+.bs-emo{display:flex;align-items:center;justify-content:center;gap:2px;margin-top:3px;pointer-events:none}
+.bs-emo .pip{width:0;height:0;border-left:3.5px solid transparent;border-right:3.5px solid transparent;border-bottom:6px solid rgba(255,255,255,.18)}
+.bs-emo .pip.on{border-bottom-color:#e6c86a;filter:drop-shadow(0 0 3px rgba(230,200,106,.7))}
+.bs-emo small{font-size:9px;font-weight:700;color:#e8d5b0;margin-left:2px}
+.bs-emo .nxt{font-size:8px;opacity:.8;margin-left:3px;color:#d7c59a;font-variant-numeric:tabular-nums}
 .bs-tag{position:absolute;top:-16px;font-size:10px;padding:1px 5px;border-radius:6px;background:#c45c4a;color:#fff;white-space:nowrap}
 .bs-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:40;overflow:visible}
+.bs-svg .bs-arr-hit{pointer-events:stroke;cursor:pointer;stroke:transparent;fill:none}
 .bs-hand{position:absolute;left:50%;bottom:calc(6px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;gap:6px;z-index:50;max-width:calc(100% - 220px);overflow-x:auto;padding:8px 2px 2px;scrollbar-width:none}
 .bs-hand::-webkit-scrollbar{display:none}
 .bs.port .bs-hand{max-width:calc(100% - 12px)}
@@ -69,6 +78,9 @@
 .bs-card.pick{border-color:#ffe6a8;transform:translateY(-6px);box-shadow:0 6px 14px rgba(0,0,0,.5)}
 .bs-card.cant{opacity:.4}
 .bs-card.used{opacity:.3;pointer-events:none}
+.bs-card.emo-lock .emo-need,.bs .hand.bs-fan .cc.emo-lock .emo-need{display:block;position:absolute;left:50%;bottom:6px;transform:translateX(-50%);z-index:2;padding:2px 6px;border-radius:7px;background:rgba(20,14,10,.88);border:1px solid rgba(230,200,106,.55);color:#ffe6a8;font:700 9px/1.2 system-ui,sans-serif;white-space:nowrap;pointer-events:none}
+.bs .hand.bs-fan .cc.emo-lock{filter:grayscale(.45) brightness(.78)}
+.bs .hand.bs-fan .cc.emo-lock .card.paper{opacity:.72}
 /* 흐트러진 적: 캐릭터를 직접 노림 */
 .bs-unit.enemy.can-hit .bs-fig{cursor:pointer;border-radius:50%;animation:bsPulse 1s ease-in-out infinite}
 .bs-unit.enemy .bs-fig{cursor:default}
@@ -119,7 +131,7 @@
 .bs-unit.nb.staggered .bs-fig{transform:none}
 .bs-unit.dead.dying{opacity:1;animation:bsDie .35s ease-in 1s forwards}
 @keyframes bsDie{to{opacity:0}}
-@media (orientation:landscape) and (max-height:500px){ .bs-unit{--fh:62px;--uw:70px} .bs-unit.nb{--fh:72px} .bs-unit.nb.lead{--fh:92px;--uw:80px} .bs-card{width:78px;min-height:50px;font-size:10px} .bs-hand{bottom:4px;padding-top:6px} }
+@media (orientation:landscape) and (max-height:500px){ .bs-unit{--fh:62px;--uw:70px} .bs-unit.nb{--fh:72px} .bs-unit.nb.lead{--fh:92px;--uw:80px} .bs-card{width:78px;min-height:50px;font-size:10px} .bs-hand{bottom:4px;padding-top:6px} .bs-emo .pip{border-left-width:3px;border-right-width:3px;border-bottom-width:5px} .bs-card.emo-lock .emo-need,.bs .hand.bs-fan .cc.emo-lock .emo-need{font-size:8px;padding:1px 5px;bottom:4px} }
 `;
   const DT={slash:"참",pierce:"관",blunt:"타",guard:"방",evade:"회"};
   let host=null, root=null, last=null, opts={}, sel=null, pickCard=null, drag=null, laidOut=false, info=null, holdT=0, holdT0=null, holdHit=false, focus=null, cam={z:1,x:0,y:0};
@@ -237,10 +249,30 @@
   }
   const prevPos={}, seenHp={}, seenStag={}; let arrowT=0;
 
+  function dieTxt(d){ if(!d) return ""; if(d.min!=null&&d.max!=null) return d.min+"~"+d.max; if(d.baseMin!=null&&d.baseMax!=null) return d.baseMin+"~"+d.baseMax; return ""; }
+  function cardMeta(id,u){
+    const c=(opts.cards&&opts.cards[id])||{name:id,cost:0,dice:[]};
+    const info=opts.cardInfo&&u?opts.cardInfo(id,u.id):null;
+    const req=info&&info.emotionReq!=null?info.emotionReq:(c.emotionReq!=null?c.emotionReq:c.emotion||0);
+    const hasE=!!(info&&info.emotionReq!=null||c.emotionReq!=null||c.emotion!=null||(u&&u.emotion!=null));
+    const usable=info&&typeof info.usable==="boolean"?info.usable:!hasE?true:req<=((u&&u.emotion)||0);
+    const dice=info&&info.dice&&info.dice.length?info.dice:c.dice;
+    return {c,info,req,usable,reason:info&&info.reason,dice};
+  }
+  function emoHtml(u){
+    if(u.side!=="ally"||u.emotion==null) return "";
+    const max=u.emotionMax||5, e=u.emotion||0;
+    const ch=u.emotionCharge!=null?u.emotionCharge:(u.charge!=null?u.charge:null);
+    const need=u.chargesPerEmotion||2;
+    const pips=Array.from({length:max},(_,i)=>`<span class="pip${i<e?" on":""}"></span>`).join("");
+    const nxt=ch!=null&&e<max?`<span class="nxt">${ch}/${need}</span>`:"";
+    return `<div class="bs-emo" role="status" aria-label="감정 ${e}단계${ch!=null&&e<max?` · 다음 ${ch}/${need}`:""}">${pips}<small>${e}</small>${nxt?" "+nxt:""}</div>`;
+  }
   function dieHtml(u,i,d){
     const off = u.staggered || u.hp<=0;
     const cls=["bs-die", d.card?"has-card":"", sel&&sel.unit===u.id&&sel.die===i?"sel":"", off?"off":""].join(" ");
-    return `<button class="${cls}" type="button" data-u="${u.id}" data-d="${i}" aria-label="${u.side==="ally"?"내":"적"} 속도 주사위 ${d.speed}">${d.speed}</button>`;
+    const x=d.card&&u.side==="ally"?`<i class="bs-x" aria-hidden="true">×</i>`:"";
+    return `<button class="${cls}" type="button" data-u="${u.id}" data-d="${i}" aria-label="${u.side==="ally"?"내":"적"} 속도 주사위 ${d.speed}${d.card?" (해제)":""}">${d.speed}${x}</button>`;
   }
   function unitHtml(u, n){
     const p=prevPos[u.id], fig = opts.figure ? opts.figure(u) : `<div class="bs-sil"></div>`;
@@ -256,7 +288,7 @@
       <div class="bs-plate"><div class="bs-nm">${u.name||u.topic||u.id}</div>
         <div class="bs-bar"><i style="width:${pct(u.hp,u.maxHp)}%"></i></div>
         <div class="bs-bar st"><i style="width:${pct(u.stagger,u.maxStagger)}%"></i></div>
-        ${u.side==="ally"?`<div class="bs-light">${Array.from({length:u.maxLight||0},(_,k)=>`<b class="${k<u.light?"on":""}"></b>`).join("")}</div>`:""}
+        ${u.side==="ally"?`<div class="bs-light">${Array.from({length:u.maxLight||0},(_,k)=>`<b class="${k<u.light?"on":""}"></b>`).join("")}</div>${emoHtml(u)}`:""}
       </div></div>`;
   }
   function usableDice(u){ return (u.dice||[]).map((d,i)=>i).filter(i=>!(u.staggered||u.hp<=0)); }
@@ -268,12 +300,14 @@
     const u=unit(sel.unit); if(!u||u.side!=="ally") return "";
     const ids=(opts.hands&&opts.hands[u.id])||[]; const used=usedCounts(u,sel.die); const cur=u.dice[sel.die]&&u.dice[sel.die].card;
     let picked=false;
-    return ids.map((id,k)=>{ const c=(opts.cards&&opts.cards[id])||{name:id,cost:0,dice:[]};
+    return ids.map((id,k)=>{ const m=cardMeta(id,u), c=m.c;
       const isUsed=used[id]>0; if(isUsed) used[id]--;
       const isPick=!isUsed&&!picked&&pickCard===id; if(isPick) picked=true;
-      const cant=(c.cost||0)>u.light+(cur&&opts.cards[cur]?opts.cards[cur].cost||0:0);
-      return `<button class="bs-card ${isPick?"pick":""} ${cant&&!isPick?"cant":""} ${isUsed?"used":""}" type="button" data-card="${id}" data-k="${k}">
-        <span class="c">${c.cost||0}</span><span class="n">${c.name}</span><span class="d">${(c.dice||[]).map(d=>`${DT[d.type]||"?"}${d.min}-${d.max}`).join(" ")}</span></button>`; }).join("");
+      const refund=cur&&opts.cards[cur]?opts.cards[cur].cost||0:0;
+      const cant=((c.cost||0)>u.light+refund)||!m.usable;
+      const lock=(!m.usable)&&!isUsed;
+      return `<button class="bs-card ${isPick?"pick":""} ${cant&&!isPick?"cant":""} ${isUsed?"used":""} ${lock?"emo-lock":""}" type="button" data-card="${id}" data-k="${k}">
+        <span class="c">${c.cost||0}</span><span class="n">${c.name}</span><span class="d">${(m.dice||[]).map(d=>`${DT[d.type]||d.ko||"?"}${dieTxt(d)}`).join(" ")}</span>${lock?`<span class="emo-need">감정 ${m.req}+</span>`:""}</button>`; }).join("");
   }
   /* 양피지 손패(부채꼴): 그림은 opts.cardHtml(id), 펼치기·문지르기는 opts.onHand(handEl) 가 맡는다 */
   function fanHtml(){
@@ -281,11 +315,13 @@
     const u=unit(sel.unit); if(!u||u.side!=="ally") return "";
     const ids=(opts.hands&&opts.hands[u.id])||[]; const used=usedCounts(u,sel.die); const cur=u.dice[sel.die]&&u.dice[sel.die].card;
     let picked=false;
-    return ids.map((id,k)=>{ const c=(opts.cards&&opts.cards[id])||{cost:0};
+    return ids.map((id,k)=>{ const m=cardMeta(id,u), c=m.c;
       const isUsed=used[id]>0; if(isUsed) used[id]--;
       const isPick=!isUsed&&!picked&&pickCard===id; if(isPick) picked=true;
-      const cant=(c.cost||0)>u.light+(cur&&opts.cards[cur]?opts.cards[cur].cost||0:0);
-      return `<div class="cc ${isPick?"pick":""} ${(cant&&!isPick)||isUsed?"off":""} ${isUsed?"used":""}" data-card="${id}" data-page="${id}" data-k="${k}">${opts.cardHtml(id)}</div>`; }).join("");
+      const refund=cur&&opts.cards[cur]?opts.cards[cur].cost||0:0;
+      const cant=((c.cost||0)>u.light+refund)||!m.usable;
+      const lock=(!m.usable)&&!isUsed;
+      return `<div class="cc ${isPick?"pick":""} ${(cant&&!isPick)||isUsed?"off":""} ${isUsed?"used":""} ${lock?"emo-lock":""}" data-card="${id}" data-page="${id}" data-k="${k}">${opts.cardHtml(id,u,m)}${lock?`<span class="emo-need">감정 ${m.req}+</span>`:""}</div>`; }).join("");
   }
   function pickCardId(id){
     if(!last||last.phase!=="assign"||!sel) return;
@@ -296,9 +332,9 @@
   function infoHtml(u,i){
     const d=u.dice[i]; if(!d) return "";
     if(opts.dieInfo){ const h=opts.dieInfo(u,i,d); if(h) return h; }
-    const c=d.card&&opts.cards&&opts.cards[d.card];
+    const m=d.card?cardMeta(d.card,u):null, c=m?m.c:null;
     const tg=d.target&&unit(d.target.unit);
-    return `<span class="i-nm">${c?c.name:"책장 미정"}</span>${c?(c.dice||[]).map(x=>`<div class="i-d">${DT[x.type]||"?"} <b>${x.min}-${x.max}</b></div>`).join(""):""}
+    return `<span class="i-nm">${c?c.name:"책장 미정"}</span>${m?(m.dice||[]).map(x=>`<div class="i-d">${DT[x.type]||x.ko||"?"} <b>${dieTxt(x)}</b></div>`).join(""):""}
       <div class="i-t">속도 ${d.speed??"?"}${tg?` · 대상 ${tg.name||tg.id}`:""}</div>`;
   }
   function placeInfo(){
@@ -350,6 +386,13 @@
       h+=`<path d="M${p.x} ${p.y-14} Q${mx} ${my} ${q.x} ${q.y-14}" fill="none" stroke="${col}" stroke-width="${clash?2.6:2}" ${clash?"":"stroke-dasharray=\"5 4\""} marker-end="url(#bsA)" ${clash?"marker-start=\"url(#bsA)\"":""} opacity=".92"/>`;
       if(clash) h+=`<circle cx="${mx}" cy="${(my+Math.min(p.y,q.y))/2-6}" r="9" fill="#1a1f2c" stroke="${col}" stroke-width="1.5"/><text x="${mx}" y="${(my+Math.min(p.y,q.y))/2-2}" font-size="10" font-weight="800" text-anchor="middle" fill="${col}">합</text>`;
     }); }
+    if(last.phase==="assign"){
+      for(const u of last.units){ if(u.side!=="ally"||u.hp<=0) continue; (u.dice||[]).forEach((d,i)=>{ if(!d.card||!d.target) return;
+        const a=dieEl(u.id,i); const noDie=d.target.die==null, b=noDie?figEl(d.target.unit):dieEl(d.target.unit,d.target.die); if(!a||!b) return;
+        const p=rel(a), q=noDie?figPt(b):rel(b); const mx=(p.x+q.x)/2, my=Math.min(p.top,q.top)-36-Math.abs(p.x-q.x)*.08;
+        h+=`<path class="bs-arr-hit" data-u="${u.id}" data-d="${i}" d="M${p.x} ${p.y-14} Q${mx} ${my} ${q.x} ${q.y-14}" fill="none" stroke="transparent" stroke-width="18"/>`;
+      }); }
+    }
     if(drag&&drag.x!=null){ const a=dieEl(drag.unit,drag.die); if(a){ const p=rel(a); h+=`<path d="M${p.x} ${p.y-14} L${drag.x} ${drag.y}" stroke="#ffe6a8" stroke-width="2.4" fill="none" marker-end="url(#bsA)"/>`; } }
     svg.innerHTML=h;
     placeInfo();
@@ -365,11 +408,19 @@
     if(API.onAssign) API.onAssign(s.unit, s.die, c, target);
     if(last) render(last);
   }
+  function fireUnassign(uid,i){
+    const fn=opts&&typeof opts.onUnassign==="function"?opts.onUnassign:API.onUnassign;
+    sel=null; pickCard=null;
+    if(fn) fn(uid,i);
+    if(last) render(last);
+  }
   function onTap(e){
     if(holdHit){ holdHit=false; return; }
     if(cur&&!cur.done){ cur.ff(); if(API.onSkip) API.onSkip(); return; }
     if(last&&last.phase==="resolve"&&API.onSkip){ API.onSkip(); return; }
     if(!last) return;
+    const arr=e.target.closest&&e.target.closest(".bs-arr-hit");
+    if(arr&&last.phase==="assign"){ const u=unit(arr.dataset.u), i=+arr.dataset.d; if(u&&u.side==="ally"&&u.dice[i]&&u.dice[i].card) fireUnassign(u.id,i); return; }
     const ed=e.target.closest(".bs-unit.enemy .bs-die");
     if(ed&&!(last.phase==="assign"&&sel&&pickCard)){ showInfo(ed.dataset.u,+ed.dataset.d); return; }
     if(info){ info=null; placeInfo(); }
@@ -381,8 +432,8 @@
       if(sel&&pickCard){ pickCard=null; render(last); } return; }
     const u=unit(die.dataset.u), i=+die.dataset.d;
     if(u.side==="ally"){
-      if(sel&&sel.unit===u.id&&sel.die===i){ if(!u.dice[i].card) return; if(API.onUnassign){ API.onUnassign(u.id,i); } sel=null; pickCard=null; }
-      else { sel={unit:u.id,die:i}; pickCard=u.dice[i].card||null; }
+      if(u.dice[i]&&u.dice[i].card){ fireUnassign(u.id,i); return; }
+      sel={unit:u.id,die:i}; pickCard=null;
       render(last); return;
     }
     if(sel&&pickCard) assign({unit:u.id,die:i});

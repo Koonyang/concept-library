@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118v">
+<meta name="build" content="library-20261118x">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -241,7 +241,7 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
   box-shadow:0 4px 10px rgba(0,0,0,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .char-book{position:absolute;left:50%;bottom:18%;transform:translateX(-50%) scale(.86);opacity:0;pointer-events:none;z-index:4;
   filter:drop-shadow(0 8px 16px rgba(0,0,0,.6)) drop-shadow(0 0 12px rgba(236,186,104,.4))}
-.char-book .bk-wrap{display:flex;flex-direction:column;align-items:center;gap:2px}.char-book .bk-cover{width:88px;height:auto;display:block}.char-book .bk-label{font-size:8px;line-height:1.2;color:#cbb992;max-width:88px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.char-book .bk-wrap{display:flex;flex-direction:column;align-items:center;gap:2px;overflow:visible}.char-book .bk-cover{width:88px;height:auto;display:block;object-fit:contain}.char-book .bk-label{font-size:8px;line-height:1.2;color:#cbb992;max-width:88px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fighter .char:after{content:"";position:absolute;inset:10% 14% 8%;opacity:0;pointer-events:none;
   background:linear-gradient(180deg,rgba(255,244,220,.7),rgba(220,60,40,.35));mix-blend-mode:screen}
 .fighter.hit .char:after{animation:hitFlash .32s ease}
@@ -981,8 +981,11 @@ b,strong{font-weight:700}
 @keyframes rbPop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
 .rb-eyebrow{display:inline-block;font-family:var(--display);font-weight:700;font-size:11px;letter-spacing:.16em;color:var(--accent);
   padding:4px 12px;border-radius:999px;border:1px solid rgba(var(--accent-rgb),.35);background:rgba(var(--accent-rgb),.1)}
-.rb-book{display:flex;justify-content:center;margin:14px 0 4px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.55)) drop-shadow(0 0 16px rgba(var(--accent-rgb),.35))}
+.rb-book{display:flex;justify-content:center;margin:14px 0 4px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.55)) drop-shadow(0 0 16px rgba(var(--accent-rgb),.35));overflow:visible}
 .rb-book .bk-cover{width:76px;height:auto;display:block}.rb-book .bk-label{display:none}
+/* 책 표지: 잘리지 않게 원본 비율 그대로(object-fit contain), 컨테이너 overflow visible */
+.bk-cover{object-fit:contain;object-position:center;max-width:100%;height:auto;overflow:visible}
+.rb-book,.bk-art,.char-book,.burn-book,.bk-wrap{overflow:visible}
 .rb-title{font-size:26px;color:#fff;margin:6px 0 8px;letter-spacing:-.03em;line-height:1.2;word-break:keep-all}
 .rb-msg{font-size:14px;line-height:1.65;color:var(--parch2);margin:0 auto;max-width:34em;word-break:keep-all;overflow-wrap:break-word;text-wrap:balance}
 .rb-levelup{margin-top:10px;font-size:13px;font-weight:650;color:var(--hp)}
@@ -1177,8 +1180,8 @@ b,strong{font-weight:700}
 .burn-meta{margin-top:8px;font-size:11px;color:var(--parch2)}
 .burn-n{font-family:var(--display);font-size:15px;color:#e9c46a}
 .burn-hint{margin-top:22px;font-size:11px;color:rgba(255,255,255,.45)}
-.burn-book{position:relative;width:96px;margin:0 auto 10px;display:flex;justify-content:center}
-.burn-book .bk-cover{width:88px;height:auto;display:block;animation:burnBook .95s ease forwards}
+.burn-book{position:relative;width:96px;margin:0 auto 10px;display:flex;justify-content:center;overflow:visible}
+.burn-book .bk-cover{width:88px;height:auto;display:block;object-fit:contain;animation:burnBook .95s ease forwards}
 .burn-book .bk-label{display:none}
 .burn-book:after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:4px;background:linear-gradient(180deg,transparent 25%,rgba(255,130,40,.28) 65%,rgba(40,8,0,.72));mix-blend-mode:multiply;animation:burnMask .95s ease forwards}
 @keyframes burnBook{0%{filter:none;opacity:1}55%{filter:brightness(1.18) sepia(.4) saturate(1.45) hue-rotate(-12deg)}100%{filter:brightness(.42) sepia(.75) saturate(.95) hue-rotate(-18deg);opacity:.62}}
@@ -1373,7 +1376,7 @@ b,strong{font-weight:700}
 .bk-slide.slide-in-l,.fn-title.slide-in-l{animation:fnInL .34s cubic-bezier(.2,.8,.2,1)}
 .bk-slide.slide-out-l,#bk-title.slide-out-l{animation:fnOutL .15s ease-in forwards}
 .bk-slide.slide-out-r,#bk-title.slide-out-r{animation:fnOutR .15s ease-in forwards}
-.bk-art{display:flex;flex-direction:column;align-items:center}.bk-art .bk-cover{width:112px;height:auto;display:block;filter:drop-shadow(0 8px 14px rgba(0,0,0,.55))}.bk-art .bk-label{display:none}
+.bk-art{display:flex;flex-direction:column;align-items:center;overflow:visible}.bk-art .bk-cover{width:112px;height:auto;display:block;object-fit:contain;filter:drop-shadow(0 8px 14px rgba(0,0,0,.55))}.bk-art .bk-label{display:none}
 .bk-count{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:999px;background:rgba(8,10,18,.68);border:1px solid rgba(var(--accent-rgb),.4);color:var(--gold2)}
 .bk-count svg{width:16px;height:16px;fill:none;stroke:currentColor}
 .bk-count b{font-family:var(--display);font-size:18px;font-weight:700;color:var(--parch);font-variant-numeric:tabular-nums}
@@ -1670,7 +1673,11 @@ b,strong{font-weight:700}
 .set-bm{position:absolute;top:0;right:calc(10px + var(--safe-right,0px));z-index:34;width:var(--bm-w);height:var(--bm-h);padding:0;padding-top:9px;
   display:flex;align-items:flex-start;justify-content:center;color:#3a2a10;border:0;
   background:linear-gradient(180deg,#f3d58f,#d9aa52);clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%);
-  filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));transition:height .2s ease}
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));transition:height .2s ease,opacity .25s ease,transform .25s ease}
+/* 설정 책갈피는 접대/도서관/계시 등 바탕 화면에만. 전투·문제·결과에서는 숨김 */
+#game.set-away #set-bm,.set-bm.away{opacity:0;pointer-events:none;transform:translateY(-110%)}
+#game.set-away #set-drawer,#game.set-away #set-scrim{opacity:0!important;pointer-events:none!important;visibility:hidden}
+#game.set-away .qpanel.short{top:calc(6px + env(safe-area-inset-top,0px))!important}
 .set-bm:before{content:"";position:absolute;inset:-6px -10px -10px -10px}
 .set-bm svg{width:16px;height:16px;display:block}
 .set-bm:active,.set-bm[aria-expanded="true"]{height:calc(var(--bm-h) + 8px)}
@@ -3646,7 +3653,7 @@ function bookCoverSrc(guest){
 }
 function bookArt(guest, title){
   const label=title!=null?title:((guest&&typeof guest==="object"&&guest.concept)||"");
-  return `<span class="bk-wrap"><img class="bk-cover" src="${bookCoverSrc(guest)}" alt="" width="88" height="110" loading="eager" decoding="async">${label?`<span class="bk-label">${label}</span>`:""}</span>`;
+  return `<span class="bk-wrap"><img class="bk-cover" src="${bookCoverSrc(guest)}" alt="" width="88" height="111" loading="eager" decoding="async">${label?`<span class="bk-label">${label}</span>`:""}</span>`;
 }
 function dieSvg(type, value, broken){
   const shown=value!=null;
@@ -4111,14 +4118,49 @@ function dprevHtml(pv,cls=""){
   if(!pv) return "";
   return `<em class="dprev ${cls}"><i class="ok" title="정답">✓${pv.ok[0]}~${pv.ok[1]}</i><i class="ng" title="오답">✗${pv.ng[0]}~${pv.ng[1]}</i></em>`;
 }
+/* 주사위 숫자는 전투 cardInfo 값을 그대로 읽는다. UI에서 보정 공식을 다시 계산하지 않음 */
+function cardInfoOf(cid, uid){
+  try{
+    if(typeof mbCardInfo==="function") return mbCardInfo(cid,uid);
+    const api=window.__studyGame&&window.__studyGame.battleApi;
+    if(api&&typeof api.cardInfo==="function") return api.cardInfo(cid,uid);
+  }catch(e){}
+  return null;
+}
+function inAssignPhase(){
+  return !!(mb&&mb.battle&&mb.battle.phase==="assign") || !!(reception&&reception.phase==="assign");
+}
+function dieRangeAssign(d){
+  if(!d) return "";
+  if(d.min!=null&&d.max!=null) return `${d.min}~${d.max}`;
+  if(d.baseMin!=null&&d.baseMax!=null) return `${d.baseMin}~${d.baseMax}`;
+  return "";
+}
+function dprevFromInfo(infoDie, fallbackDie){
+  const x=infoDie||{};
+  if(x.rightMin!=null&&x.rightMax!=null){
+    return `<em class="dprev"><i class="ok" title="정답">✓${x.rightMin}~${x.rightMax}</i><i class="ng" title="오답">✗${x.wrongMin}~${x.wrongMax}</i></em>`;
+  }
+  return dprevHtml(myDiePreview(fallbackDie||infoDie));
+}
 function paperCardHtml(page, opts={}){
   const mini=!!opts.mini;
-  const dice=(page.dice||[]).map(d=>`<span>${dieMark(d.type, mini?10:12)} ${(mini||opts.prev)?"":(d.type+" ")}${opts.noPrev?`<i class="rng">${d.min}-${d.max}</i>`:dprevHtml(myDiePreview(d))}</span>`).join("");
-  const first=(page.dice&&page.dice[0]&&page.dice[0].type)||"참격";
+  const info=(!opts.noInfo)&&page&&page.id?cardInfoOf(page.id, opts.unitId):null;
+  const diceSrc=(opts.dice)||(info&&info.dice)||page.dice||[];
+  const assign=!!opts.assign||!!opts.noPrev||inAssignPhase();
+  const dice=diceSrc.map((d,i)=>{
+    const src=(info&&info.dice&&info.dice[i])||d;
+    const typ=src.ko||src.type||d.type;
+    const rng=assign?`<i class="rng">${dieRangeAssign(src)}</i>`:dprevFromInfo(info&&info.dice&&info.dice[i], d);
+    return `<span>${dieMark(typ, mini?10:12)} ${(mini||opts.prev)?"":(typ+" ")}${rng}</span>`;
+  }).join("");
+  const first=(diceSrc[0]&&(diceSrc[0].ko||diceSrc[0].type))||(page.dice&&page.dice[0]&&page.dice[0].type)||"참격";
   const flavor=page.flavor?`<div class="flavor">${page.flavor}</div>`:"";
   const tx=mini?"":`<div class="tx">${page.text||""}</div>`;
-  return `<div class="card paper ${mini?"mini":""} rar-${page.rarity||"N"}">${paperLayers()}${waxHtml(page.rarity)}
-    <div class="row"><span class="gem" title="빛 ${page.cost}" aria-label="빛 ${page.cost}">${ico("light",mini?11:13)}<b>${page.cost}</b></span><span class="emo">${ico("emotion",12)} ${page.emotion}+</span></div>
+  const req=info&&info.emotionReq!=null?info.emotionReq:(page.emotionReq!=null?page.emotionReq:page.emotion||0);
+  const locked=!!opts.locked||(info&&info.usable===false);
+  return `<div class="card paper ${mini?"mini":""} rar-${page.rarity||"N"}${locked?" emo-lock":""}">${paperLayers()}${waxHtml(page.rarity)}
+    <div class="row"><span class="gem" title="빛 ${page.cost}" aria-label="빛 ${page.cost}">${ico("light",mini?11:13)}<b>${page.cost}</b></span><span class="emo${locked?" lock":""}">${ico("emotion",12)} ${req}+${locked?` · 필요`:""}</span></div>
     <div class="illu">${dieMark(first, mini?28:34)}</div>
     <div class="nm">${page.name}</div>
     ${tx}
@@ -4319,6 +4361,7 @@ function paintAudioButtons(){
 }
 function setSettings(open){
   const bm=$("#set-bm"), dr=$("#set-drawer"), sc=$("#set-scrim");
+  if(open&&($("#game")?.classList.contains("set-away")||bm?.classList.contains("away"))) open=false;
   if(open) try{ setDrawer(false); }catch(e){}
   dr?.classList.toggle("open",!!open); sc?.classList.toggle("on",!!open);
   dr?.setAttribute("aria-hidden",open?"false":"true"); bm?.setAttribute("aria-expanded",open?"true":"false");
@@ -4348,6 +4391,13 @@ function transit(next, fn){
   setTimeout(()=>{ fn&&fn(); showScene(next); tr.classList.remove("go"); }, 420);
 }
 let sceneEpoch=0;
+function syncSettingsBookmark(name){
+  const hide=name==="battle";
+  const game=$("#game"); if(game) game.classList.toggle("set-away",hide);
+  const bm=$("#set-bm");
+  if(bm){ bm.classList.toggle("away",hide); bm.setAttribute("aria-hidden",hide?"true":"false"); }
+  if(hide) try{ setSettings(false); }catch(e){}
+}
 function showScene(name){
   closeCardInspect();
   if(name!==scene) sceneEpoch++;
@@ -4358,6 +4408,7 @@ function showScene(name){
     if(on){ s.style.transition=""; s.style.visibility="visible"; s.classList.add("on"); }
     else { s.style.transition="none"; s.classList.remove("on"); s.style.visibility="hidden"; }
   });
+  syncSettingsBookmark(name);
 }
 function toast(msg, ms=1400){ const el=$("#toast"); el.textContent=msg; el.classList.add("on"); setTimeout(()=>el.classList.remove("on"),ms); }
 let learnTimer;
@@ -4801,24 +4852,30 @@ function beginReception(guestId){
 
 let inspectState={timer:0,hoverTimer:0,press:false,suppressClick:false,pageId:null,reason:null};
 
-function cardInspectHtml(page){
+function cardInspectHtml(page, unitId){
   const t=withKeyMods(giftTotals(save),save);
   const dieMin=t.dieMin||0;
-  const dies=(page.dice||[]).map(d=>{
-    const pv=myDiePreview(d);
-    return `<div class="ci-die">${dieMark(d.type,22)} <span>${d.type}</span>
-      <div class="ci-prev ci-prev-r"><i class="ok">✓ ${pv.ok[0]}~${pv.ok[1]}</i><span class="ci-sl">/</span><i class="ng">✗ ${pv.ng[0]}~${pv.ng[1]}</i></div></div>`;
+  const info=page&&page.id?cardInfoOf(page.id, unitId):null;
+  const assign=inAssignPhase();
+  const dies=((info&&info.dice)||page.dice||[]).map((d,i)=>{
+    const typ=d.ko||d.type;
+    if(assign) return `<div class="ci-die">${dieMark(typ,22)} <span>${typ}</span>
+      <div class="ci-prev ci-prev-r"><b>${dieRangeAssign(d)}</b></div></div>`;
+    const pvHtml=dprevFromInfo(info&&info.dice&&info.dice[i], page.dice&&page.dice[i]||d).replace("dprev","ci-prev ci-prev-r");
+    return `<div class="ci-die">${dieMark(typ,22)} <span>${typ}</span>${pvHtml}</div>`;
   }).join("");
   let vsHtml="";
   { const c=previewCtx(); if(c.rec&&c.rec.intent&&c.rec.g.stag<=0){
       vsHtml=`<div class="ci-sec ci-vs"><div class="lab">상대 예고 · ${c.rec.intent.name}${c.isKey?" ★":""}</div>${c.rec.intent.dice.map(d=>{ const gp=guestDiePreview(d); return `<div class="ci-vsrow">${dieMark(d.type,16)} <span>${d.type}</span><i class="ok ci-first">✓ ${gp.ok[0]}~${gp.ok[1]}</i><span class="ci-sl">/</span><i class="ng">✗ ${gp.ng[0]}~${gp.ng[1]}</i></div>`; }).join("")}
         <div class="gmeta">정답이면 내 주사위↑ 상대↓, 오답이면 내 주사위↓${c.isKey?" 상대↑":""}.</div></div>`; } }
   const conds=[];
+  const req=info&&info.emotionReq!=null?info.emotionReq:(page.emotionReq!=null?page.emotionReq:page.emotion||0);
   conds.push(page.cost?`빛 ${page.cost} 소모`:"빛 소모 없음");
-  conds.push(page.emotion?`감정 레벨 ${page.emotion} 이상`:"감정 조건 없음");
+  conds.push(req?`감정 레벨 ${req} 이상`:"감정 조건 없음");
   if(reception){
     if(reception.light<(page.cost||0)) conds.push(`빛이 부족합니다 (현재 ${reception.light})`);
-    if(reception.emotion<(page.emotion||0)) conds.push(`감정이 부족합니다 (현재 ${reception.emotion})`);
+    const emoNow=reception.multi&&mb? (mb.battle.units.find(u=>u.side==="ally"&&(unitId?u.id===unitId:true))||{}).emotion : reception.emotion;
+    if((info&&info.usable===false)||(emoNow!=null&&emoNow<req)) conds.push(`감정이 부족합니다 (현재 ${emoNow??reception.emotion})`);
   }
   const mods=[];
   if(t.dieMin) mods.push(`주사위 최솟값 +${t.dieMin}`);
@@ -5854,21 +5911,53 @@ function beginMultiReception(guestId){
 /* 적 주사위를 누르면: 그 주사위가 쓸 책장 이름 · 주사위 종류와 범위 · 속도 · 노리는 대상 */
 function mbDieInfo(u,i,d){
   if(u.side!=="enemy") return "";
-  const c=d.card&&mb.cards[d.card]; if(!c) return `<span class="i-nm">책장 미정</span>`;
+  const info=d.card?cardInfoOf(d.card,u.id):null;
+  const c=d.card&&mb.cards[d.card]; if(!c&&!info) return `<span class="i-nm">책장 미정</span>`;
   const t=d.target&&mbUnitById(d.target.unit);
   const tg=t?`${t.name||t.id}${d.target.die==null?" (몸)":` · 주사위 ${d.target.die+1}`}`:"";
-  return `<span class="i-nm">${c.name}${c.big?`<span class="i-big">강한 책장</span>`:""}</span>${(c.dice||[]).map(x=>`<div class="i-d">${dieMark(x.type,13)} ${x.type} <b>${x.min}–${x.max}</b></div>`).join("")}
+  const dice=(info&&info.dice)||(c&&c.dice)||[];
+  const nm=(info&&info.name)||(c&&c.name)||"책장 미정";
+  const big=info&&info.big!=null?info.big:c&&c.big;
+  return `<span class="i-nm">${nm}${big?`<span class="i-big">강한 책장</span>`:""}</span>${dice.map(x=>`<div class="i-d">${dieMark(x.ko||x.type,13)} ${x.ko||x.type} <b>${dieRangeAssign(x)}</b></div>`).join("")}
     <div class="i-t">속도 ${d.speed??"?"}${tg?` · 대상 ${tg}`:""}</div>`;
 }
 function mbUnitById(id){ return mb&&mb.battle.units.find(x=>x.id===id); }
+function mbCardView(id, uid){
+  const page=PAGE_BY[id]||(mb&&mb.cards[id]);
+  const info=cardInfoOf(id, uid);
+  const base=page?{name:page.name,cost:page.cost||0,dice:(page.dice||[]).map(d=>({type:MB_TYPE_EN[d.type]||d.type,min:d.min,max:d.max,ko:d.type})),emotion:page.emotion||0,emotionReq:page.emotionReq??page.emotion??0}: {name:id,cost:0,dice:[]};
+  if(!info) return base;
+  return {...base, name:info.name||base.name, emotionReq:info.emotionReq!=null?info.emotionReq:base.emotionReq, usable:info.usable, reason:info.reason,
+    dice:info.dice&&info.dice.length?info.dice:base.dice};
+}
+function mbStampEmotion(){
+  if(!mb) return;
+  for(const u of mbSide("ally")){
+    const X=mb.x[u.id];
+    if(u.emotionCharge==null&&X&&X.charge!=null) u.emotionCharge=X.charge;
+    if(u.emotionMax==null) u.emotionMax=COMBAT.emotionMax;
+    if(u.chargesPerEmotion==null) u.chargesPerEmotion=COMBAT.chargesPerEmotion;
+  }
+}
+function mbDoUnassign(uid,i){
+  const api=window.__studyGame&&window.__studyGame.battleApi;
+  if(api&&typeof api.unassign==="function") api.unassign(uid,i);
+  else { mbUnassign(uid,i); mbRefresh(); }
+}
 function mbStageOpts(){
+  mbStampEmotion();
   const hands={}, cards={};
-  const card=p=>({name:p.name,cost:p.cost||0,dice:(p.dice||[]).map(d=>({type:MB_TYPE_EN[d.type]||"slash",min:d.min,max:d.max}))});
-  for(const u of mbSide("ally")){ const X=mb.x[u.id]; const ids=[...X.handIds,...u.dice.map(d=>d.card).filter(Boolean)]; hands[u.id]=ids; ids.forEach(id=>{ if(PAGE_BY[id]) cards[id]=card(PAGE_BY[id]); }); }
-  for(const [id,p] of Object.entries(mb.cards)) cards[id]=card(p);
+  for(const u of mbSide("ally")){ const X=mb.x[u.id]; const ids=[...X.handIds,...u.dice.map(d=>d.card).filter(Boolean)]; hands[u.id]=ids; ids.forEach(id=>{ cards[id]=mbCardView(id,u.id); }); }
+  for(const [id,p] of Object.entries(mb.cards)) if(!cards[id]) cards[id]=mbCardView(id, id.split("@")[0]);
   const guest=mb.guest;
   return {hands,cards,
-    cardHtml:id=>PAGE_BY[id]?paperCardHtml(PAGE_BY[id],{prev:true,noPrev:true}):"",
+    cardInfo:(cid,uid)=>cardInfoOf(cid,uid),
+    onUnassign:mbDoUnassign,
+    cardHtml:(id,u,m)=>{ const page=PAGE_BY[id]; if(!page) return "";
+      const info=m&&m.info||cardInfoOf(id,u&&u.id);
+      const dice=(m&&m.dice)||(info&&info.dice);
+      const locked=m?!m.usable:!!(info&&info.usable===false);
+      return paperCardHtml(page,{prev:true,noPrev:true,assign:true,unitId:u&&u.id,dice,locked,noInfo:!dice}); },
     onHand:hd=>{ hd.id="hand"; layoutHand();
       hd.querySelectorAll(".cc.pick").forEach(c=>{ c._base+=" translateY(-16px)"; c.style.transform=c._base; c.style.zIndex=30; c._z=30; });
       bindHandScrub(c=>{ if(!busy) BattleStage.pickCard(c.dataset.card); });
@@ -5903,8 +5992,8 @@ function renderMulti(){
   if(window.BattleStage){
     try{ BattleStage.unmount(); }catch(e){}
     BattleStage.mount($("#mb-host"));
-    BattleStage.onAssign=(uid,i,cid,t)=>{ const r=mbAssign(uid,i,cid,t); if(r.ok){ SFX.tak(); } else if(r.reason==="light") toast("빛이 모자랍니다"); mbRefresh(); };
-    BattleStage.onUnassign=(uid,i)=>{ mbUnassign(uid,i); mbRefresh(); };
+    BattleStage.onAssign=(uid,i,cid,t)=>{ const r=mbAssign(uid,i,cid,t); if(r.ok){ SFX.tak(); } else if(r.reason==="light") toast("빛이 모자랍니다"); else if(r.reason==="emotion") toast("감정이 부족합니다"); mbRefresh(); };
+    BattleStage.onUnassign=mbDoUnassign;
   }
   $("#btn-mb-go").onclick=()=>{ if(!busy&&mb&&mb.battle.phase==="assign"){ SFX.click(); mbRunResolve(); } };
   mbRefresh();
@@ -6810,6 +6899,7 @@ function boot(){
   ["pointerdown","touchend","click","keydown"].forEach(ev=>document.addEventListener(ev,()=>SFX.prime(),{capture:true,passive:true}));
   document.addEventListener("keydown",e=>{ if(e.key==="Escape") setDrawer(false); });
   renderTitle();
+  try{ syncSettingsBookmark(scene); }catch(e){}
   // debug for screenshots / tests
   window.__studyGame = {
     save, transit, showScene, renderLobby, renderBattle, renderShelf, renderTitle,
@@ -6831,6 +6921,7 @@ function boot(){
       answer(correct){ return mbAnswer(correct); }, answerUI:(c)=>mbAnswerUI(c),
       assign(unitId,dieIdx,cardId,target){ const r=mbAssign(unitId,dieIdx,cardId,target); mbRefresh(); return r; },
       unassign(unitId,dieIdx){ const r=mbUnassign(unitId,dieIdx); mbRefresh(); return r; },
+      cardInfo:(cid,uid)=>typeof mbCardInfo==="function"?mbCardInfo(cid,uid):null,
       resolve(o){ return mbRunResolve(!(o&&o.animate)); }, resolveOnly:()=>mbResolve(), startScene(){ mbStartScene(); mbRefresh(); return mb.battle; },
       relink:()=>mbRelink(), isClash:(u,i)=>mbIsClash(u,i),
       setRng(fn){ if(mb) mb.rng=fn; },
