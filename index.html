@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118zc">
+<meta name="build" content="library-20261118zd">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -1741,7 +1741,7 @@ b,strong{font-weight:700}
 @media (orientation:landscape) and (max-height:500px){.lib-pick{margin-bottom:4px;gap:3px}.lp-row{gap:4px}.lp-chip{min-height:26px;padding:0 7px;font-size:11px}.lp-party{min-height:24px;padding:0 7px}.lp-lock{width:22px;padding:0}.lp-lock svg{width:11px;height:11px}}
 /* 다대다 무대 화면 (UI) — 아래 가운데 손패+개막, 왼쪽 아군·오른쪽 적 상태판, 피해 숫자는 작게 */
 .battle-stage.multi .qpanel:not(.short){top:auto!important;bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;max-height:46%;overflow-y:auto}
-.battle-stage.multi #btn-mb-go{position:absolute;left:50%;bottom:calc(178px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:56;overflow:visible;
+.battle-stage.multi #btn-mb-go{position:absolute;left:50%;bottom:calc(184px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:56;overflow:visible;
   min-width:112px;height:40px;padding:0 22px 2px;margin:0;border:0;border-radius:2px;cursor:pointer;color:#3a2610;
   font-family:var(--display),serif;font-weight:800;font-size:17px;letter-spacing:.18em;line-height:1;
   background:linear-gradient(180deg,#f7e4b0 0%,#e0b95a 46%,#b8862e 100%);
@@ -1781,7 +1781,7 @@ b,strong{font-weight:700}
   .mb-stat{width:calc(50% - 14px);max-height:136px;bottom:calc(230px + env(safe-area-inset-bottom,0px))}
 }
 @media (orientation:landscape) and (max-height:500px){
-  .battle-stage.multi #btn-mb-go{bottom:calc(142px + env(safe-area-inset-bottom,0px));height:36px;min-width:100px;font-size:15px;letter-spacing:.16em}
+  .battle-stage.multi #btn-mb-go{bottom:calc(154px + env(safe-area-inset-bottom,0px));height:36px;min-width:100px;font-size:15px;letter-spacing:.16em}
   .mb-stat{width:186px;max-height:148px}
 }
 .bs .hand.bs-fan .card.paper .dice .rng{font-style:normal;font-weight:700;margin-left:2px}
@@ -5049,23 +5049,69 @@ function layoutHand(){
   cs.forEach(c=>{ c.style.margin="0"; c.style.transform="none"; });
   const cw=cs[0].offsetWidth, ch=cs[0].offsetHeight, W=hand.clientWidth;
   const land=matchMedia("(orientation:landscape) and (max-height:500px)").matches;   // 가로: 부채꼴을 얕게 → 카드가 화면 아래로 잘리지 않게
-  const rotStep=n<2?0:Math.min(land?3.2:7,(land?20:44)/(n-1)), dip=land?.7:1.2;
-  const amax=(n-1)/2*rotStep*Math.PI/180;
-  const pad=Math.ceil(ch*Math.sin(amax)/2+cw*(1-Math.cos(amax))/2)+9;   // 기울어진 바깥 카드의 모서리까지 화면 안에
+  let rotStep=n<2?0:Math.min(land?3.2:7,(land?20:44)/(n-1)), dip=land?.7:1.2;
+  const amax0=(n-1)/2*rotStep*Math.PI/180;
+  const pad=Math.ceil(ch*Math.sin(amax0)/2+cw*(1-Math.cos(amax0))/2)+9;   // 기울어진 바깥 카드의 모서리까지 화면 안에
   const avail=W-2*pad;
-  const step=n<2?0:Math.min(cw*0.67,(avail-cw)/(n-1));
+  let step=n<2?0:Math.min(cw*0.67,(avail-cw)/(n-1));
   const left0=(W-(cw+step*(n-1)))/2;
   const s=Math.min(1.9,Math.max(1.12,Math.min(190,W*0.5)/cw));
   hand._geo={n,cw,ch,step,left0,W,s};
-  cs.forEach((c,i)=>{
-    c.style.margin=`0 ${(step-cw)/2}px`;
-    const ang=(i-(n-1)/2)*rotStep;
-    c._base=`rotate(${ang}deg) translateY(${Math.abs(ang)*dip}px)`;
-    c.style.transform=c._base; c.style.zIndex=i; c._z=i;
-    c.classList.remove("hot");
-  });
+  const paint=(dipV,rotV,lift)=>{
+    cs.forEach((c,i)=>{
+      c.style.margin=`0 ${(step-cw)/2}px`;
+      const ang=(i-(n-1)/2)*rotV;
+      c._base=`translateY(${-lift}px) rotate(${ang}deg) translateY(${Math.abs(ang)*dipV}px)`;
+      c.style.transform=c._base; c.style.zIndex=i; c._z=i;
+      c.classList.remove("hot");
+    });
+    void hand.offsetWidth;
+  };
+  /* 개막 버튼·상태판 바로 위까지만 올리고, 바깥 카드는 화면 안에 둔다 (허용 0~2px). 카드 크기는 그대로. */
+  const vis=el=>{ if(!el) return false; const s=getComputedStyle(el); return s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity!==0&&el.getBoundingClientRect().width>1; };
+  const ceiling=()=>{
+    let y=0;
+    const go=document.getElementById("btn-mb-go");
+    if(vis(go)) y=Math.max(y,go.getBoundingClientRect().bottom);
+    const hr=hand.getBoundingClientRect();
+    document.querySelectorAll(".mb-stat").forEach(el=>{ if(!vis(el)) return; const r=el.getBoundingClientRect(); if(r.right>hr.left+8&&r.left<hr.right-8) y=Math.max(y,r.bottom); });
+    return y;
+  };
+  const box=()=>{
+    const rs=cs.map(c=>c.getBoundingClientRect());
+    return {minL:Math.min(...rs.map(r=>r.left)), maxR:Math.max(...rs.map(r=>r.right)), minT:Math.min(...rs.map(r=>r.top)), maxB:Math.max(...rs.map(r=>r.bottom))};
+  };
+  let lift=Math.ceil((cw/2)*Math.sin(((n-1)/2*rotStep)*Math.PI/180)+dip*((n-1)/2*rotStep));
+  const room0=()=>{ const y=ceiling(); paint(dip,rotStep,0); const top=Math.min(...cs.map(c=>c.getBoundingClientRect().top)); return Math.max(0,top-y-2); };
+  lift=Math.max(0,Math.min(lift,room0()));
+  paint(dip,rotStep,lift);
+  const fit=()=>{
+    for(let i=0;i<10;i++){
+      const b=box();
+      const overflowB=Math.max(0,b.maxB-innerHeight);
+      const overflowX=Math.max(0,-b.minL,b.maxR-innerWidth);
+      if(overflowB<=0.5&&overflowX<=0.5) return true;
+      if(overflowB>0.5){
+        const room=Math.max(0,b.minT-ceiling()-2);
+        if(room>=1){ lift+=Math.min(Math.ceil(overflowB),Math.floor(room)); paint(dip,rotStep,lift); continue; }
+        if(dip>0.05){ dip=0; paint(dip,rotStep,lift); continue; }
+      }
+      if(rotStep>0.8&&(overflowB>0.5||overflowX>0.5)){ rotStep=Math.max(0.8,rotStep*0.72); paint(dip,rotStep,lift); continue; }
+      if(overflowX>0.5&&n>=2){
+        const span=cw+step*(n-1);
+        const need=span+overflowX+2;
+        if(need>W && step>cw*0.28){ step=Math.max(cw*0.28,step-(overflowX+2)/(n-1)); hand._geo.step=step; paint(dip,rotStep,lift); continue; }
+      }
+      const b2=box();
+      return Math.max(0,b2.maxB-innerHeight)<=2 && Math.max(0,-b2.minL,b2.maxR-innerWidth)<=2;
+    }
+    const b=box();
+    return Math.max(0,b.maxB-innerHeight)<=2 && Math.max(0,-b.minL,b.maxR-innerWidth)<=2;
+  };
+  fit();
   hand.classList.toggle("crowd",n>=6);
 }
+
 function handHot(hand,idx){
   const g=hand._geo; if(!g) return;
   const cs=[...hand.children].filter(c=>c.classList.contains("cc"));
@@ -6115,22 +6161,12 @@ function mbCardView(id, uid){
   return {...base, name:info.name||base.name, emotionReq:info.emotionReq!=null?info.emotionReq:base.emotionReq, usable:info.usable, reason:info.reason,
     dice:info.dice&&info.dice.length?info.dice:base.dice};
 }
-function mbStampEmotion(){
-  if(!mb) return;
-  for(const u of mbSide("ally")){
-    const X=mb.x[u.id];
-    if(u.emotionCharge==null&&X&&X.charge!=null) u.emotionCharge=X.charge;
-    if(u.emotionMax==null) u.emotionMax=COMBAT.emotionMax;
-    if(u.chargesPerEmotion==null) u.chargesPerEmotion=COMBAT.chargesPerEmotion;
-  }
-}
 function mbDoUnassign(uid,i){
   const api=window.__studyGame&&window.__studyGame.battleApi;
   if(api&&typeof api.unassign==="function") api.unassign(uid,i);
   else { mbUnassign(uid,i); mbRefresh(); }
 }
 function mbStageOpts(){
-  mbStampEmotion();
   const hands={}, cards={};
   for(const u of mbSide("ally")){ const X=mb.x[u.id]; const ids=[...X.handIds,...u.dice.map(d=>d.card).filter(Boolean)]; hands[u.id]=ids; ids.forEach(id=>{ cards[id]=mbCardView(id,u.id); }); }
   for(const [id,p] of Object.entries(mb.cards)) if(!cards[id]) cards[id]=mbCardView(id, id.split("@")[0]);
@@ -6241,7 +6277,7 @@ function mbRefresh(display){
     go.classList.toggle("ready", !!(B.phase==="assign"&&!display&&mbAssignReady(B)));
   }
   if(B.phase==="question"&&!display) mbShowQuestion(); else $("#qpanel")?.classList.remove("on","key","short");
-  if(window.BattleStage&&BattleStage.relayout){ BattleStage.relayout(); requestAnimationFrame(()=>BattleStage.relayout&&BattleStage.relayout()); }
+  if(window.BattleStage&&BattleStage.relayout){ BattleStage.relayout(); requestAnimationFrame(()=>{ if(window.BattleStage&&BattleStage.relayout) BattleStage.relayout(); layoutHand(); }); }
 }
 function mbShowQuestion(){
   const pan=$("#qpanel"); if(!pan||!mb.cur) return;
@@ -6930,7 +6966,10 @@ renderLobby=withScroll("scene-lobby",renderLobby);
     const key=innerWidth+"x"+innerHeight; if(key===last) return; last=key;
     try{
       if(scene==="battle"&&reception){
-        layoutHand();
+        if(reception.multi&&window.BattleStage&&BattleStage.relayout){
+          BattleStage.relayout();
+          requestAnimationFrame(()=>{ if(window.BattleStage&&BattleStage.relayout) BattleStage.relayout(); layoutHand(); });
+        } else layoutHand();
         const g=GUEST_BY[reception.guestId]; if(g) paintBattleFloor($("#arena-bg"),g.floorId);
       } else if(scene==="shelf"){
         const w=$(".dress-gridwrap"); if(w) dressKeepTop=w.scrollTop;

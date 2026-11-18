@@ -101,7 +101,7 @@
 .bs-spark b:nth-child(2){transform:rotate(60deg)}.bs-spark b:nth-child(3){transform:rotate(-60deg)}
 @keyframes bsSpark{0%{transform:scale(.3);opacity:1}70%{opacity:1}100%{transform:scale(1.5);opacity:0}}
 @media (prefers-reduced-motion:reduce){.bs-unit.lunge .bs-fig,.bs-unit.flinch .bs-fig,.bs-unit.lose .bs-fig{animation:none}}
-.bs .hand.bs-fan{left:calc(208px + env(safe-area-inset-left,0px));right:calc(208px + env(safe-area-inset-right,0px));bottom:calc(4px + env(safe-area-inset-bottom,0px));height:168px;z-index:50}
+.bs .hand.bs-fan{left:calc(208px + env(safe-area-inset-left,0px));right:calc(208px + env(safe-area-inset-right,0px));bottom:calc(8px + env(safe-area-inset-bottom,0px));height:168px;z-index:50}
 .bs .hand.bs-fan .cc{width:108px;height:156px;margin:0}
 .bs .hand.bs-fan .cc.pick .card.paper{box-shadow:0 0 0 2px #ffe6a8,0 0 18px rgba(255,200,90,.55)}
 .bs .hand.bs-fan .cc.used{opacity:.28;filter:grayscale(.6);pointer-events:none}
@@ -125,7 +125,7 @@
 /* 카메라가 들어가 있는 동안(다가감~빠짐 끝) 손패·개막 버튼·상태판 숨김 */
 .bs-cam-on .bs-fan,.bs-cam-on .bs-hand,.bs-cam-on #btn-mb-go,.bs-cam-on .pass-btn,.bs-cam-on .mb-stat{opacity:0!important;visibility:hidden!important;pointer-events:none!important;transition:opacity .12s,visibility 0s .12s}
 @media (prefers-reduced-motion:reduce){ .bs-cam{transition:none} }
-@media (orientation:landscape) and (max-height:500px){ .bs .hand.bs-fan{height:136px;left:calc(196px + env(safe-area-inset-left,0px));right:calc(196px + env(safe-area-inset-right,0px))} .bs .hand.bs-fan .cc{width:84px;height:122px} }
+@media (orientation:landscape) and (max-height:500px){ .bs .hand.bs-fan{height:136px;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:calc(196px + env(safe-area-inset-left,0px));right:calc(196px + env(safe-area-inset-right,0px))} .bs .hand.bs-fan .cc{width:84px;height:122px} }
 /* 몸 종류가 있는 적(인간형·기계인간형·꼭두각시형): 온몸 그림이라 조금 크게, 우두머리는 더 크게. 흐트러지면 기울이지 않고 그림이 무너진다 */
 .bs-unit.nb{--fh:88px}
 .bs-unit.nb.lead{--fh:112px;--uw:86px}
@@ -148,7 +148,7 @@
   function isLand(){ return !root || root.clientWidth>=root.clientHeight; }
   function band(){
     const H=root.clientHeight, land=isLand(), R=root.getBoundingClientRect();
-    const fan=!!opts.cardHtml; const reserve = last&&last.phase==="question" ? 8 : fan ? (land?(H<=500?186:220):360) : (land?66:118);
+    const fan=!!opts.cardHtml; const reserve = last&&last.phase==="question" ? 8 : fan ? (land?(H<=500?198:220):360) : (land?66:118);
     let y0=land?44:48, y1=H-reserve;
     const sel=opts.avoid===undefined?"#qpanel.on":opts.avoid, av=sel&&document.querySelector(sel);
     if(av){ const r=av.getBoundingClientRect();
@@ -263,7 +263,7 @@
   function emoHtml(u){
     if(u.side!=="ally"||u.emotion==null) return "";
     const max=u.emotionMax||5, e=u.emotion||0;
-    const ch=u.emotionCharge!=null?u.emotionCharge:(u.charge!=null?u.charge:null);
+    const ch=u.emotionCharge;
     const need=u.chargesPerEmotion||2;
     const pips=Array.from({length:max},(_,i)=>`<span class="pip${i<e?" on":""}"></span>`).join("");
     const nxt=ch!=null&&e<max?`<span class="nxt">${ch}/${need}</span>`:"";
@@ -553,6 +553,9 @@
         hit(ev,steps[k],ue);   /* 카메라를 바깥에서 맞춰 둔 경우 첫 부딪침은 부르는 즉시(예전처럼) */
       }
       if(run.done) return;
+      const res=ev.result||{};
+      (res.staggered||[]).forEach(id=>{ const el=ue(id); if(!el) return; el.classList.add("staggered"); if(!el.querySelector(".bs-tag")){ const tag=document.createElement("span"); tag.className="bs-tag"; tag.textContent="흐트러짐"; el.prepend(tag); } });
+      (res.dead||[]).forEach(id=>{ const el=ue(id); if(el) el.classList.add("dead","dying"); });
       const tail=run.fast?API.fastMs-API.fastHitAt:API.clashMs-API.hitAt;
       if(!ext){ await sleep(Math.max(0,tail-API.camOutMs)); if(focus&&!focus.ext&&!run.done&&!liveOwn(run)) setFocus(null,run.fast,true); await sleep(run.fast?0:API.camOutMs); }
       else await sleep(Math.min(tail,API.clashMs-API.hitAt));
@@ -577,7 +580,12 @@
     const mA=(ev.allyCard||ev.allyDieObj)!=null?motionOf(ev.allyCard,ev.allyDieObj):null, mE=(ev.enemyCard||ev.enemyDieObj)!=null?motionOf(ev.enemyCard,ev.enemyDieObj):null;
     mv(A,mA); mv(E,mE);
     const face=(el,ex)=>{ const sv=el.querySelector("svg.gxn"); if(!sv||sv.classList.contains("down")) return; const was=sv.dataset.ex; sv.dataset.ex=ex; setTimeout(()=>{ if(sv.isConnected&&sv.dataset.ex===ex) sv.dataset.ex=was; },700); };
-    if(ev.kind==="clash"){ if(ev.win==="ally"){ face(E,"e1"); } else if(ev.win==="enemy"){ face(E,"e3"); } }
+    const EX={idle:"e0",hurt:"e1",shock:"e2",win:"e3"};
+    const applyEx=(id,name)=>{ const el=ue(id); if(!el||!name) return; face(el,EX[name]||name); el.dataset.expr=name; };
+    if(st&&st.expr){ Object.entries(st.expr).forEach(([id,ex])=>applyEx(id,ex)); }
+    else if(ev.expr){ Object.entries(ev.expr).forEach(([id,ex])=>applyEx(id,ex)); }
+    else if(ev.a&&ev.a.expr){ applyEx(ev.a.unit&&(ev.a.unit.id||ev.a.unit),ev.a.expr); if(ev.b&&ev.b.expr) applyEx(ev.b.unit&&(ev.b.unit.id||ev.b.unit),ev.b.expr); }
+    else if(ev.kind==="clash"){ if(ev.win==="ally"){ face(E,"e1"); } else if(ev.win==="enemy"){ face(E,"e3"); } }
     else if(target===E) face(E,"e1"); else face(E,"e3");
     const fa=figPt(A.querySelector(".bs-fig")), fe=figPt(E.querySelector(".bs-fig"));
     const sp=document.createElement("div"); sp.className="bs-spark"+(ev.kind==="clash"?"":" one"); sp.innerHTML="<b></b><b></b><b></b>";
