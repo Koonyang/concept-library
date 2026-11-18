@@ -54,6 +54,38 @@ const before=errs.length; await goStage();
 const nf=await p.evaluate(setup3v3);
 ok(nf.n===6&&nf.placeholder.every(x=>x===true)&&nf.cur.every(c=>c==="Idle"),"모델 로드 실패 → 자리표시 캐릭터로 계속",nf);
 errs.splice(before); await p.unroute(/\.glb$/);
+/* ---------- Task 5: 교환 연출 ---------- */
+await goStage();
+const t5=await p.evaluate(async()=>{
+  const mk=s=>()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+  Math.random=mk(9); const o={};
+  Game.battle.leave(); Game.battle.begin("pomodoro",{rng:mk(21)});
+  const S=await __stageMod.createStage(document.getElementById("stage")); S.setFloor(Game.data.floorStage("memory"));
+  await S.setUnits(Game.battle.state.units, Game.data.GUEST_BY.pomodoro);
+  const scene=()=>{ Game.battle.answer(true); const B=Game.battle.state, en=B.units.filter(u=>u.side==="enemy"&&u.hp>0);
+    for(const u of B.units.filter(u=>u.side==="ally")) u.dice.forEach((d,i)=>{ const c=Game.battle.hand(u.id).find(c=>Game.battle.usable(u.id,c).usable); if(c) Game.battle.assign(u.id,i,c,{unit:en[0].id,die:0}); });
+    const R=Game.battle.stepBegin(), evs=[]; let ev; while((ev=Game.battle.stepNext(R))) evs.push(ev); Game.battle.stepEnd(R); return evs; };
+  const evs=scene().filter(e=>e.kind!=="skip");
+  const e0=evs[0]; let hits=0, t=performance.now();
+  await S.play(e0,{onHit:()=>hits++}); o.ms=performance.now()-t; o.hits=hits; o.dmgSteps=e0.steps.filter(s=>s.dmg).length;
+  t=performance.now(); await S.play(evs[1]||e0,{fast:true}); o.fastMs=performance.now()-t;
+  t=performance.now(); const pr=S.play(e0); setTimeout(()=>S.finishNow(),100); await pr; o.skipMs=performance.now()-t;
+  /* 적 하나를 체력 1로 → 쓰러짐·책 낙하, 이어지는 skip 교환엔 책이 더 안 떨어짐 */
+  const X=__studyGame.battleApi.internals(), en=Game.battle.state.units.filter(u=>u.side==="enemy"&&u.hp>0);
+  for(const e of en){ X[e.id].cu.hp=1; e.hp=1; }
+  const evs2=scene(); o.kinds=evs2.map(e=>e.kind); o.dead=evs2.flatMap(e=>(e.result&&e.result.dead)||[]);
+  const b0=S.debug.bookDrops; for(const e of evs2) await S.play(e,{fast:true,final:Game.battle.outcome==="win"&&e===evs2.filter(x=>x.kind!=="skip").at(-1)});
+  o.books=S.debug.bookDrops-b0; o.deadEnemies=o.dead.filter(id=>id[0]==="e").length;
+  /* 등급 연출 + 전용 연출 */
+  const ssr={...e0,a:{...e0.a,card:"apex"}}; await S.play(ssr,{fast:true}); o.tier=S.debug.lastTier;
+  let called=0; __stageMod.registerFx("apex",async ctx=>{ called++; await ctx.wait(50); }); await S.play(ssr); o.called=called;
+  await S.play({kind:"skip"}); o.ok=true; return o; });
+ok(t5.ms<=1600*1.2&&t5.hits===t5.dmgSteps,"일반 교환: 1.6초 안, 맞는 단계마다 onHit",t5);
+ok(t5.fastMs<=350*1.5,"빨리 감기: 0.53초 안",t5);
+ok(t5.skipMs<=320,"finishNow: 100ms 뒤 부르면 곧 끝남",t5);
+ok(t5.deadEnemies>=1&&t5.books===t5.deadEnemies,"쓰러진 적마다 책 한 권(skip 교환에선 더 안 떨어짐)",t5);
+ok(t5.tier==="SSR","SSR 책장 → SSR 연출",t5);
+ok(t5.called===1,"registerFx 로 등록한 전용 연출이 한 번 불림",t5);
 /* @@NEXT@@ */
 ok(errs.filter(e=>!/Error creating WebGL context/.test(e)).length===0,"오류 없음 (nogl 페이지의 WebGL 생성 실패 로그는 의도)",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);
