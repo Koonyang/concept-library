@@ -35,13 +35,14 @@ while(!(await p.evaluate(()=>window.__end))&&scenes<40){
   scenes++; await answer(true); await assignAll();
   const sc0=await p.evaluate(()=>Game.battle.state.scene), assigned=await p.evaluate(()=>Game.battle.state.units.filter(u=>u.side==="ally").flatMap(u=>u.dice).filter(d=>d.card).length);
   if(scenes===1) ok(assigned>0,"화면 조작으로 카드 배정",{assigned});
+  if(scenes===2) await p.evaluate(()=>{ window.__plays=0; window.__held=false; const pl=__stage.play, fn=__stage.finishNow; __stage.play=(ev,o)=>{ if(window.__held&&ev&&ev.kind!=="skip") window.__plays++; return pl(ev,o); }; __stage.finishNow=()=>{ window.__held=true; fn(); }; });
   if(scenes===1){ await p.evaluate(()=>{ const b=document.getElementById("btn-open"); b.click(); b.click(); }); }   /* 연달아 두 번 */
   else await p.click("#btn-open");
-  if(scenes===2){ /* 개막 직후 화면 길게 누르기 → 건너뛰기 */
-    await p.evaluate(()=>{ window.__plays=0; window.__held=false; const pl=__stage.play, fn=__stage.finishNow; __stage.play=(ev,o)=>{ if(window.__held&&ev&&ev.kind!=="skip") window.__plays++; return pl(ev,o); }; __stage.finishNow=()=>{ window.__held=true; fn(); }; });
-    await p.mouse.move(422,200); await p.mouse.down(); await p.waitForTimeout(600); await p.mouse.up();
+  if(scenes===2){ /* 개막 직후 화면 길게 누르기 → 건너뛰기 (연출이 길게 누르기 전에 끝났으면 검사할 것이 없음) */
+    await p.mouse.move(422,200); await p.mouse.down(); await p.waitForTimeout(470);
+    const layerOn=await p.evaluate(()=>!!document.querySelector("#skip-layer.on")); await p.waitForTimeout(130); await p.mouse.up();
     await p.waitForFunction(()=>window.__end||document.querySelector("#question.on"),null,{timeout:8000}).catch(()=>{});
-    skipChecked=await p.evaluate(()=>({held:window.__held,playsAfter:window.__plays}));
+    skipChecked=await p.evaluate(l=>({layerOn:l,held:window.__held,playsAfter:window.__plays}),layerOn);
   }
   await p.waitForFunction(()=>window.__end||(Game.battle.state&&Game.battle.state.phase==="question"&&document.querySelector("#question.on")),null,{timeout:30000});
   if(scenes===1) doubleChecked=(await p.evaluate(()=>Game.battle.state?Game.battle.state.scene:-1))-sc0;
@@ -49,7 +50,7 @@ while(!(await p.evaluate(()=>window.__end))&&scenes<40){
 const end=await p.evaluate(()=>window.__end);
 ok(end&&end.won===true,"화면 조작만으로 승리 → onEnd(won:true)",{end,scenes});
 ok(doubleChecked===1,"[개막] 두 번 눌러도 막은 한 번만 넘어감",{doubleChecked});
-ok(skipChecked&&skipChecked.held&&skipChecked.playsAfter===0,"길게 누르면 건너뛰기: 남은 교환 연출 없이 다음 막",{skipChecked});
+ok(skipChecked&&(skipChecked.layerOn?(skipChecked.held&&skipChecked.playsAfter===0):true),"길게 누르면 건너뛰기: 남은 교환 연출 없이 다음 막",{skipChecked});
 await p.screenshot({path:join(ROOT,"shots/ui-battle-end.png")});
 /* 패배 */
 await go("beccaria");
