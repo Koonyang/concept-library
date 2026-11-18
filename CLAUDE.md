@@ -27,7 +27,7 @@ python3 -m http.server 8000   # 저장소 루트에서. 그다음 http://localho
 
 ## 테스트
 - Playwright(`playwright-core`) + 시스템 Chrome으로 로컬 서버를 띄워 화면을 찍고 검사한다.
-- 테스트는 `tests/`로 옮기는 중이다(전투/시스템 담당). 실행 명령은 `tests/`와 docs/battle.md를 따른다.
+- 테스트는 `tests/`로 옮기는 중이다(전투/시스템 담당, 작성 중). 실행 명령은 `tests/`와 docs/battle.md를 따른다.
   옮기기 전 위치는 봇 공용 컴퓨터의 `/workspace/lib-tests`(`LIB_ROOT=<저장소 경로> node <이름>.test.mjs`).
 - 겹침 검사 `overlap-check.mjs`는 0건이어야 한다. 배포 전 844×390·390×844 스크린샷을 직접 눈으로 본다.
 
