@@ -145,11 +145,11 @@ JOBS=2 node tests/run.mjs                # 동시 실행 수 (기본 4)
 - `LIB_ROOT`(기본 저장소 맨 위)의 `index.html` 을 테스트마다 로컬 서버로 띄운다. 브라우저는 `tests/lib/browser.mjs`: `CHROME_PATH` → `/usr/bin/google-chrome` → `/usr/bin/chromium` → macOS Chrome → `channel:"chrome"` → playwright 기본 chromium.
 - 스크린샷·로그는 `shots/`(git 에 안 올림), 로그 `shots/test-logs/<이름>.log`.
 - 지금 테스트 파일은 `tests/*.test.mjs` 38개 + `tests/overlap-check.mjs` = 39개(UI·학습내용 담당 것 포함). 새 테스트는 `tests/` 에 `이름.test.mjs` 로 넣으면 `run.mjs` 가 자동으로 집는다. 맨 위에서 `import { LIB_ROOT, launchBrowser } from "./lib/browser.mjs"` 를 쓰고 `executablePath` 는 적지 않는다.
-- 전투 쪽 주요 테스트: `mbdata`(체력 공식·1:1 값·문제 순서·벌점·스케일·저장 v2·간이 시뮬 승률), `mbresolve`(교환 이벤트·합 단계 필드 경우마다·Promise 흐름), `multibattle`(유닛 필드·한 막 진행), `hpstatus`, `evade`, `emotion`, `unassign`, `sim`(1:1 시뮬). 겹침: `overlap-check.mjs`(10화면, issues 0 이어야 함).
+- 전투 쪽 주요 테스트: `mbdata`(체력 공식·1:1 값·문제 순서·벌점·스케일·저장 v2·간이 시뮬 승률), `mbresolve`(교환 이벤트·합 단계 필드 경우마다·Promise 흐름), `multibattle`(유닛 필드·한 막 진행), `hpstatus`, `evade`, `emotion`, `unassign`, `sim`(1:1 시뮬). 겹침: `overlap-check.mjs`(10화면). 전투 UI끼리 겹침(주사위·체력/흐트러짐 바·화살표·손패·[개막]·상태 패널)은 0건이어야 하고 하나라도 있으면 실패한다. 캐릭터와 앞쪽 UI 겹침(`fighter-front-ui`)은 참고용으로 출력만 하고 실패로 치지 않는다(무대·캐릭터는 배경이라는 결정, `docs/decisions.md`).
 
 ## 9. 배포
 1. `git pull --rebase origin main`(다른 봇이 동시에 올림)
-2. `node tests/run.mjs` 전부 통과 + 겹침 10화면 issues 0
+2. `node tests/run.mjs` 전부 통과 + 겹침 10화면 blocking 0 (`fighter-front-ui` 는 참고용)
 3. `index.html` 을 바꿨으면 빌드 마커 `<meta name="build" content="library-YYYYMMDDX">` 를 main 의 마지막 다음 글자로(같은 날 a, b, … z, za, zb …). 푸시 **직전** main 마커를 다시 확인해 겹치지 않게. 문서·테스트만이면 마커 그대로
 4. `git push origin <브랜치>:main` → GitHub Pages(https://koonyang.github.io/concept-library/)에서 `curl -s "…/?cb=$(date +%s)" | grep library-` 로 마커 확인(1~2분)
 

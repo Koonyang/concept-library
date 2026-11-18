@@ -758,7 +758,11 @@ server.close();
 const report = { issues, consoleErrs, count: issues.length };
 writeFileSync(join(SHOT, "report.json"), JSON.stringify(report, null, 2));
 console.log("\n==== SUMMARY ====");
-console.log("issues:", issues.length);
+/* 배포 기준(docs/decisions.md): 전투 UI끼리 겹침은 0건이어야 한다.
+   fighter-front-ui(캐릭터와 앞쪽 UI 겹침)는 참고용이라 출력만 하고 실패로 치지 않는다. */
+const ADVISORY = new Set(["fighter-front-ui"]);
+const blocking = issues.filter(i => !ADVISORY.has(i.type));
+console.log("issues:", issues.length, "(blocking:", blocking.length + ", advisory fighter-front-ui:", (issues.length - blocking.length) + ")");
 console.log("console errors:", consoleErrs.length);
 if (consoleErrs.length) console.log(consoleErrs);
 if (issues.length) {
@@ -768,6 +772,5 @@ if (issues.length) {
     by[k] = (by[k] || 0) + 1;
   }
   console.log(by);
-  process.exit(1);
 }
-process.exit(0);
+process.exit(blocking.length ? 1 : 0);
