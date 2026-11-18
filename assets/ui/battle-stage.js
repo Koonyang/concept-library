@@ -22,9 +22,8 @@
      내 주사위 탭 → 손패에서 카드 탭 → 적 주사위 탭(또는 끌기). 흐트러져 주사위가 없는 적은 캐릭터를 탭하면 {unit, die:null}.
      개막 전까지는 언제든 다시 고를 수 있다. 카드가 놓인 내 주사위 또는 그 화살표를 탭하면 해제(opts.onUnassign || onUnassign).
      고른 카드를 다시 탭하면 선택만 해제. 감정 조건이 안 되는 카드(cardInfo.usable / emotionReq)는 흐리고 고를 수 없다.
-   자리: 무대 바닥(원판)은 화면 맨 아래까지 깔리는 뒷면. 캐릭터 발은 원판 위에 둔다(앞줄=원판 앞쪽, 뒷줄=뒤쪽).
-     손패·개막·상태판은 앞면 UI로 가장자리에 두고, 캐릭터가 그 뒤로 가려져도 된다. 앞면 UI끼리는 겹치지 않는다.
-   배치: 아군 slot 0 앞줄, 1·2 뒷줄 / 적 slot 0~2 앞줄, 3·4 뒷줄. 뒷줄은 작고 어둡게. 가로에서는 아군 왼쪽·적 오른쪽, 가운데는 합 클로즈업용으로 비운다. */
+   자리: 아래쪽 손패·개막 버튼 몫(가로 약 186px, 세로 손패+개막+상태판 약 360px)은 비워 둔다. 좌우 상태판은 손패 옆 여백.
+   배치: 아군 slot 0 앞줄, 1·2 뒷줄 / 적 slot 0~2 앞줄, 3·4 뒷줄. 뒷줄은 작고 어둡게. */
 (function(){
   const CSS=`
 .bs{position:absolute;inset:0;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}
@@ -107,7 +106,6 @@
 .bs .hand.bs-fan .cc.pick .card.paper{box-shadow:0 0 0 2px #ffe6a8,0 0 18px rgba(255,200,90,.55)}
 .bs .hand.bs-fan .cc.used{opacity:.28;filter:grayscale(.6);pointer-events:none}
 .bs.port .hand.bs-fan{left:6px;right:6px;height:176px}
-.bs.port .hand.bs-fan .cc{width:86px;height:128px}
 .bs-info{position:absolute;z-index:70;pointer-events:none;min-width:120px;max-width:200px;padding:7px 9px 8px;border-radius:10px;background:rgba(14,16,24,.94);border:1px solid #c45c4a;box-shadow:0 8px 20px rgba(0,0,0,.55);color:#e8d5b0;font-size:11px;line-height:1.4;transform:translate(-50%,-100%);animation:bsInfo .12s ease-out}
 .bs-info.below{transform:translate(-50%,0)}
 .bs-info .i-nm{display:block;font-weight:800;font-size:12px;color:#ffd9cf;margin-bottom:4px}
@@ -145,18 +143,13 @@
 
   function injectCss(){ if(document.getElementById("bs-css")) return; const s=document.createElement("style"); s.id="bs-css"; s.textContent=CSS; document.head.appendChild(s); }
 
-  /* slot → 무대 위 자리. 가로: 아군 왼쪽 / 적 오른쪽. 세로: 적은 원판 뒤쪽, 아군은 원판 앞쪽.
-     바닥 원판(타원)은 화면 높이 기준으로 고정하고, 캐릭터 발(.bs-fig 하단)을 그 위에 둔다.
-     손패·개막 몫을 비우지 않는다 — 캐릭터가 그 뒤로 가도 된다. 문제 칸(#qpanel.on)이 보이면 그 위를 피한다. */
+  /* slot → 무대 위 자리. 남는 칸(band: 위 y0 ~ 아래 y1, px)을 재서 앞줄은 아래·크게, 뒷줄은 위·작게.
+     가로: 아군 왼쪽 / 적 오른쪽. 세로: 적은 위 절반, 아군은 아래 절반. */
   function isLand(){ return !root || root.clientWidth>=root.clientHeight; }
-  /* 무대 바닥 원판: 뒷모서리 ≈ 높이의 45%, 앞모서리는 화면 맨 아래. 타원은 paintStage 와 같은 비율. */
-  function disc(H,land){
-    const yb=Math.round(H*.45), yf=H, cy=(yb+yf)/2, ry=(yf-yb)*.34;
-    return {yb,yf,cy,ry,top:cy-ry,bot:cy+ry};
-  }
   function band(){
     const H=root.clientHeight, land=isLand(), R=root.getBoundingClientRect();
-    let y0=land?44:48, y1=H-2;
+    const fan=!!opts.cardHtml; const reserve = last&&last.phase==="question" ? 8 : fan ? (land?(H<=500?198:220):360) : (land?66:118);
+    let y0=land?44:48, y1=H-reserve;
     const hud=document.querySelector(".hud-top");
     if(hud){ const s=getComputedStyle(hud);
       if(s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity!==0){
@@ -168,7 +161,7 @@
       if(r.height>0&&r.width>R.width*.4){ const top=r.top-R.top, bot=r.bottom-R.top;
         if(top>H*.35) y1=Math.min(y1,top-6); else y0=Math.max(y0,bot+6); } }
     if(y1-y0<120) y1=y0+120;
-    return {y0,y1,H,W:root.clientWidth,land,disc:disc(H,land)};
+    return {y0,y1,H,W:root.clientWidth,land};
   }
   function rows(y0,y1,uh){
     const front=y1-2;
@@ -177,37 +170,6 @@
     if(back>front-uh*.42) back=front-uh*.42;
     if(back<minBack) back=minBack;
     if(back>front-4) back=Math.max(front-4, minBack>front?front:minBack);
-    return {front,back};
-  }
-  /* 세로에서 상태판·손패·개막의 가장 위. 캐릭터 머리가 그 위에 남게 앞줄을 맞출 때 쓴다. */
-  function uiTop(B){
-    if(!root) return null;
-    const R=root.getBoundingClientRect();
-    const vis=el=>{ if(!el) return false; const s=getComputedStyle(el); return s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity!==0; };
-    let top=null;
-    for(const sel of [".mb-stat","#btn-mb-go",".hand.bs-fan",".bs-hand"]){
-      document.querySelectorAll(sel).forEach(el=>{
-        if(!vis(el)) return;
-        const r=el.getBoundingClientRect(); if(r.width<2||r.height<2) return;
-        const y=r.top-R.top; if(top==null||y<top) top=y;
-      });
-    }
-    return top;
-  }
-  /* 발 위치(앞줄·뒷줄)를 원판 위에 잡고, 문제 칸·HUD 안으로만 밀어 넣는다. y 는 발(fig 하단).
-     세로는 앞면 UI 위로 머리가 남게 앞줄을 조금만 내린다. */
-  function footRows(B,uh){
-    const D=B.disc||disc(B.H,B.land);
-    let front=Math.min(D.bot-6, B.y1-2);
-    let back=Math.max(D.top+8, B.y0+uh+2);
-    if(!B.land){
-      const ui=uiTop(B);
-      if(ui!=null) front=Math.min(front, Math.round(ui+uh*.38));
-    }
-    if(back>front-uh*.42){
-      const packed=rows(B.y0,Math.max(B.y0+uh+4,front+2),uh);
-      return packed;
-    }
     return {front,back};
   }
   /* 깊이 t (0=뒤 끝, 1=맨 앞). 모두 같은 바닥 위에 서고, 한 줄로 늘어서지 않게 앞뒤로 엇갈린다. */
@@ -224,53 +186,34 @@
     if(ally) t=DEPTH.ally[u.slot]??.6; else { const T=(back?DEPTH.back:DEPTH.front); t=((T[row.length]||T[1])[k]??(back?.15:1)); }
     let r;
     if(B.land){
-      r=footRows(B,uh);
+      r=rows(B.y0,B.y1,uh);
       if(ally){ x = u.slot===0 ? 18 : u.slot===1 ? 8 : 28; }
       else { const X = back ? {1:[86],2:[76,94]} : {1:[84],2:[74,94],3:[70,84,96]}; x=(X[row.length]||X[1])[k]??84; }
     } else {
-      /* 세로: 같은 원판 위에 적이 뒤·아군이 앞. 머리는 앞면 UI 위에 두고, 아군은 가운데(개막)를 비운다. */
-      const D=B.disc||disc(B.H,false);
-      const ui=uiTop(B);
-      let footF=Math.min(D.bot-6, B.y1-2);
-      let footB=Math.max(D.top+8, B.y0+8);
-      if(ui!=null) footF=Math.min(footF, Math.round(ui-6));
-      if(footF-footB<uh*1.15){
-        const base=ui!=null?ui:B.H*.58;
-        footF=Math.min(D.bot-6, B.y1-2, Math.round(base+uh*.2));
-        footB=Math.max(D.top-20, B.y0+8, footF-Math.round(uh*1.25));
-      }
-      /* 개막 버튼과는 세로로도 겹치지 않게 (가운데 열 포함). */
-      const go=document.getElementById("btn-mb-go");
-      if(go){ const s=getComputedStyle(go); if(s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity!==0){
-        const gy=go.getBoundingClientRect().top-(root.getBoundingClientRect().top);
-        footF=Math.min(footF, Math.round(gy-8));
-      } }
-      if(footB>footF-8) footB=footF-8;
-      const mid=footB+(footF-footB)*.46;
-      r = ally ? {front:footF, back:mid} : {front:mid, back:footB};
-      /* 아군 34/66, 적 2명은 10/90 — 가로로 겹치지 않고 개막(36–64%)과도 세로로만 떨어져 있음. */
-      if(ally){ x = u.slot===0 ? 34 : u.slot===1 ? 66 : 22; }
-      else { const X = back ? {1:[50],2:[28,72]} : {1:[50],2:[10,90],3:[12,50,88]}; x=(X[row.length]||X[1])[k]??50; }
+      const mid=B.y0+(B.y1-B.y0)*.5; r = ally ? rows(mid,B.y1,uh) : rows(B.y0,mid,uh);
+      if(ally){ x = u.slot===0 ? 50 : u.slot===1 ? 18 : 82; }
+      else { const X = back ? {1:[50],2:[28,72]} : {1:[50],2:[22,78],3:[12,50,88]}; x=(X[row.length]||X[1])[k]??50; }
     }
-    const y=r.back+(r.front-r.back)*t; /* 발(fig 하단). layout 에서 명찰 높이만큼 --y 를 내린다. */
+    const y=r.back+(r.front-r.back)*t;
     const sc=+(.8+.2*t).toFixed(3);
     /* 가장자리로 밀되 스케일된 몸 너비가 화면 밖으로 나가지 않게 */
     let px=x*B.W/100;
-    const halfW=86*sc/2, pad=1;
-    px=Math.max(halfW+pad, Math.min(B.W-halfW-pad, px));
+    const half=86*sc/2, pad=1;
+    px=Math.max(half+pad, Math.min(B.W-half-pad, px));
     return {x:px,y,t,sc,br:1,z:1+Math.round(t*10),r};
   }
-  /* 바닥(사다리꼴) 위치: 화면 기준으로 고정된 원판. 배경 그림이 여기에 맞춰 무대를 깐다. */
+  /* 바닥(사다리꼴) 위치: 가장 뒤·가장 앞 발 높이 (화면 좌표). 배경 그림이 여기에 맞춰 무대를 깐다. */
   function floorBand(){
-    if(!root||!last) return null; const B=band(), D=B.disc||disc(B.H,B.land), R=root.getBoundingClientRect();
-    return {land:B.land,yb:R.top+D.yb,yf:R.bottom,top:R.top,H:R.height};
+    if(!root||!last) return null; const B=band(), n=enemyRows(); const any=root.querySelector(".bs-unit"); const uh=any?any.offsetHeight:120;
+    const pl=any&&any.querySelector(".bs-plate"), ph=pl?pl.offsetHeight:26, R=root.getBoundingClientRect();
+    if(B.land){ const r=rows(B.y0,B.y1,uh); return {land:true,yb:R.top+r.back-ph*.8-8,yf:R.bottom,top:R.top,H:R.height}; }
+    const mid=B.y0+(B.y1-B.y0)*.5, ra=rows(mid,B.y1,uh), re=rows(B.y0,mid,uh);
+    return {land:false,yb:R.top+re.back-ph*.8-8,yf:R.bottom,top:R.top,H:R.height};
   }
-  /* 합 클로즈업: 합을 치는 사서·적 둘만 무대 가운데(원판 위)로 모이고, 카메라가 그 둘에 다가간다 */
+  /* 합 클로즈업: 합을 치는 사서·적 둘만 무대 가운데로 모이고, 카메라(무대를 감싼 칸)가 그 둘에 다가간다 */
   function focusPos(u,B,uh,p){
-    const W=B.W, gap=Math.max(56,Math.min(W*.085,110));
-    const D=B.disc||disc(B.H,B.land);
-    const y=Math.min(B.y1-2, Math.max(B.y0+uh+2, (D.top+D.bot)/2+(D.bot-D.top)*.12));
-    const cx=W*.5, ally=u.side==="ally";
+    const W=B.W, gap=Math.max(56,Math.min(W*.085,110)), r=B.land?rows(B.y0,B.y1,uh):rows(B.y0+(B.y1-B.y0)*.25,B.y1-(B.y1-B.y0)*.12,uh);
+    const cx=W*.5, y=r.front-(r.front-r.back)*.25, ally=u.side==="ally";
     const att=focus.by===u.id, push=focus.kind==="one-sided"&&!att?(ally?-14:14):0;
     return {...p,x:cx+(ally?-gap:gap)+push,y,sc:1,br:1,z:20+(att?2:1)};
   }
@@ -280,8 +223,8 @@
     el.classList.add("bs-cam");
     if(!focus){ cam={z:1,x:0,y:0}; el.style.transform=""; return; }
     const W=B.W, H=B.H, z=B.land?1.38:1.22;
-    const D=B.disc||disc(H,B.land);
-    const fy=Math.min(B.y1-2, Math.max(B.y0+uh+2, (D.top+D.bot)/2+(D.bot-D.top)*.12))-uh*.42, fx=W*.5;
+    const r=B.land?rows(B.y0,B.y1,uh):rows(B.y0+(B.y1-B.y0)*.25,B.y1-(B.y1-B.y0)*.12,uh);
+    const fy=r.front-(r.front-r.back)*.25-uh*.42, fx=W*.5;
     let tx=W*.5-z*fx, ty=H*.5-z*fy;
     tx=Math.min(0,Math.max(W-z*W,tx)); ty=Math.min(0,Math.max(H-z*H,ty));
     cam={z,x:tx,y:ty}; el.style.transform=`translate(${tx}px,${ty}px) scale(${z})`;
@@ -314,24 +257,7 @@
       if(focus&&focus.ids.includes(u.id)) p=focusPos(u,B,uh,p);
       if(!laidOut) el.classList.add("nofx");
       el.style.visibility="";
-      const pl=el.querySelector(".bs-plate"), ph=pl?pl.offsetHeight:0;
-      let y=p.y+ph; /* --y 는 유닛 박스 하단(=발 + 명찰). 발은 원판 위에 두고 명찰은 그 아래로. */
-      const top=y-(el.offsetHeight*(+p.sc||1));
-      if(top<B.y0) y+=B.y0-top;          /* 주사위가 HUD 아래로 */
-      if(y>B.y1) y=B.y1;                  /* 문제 칸을 가리지 않게 */
-      if(!B.land){ /* 세로: 유닛 박스(명찰 포함)가 개막과 겹치지 않게 */
-        const go=document.getElementById("btn-mb-go");
-        if(go){ const gs=getComputedStyle(go);
-          if(gs.display!=="none"&&gs.visibility!=="hidden"&&+gs.opacity!==0){
-            const gr=go.getBoundingClientRect(), Rr=root.getBoundingClientRect();
-            const gy=gr.top-Rr.top, gx0=gr.left-Rr.left, gx1=gr.right-Rr.left;
-            const half=(el.offsetWidth*(+p.sc||1))/2;
-            if(p.x+half>gx0+1 && p.x-half<gx1-1) y=Math.min(y, gy-2);
-          }
-        }
-      }
-      if(y>B.H-1) y=B.H-1;                /* 화면 안에 */
-      el.style.setProperty("--x",p.x+"px"); el.style.setProperty("--y",y+"px");
+      el.style.setProperty("--x",p.x+"px"); el.style.setProperty("--y",p.y+"px");
       el.style.setProperty("--sc",p.sc); el.style.setProperty("--br",p.br); el.style.setProperty("--z",p.z);
       el.style.setProperty("--lx",B.land?(u.side==="ally"?"18px":"-18px"):"0px");
       el.style.setProperty("--ly",B.land?"0px":(u.side==="ally"?"-16px":"16px"));
@@ -475,7 +401,7 @@
       const t=unit(d.target.unit), td=!noDie&&t&&t.dice&&t.dice[d.target.die];
       const clash = td&&td.target&&td.target.unit===u.id&&td.target.die===i;
       const key=[u.id+":"+i,d.target.unit+":"+d.target.die].sort().join("|"); if(clash&&seen.has(key)) return; seen.add(key);
-      const p=rel(a), q=noDie?figPt(b):rel(b); const mx=(p.x+q.x)/2, my=Math.max(8,Math.min(p.top,q.top)-36-Math.abs(p.x-q.x)*.08);
+      const p=rel(a), q=noDie?figPt(b):rel(b); const mx=(p.x+q.x)/2, my=Math.min(p.top,q.top)-36-Math.abs(p.x-q.x)*.08;
       const col= clash?"#ffe6a8": u.side==="ally"?"#c4a35a":"#e06a55";
       h+=`<path d="M${p.x} ${p.y-14} Q${mx} ${my} ${q.x} ${q.y-14}" fill="none" stroke="${col}" stroke-width="${clash?2.6:2}" ${clash?"":"stroke-dasharray=\"5 4\""} marker-end="url(#bsA)" ${clash?"marker-start=\"url(#bsA)\"":""} opacity=".92"/>`;
       if(clash) h+=`<circle cx="${mx}" cy="${(my+Math.min(p.y,q.y))/2-6}" r="9" fill="#1a1f2c" stroke="${col}" stroke-width="1.5"/><text x="${mx}" y="${(my+Math.min(p.y,q.y))/2-2}" font-size="10" font-weight="800" text-anchor="middle" fill="${col}">합</text>`;
@@ -483,7 +409,7 @@
     if(last.phase==="assign"){
       for(const u of last.units){ if(u.side!=="ally"||u.hp<=0) continue; (u.dice||[]).forEach((d,i)=>{ if(!d.card||!d.target) return;
         const a=dieEl(u.id,i); const noDie=d.target.die==null, b=noDie?figEl(d.target.unit):dieEl(d.target.unit,d.target.die); if(!a||!b) return;
-        const p=rel(a), q=noDie?figPt(b):rel(b); const mx=(p.x+q.x)/2, my=Math.max(8,Math.min(p.top,q.top)-36-Math.abs(p.x-q.x)*.08);
+        const p=rel(a), q=noDie?figPt(b):rel(b); const mx=(p.x+q.x)/2, my=Math.min(p.top,q.top)-36-Math.abs(p.x-q.x)*.08;
         h+=`<path class="bs-arr-hit" data-u="${u.id}" data-d="${i}" d="M${p.x} ${p.y-14} Q${mx} ${my} ${q.x} ${q.y-14}" fill="none" stroke="transparent" stroke-width="18"/>`;
       }); }
     }
