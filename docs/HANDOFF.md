@@ -25,7 +25,8 @@
 | `CREDITS.md`, `LICENSES.md` | 에셋 출처. 새 에셋을 넣으면 꼭 갱신. |
 | `manifest.json` | PWA 매니페스트(`orientation: landscape`, fullscreen). |
 | `docs/` | 이 문서들. |
-| `tests/` | Playwright 테스트. **이 문서를 쓸 때는 아직 `main`에 없다**(전투/시스템 담당이 `/workspace/lib-tests`에서 옮기는 중). 없으면 `docs/ui.md` 5절의 방법을 쓴다. |
+| `tests/` | Playwright 테스트 39개(겹침 검사 포함). `node tests/run.mjs` / `npm test`. 브라우저 찾기는 `tests/lib/browser.mjs`, 스크린샷은 `shots/`(git 무시). |
+| `tools/sim/` | 밸런스 시뮬레이션 `balance.mjs`(`npm run sim`), 체력표 `hp.mjs`(`npm run sim:hp`). |
 
 `index.html` 안의 주요 묶음(이름으로 검색할 것):
 - 데이터: `FLOORS`(층 4개: crime, memory, cognition, criminal-law), `WEAK_POINTS`(손님 11명, 문제 `questions`),
@@ -55,7 +56,7 @@
   그날 첫 접대에 보너스가 적용되면서 `used=true`가 된다.
 
 ## 4. 담당 문서 나눔
-- `docs/battle.md`(전투/시스템, **작성 중 — 이 문서를 쓸 때 아직 `main`에 없음**): 엔진 구조, `battleApi`, `ev`/`steps` 필드, 다대다·1:1 수치와 배율, 퍼센트 주사위, 저장 형식·버전·이전 저장 처리, 시뮬레이션, 테스트 실행.
+- [`docs/battle.md`](battle.md)(전투/시스템): 엔진 구조, `battleApi`, `ev`/`steps` 필드, 다대다·1:1 수치와 배율, 퍼센트 주사위, 저장 형식·버전·이전 저장 처리, 시뮬레이션, 테스트 실행.
 - [`docs/ui.md`](ui.md)(UI/UX): 화면 목록, `index.html` 구성, `BattleStage` API, 무대 배경 규칙과 겹침 검사, 손패·[개막]·상태판·책갈피 서랍, 합 연출, 가로/세로.
 - [`docs/content.md`](content.md)(학습내용): 손님 데이터 형식, 문제·핵심 문제·단어, `ENEMY_BODY`, `guest.book`, 새 손님 추가 순서.
 - [`docs/decisions.md`](decisions.md)(총괄): 큐 양이 정한 규칙. 다른 문서와 어긋나면 **decisions.md가 우선**이고, 어긋난 문서를 고친다.
@@ -99,6 +100,6 @@
 - 바뀐 점은 사용자 말로 짧게. 큐 양이 정한 규칙은 임의로 바꾸지 말고, 새 결정은 `docs/decisions.md`에 한 줄로 남긴다.
 
 ## 8. 문서끼리 어긋난 곳 (총괄 확인)
-- `docs/content.md` 마지막 절이 가리키는 `tools/`(밸런스 시뮬)와 `tests/`, 그리고 `docs/battle.md`는 이 문서를 쓸 때 아직 저장소에 없다(작성 중).
-  `tests/`로 옮길 목록에는 `/workspace/lib-tests/moonwords.test.mjs`도 들어가야 한다.
+- 겹침 기준(총괄 결정): 전투 UI끼리 겹침 0건은 배포 조건이고, `fighter-front-ui`(캐릭터 대 앞쪽 UI)는 참고용이다.
+- 봇 공용 컴퓨터의 로컬 설정 `.git/info/exclude`가 `*.mjs`를 무시했었다. 새로 clone한 저장소에는 해당 없지만, 그런 환경이면 `git add -f`가 필요하다.
 - 참고(어긋남 아님): "캐릭터 크기 그대로"는 `zi`에서 캐릭터를 키우지 않았다는 뜻이다. 깊이 원근(`sc = 0.8 + 0.2×t`, 뒷줄 최대 20% 작게, `br:1`로 어둡게 하지 않음)은 의도된 것이고 `docs/ui.md`(`ec9fa93`)와 맞다.

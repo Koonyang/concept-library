@@ -27,9 +27,9 @@ python3 -m http.server 8000   # 저장소 루트에서. 그다음 http://localho
 
 ## 테스트
 - Playwright(`playwright-core`) + 시스템 Chrome으로 로컬 서버를 띄워 화면을 찍고 검사한다.
-- 테스트는 `tests/`로 옮기는 중이다(전투/시스템 담당, 작성 중). 실행 명령은 `tests/`와 docs/battle.md를 따른다.
-  옮기기 전 위치는 봇 공용 컴퓨터의 `/workspace/lib-tests`(`LIB_ROOT=<저장소 경로> node <이름>.test.mjs`).
-- 겹침 검사 `overlap-check.mjs`는 0건이어야 한다. 배포 전 844×390·390×844 스크린샷을 직접 눈으로 본다.
+- 테스트: `npm install` 후 `node tests/run.mjs`(= `npm test`, 약 25분). 골라 돌리기 `node tests/run.mjs mbdata mbresolve`, 겹침 검사 빼기 `NO_OVERLAP=1`. 브라우저는 `tests/lib/browser.mjs`가 찾는다(`CHROME_PATH` 우선). 자세한 건 `docs/battle.md`.
+- 밸런스 시뮬레이션: `npm run sim`(`tools/sim/balance.mjs`), 체력표 `npm run sim:hp`(`tools/sim/hp.mjs`).
+- 겹침 검사: 전투 UI끼리(주사위·체력/흐트러짐 바·화살표·손패·[개막]·상태판) 겹침은 0건이어야 하고, 하나라도 있으면 배포하지 않는다. 캐릭터와 앞쪽 UI를 보는 `fighter-front-ui`는 참고용이라 실패해도 배포를 막지 않는다(무대·캐릭터는 배경층). 배포 전 844×390·390×844 스크린샷을 직접 눈으로 본다.
 
 ## 배포
 1. `git pull --rebase origin main`
@@ -43,6 +43,6 @@ python3 -m http.server 8000   # 저장소 루트에서. 그다음 http://localho
 ## 문서
 - `docs/HANDOFF.md` — 전체 개요, 파일 지도, 게임 흐름, 현재 상태, 남은 일 (먼저 읽기)
 - `docs/decisions.md` — 큐 양이 정한 규칙 전부 (주제별, 날짜)
-- `docs/battle.md` — 전투 엔진·수치·저장 형식·시뮬레이션 (전투/시스템; 이 파일을 쓸 때 아직 작성 중)
+- [`docs/battle.md`](docs/battle.md) — 전투 엔진·수치·저장 형식·시뮬레이션 (전투/시스템)
 - `docs/ui.md` — 화면·`BattleStage`·겹침 검사·가로/세로 (UI/UX)
 - `docs/content.md` — 손님·문제·단어 데이터, 새 손님 추가 순서 (학습내용)
