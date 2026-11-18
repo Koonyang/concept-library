@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>개념의 서고</title>
-<meta name="build" content="library-20261118zg">
+<meta name="build" content="library-20261118zh">
 <link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta name="theme-color" content="#07080d">
@@ -28,11 +28,12 @@
   --inspect-bottom:256px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{width:100%;height:100%;overflow:hidden;background:var(--n0);color:var(--parch);
+html,body{width:100%;height:100%;min-width:100%;min-height:100%;min-height:100dvh;overflow:hidden;background:var(--n0);color:var(--parch);
   font-family:var(--sans);
   user-select:none}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
-#game{position:fixed;inset:0;overflow:hidden;background:var(--n0)}
+/* 무대·배경은 노치/safe-area까지 채운다. 앞면 UI만 env(safe-area-inset-*) 로 안쪽으로. */
+#game{position:fixed;inset:0;width:100%;height:100%;min-width:100%;min-height:100%;min-height:100dvh;overflow:hidden;background:var(--n0)}
 #fx,#bg{position:absolute;inset:0;width:100%;height:100%;display:block}
 #bg{z-index:0}#fx{z-index:8;pointer-events:none}
 #vignette{position:absolute;inset:0;z-index:9;pointer-events:none;
@@ -217,8 +218,8 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 }
 
 /* battle */
-#scene-battle{background:transparent}
-.battle-stage{position:absolute;inset:0;display:flex;flex-direction:column}
+#scene-battle{background:var(--n0,#07080d)}
+.battle-stage{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--n0,#07080d)}
 .arena{flex:1;position:relative;overflow:hidden}
 .arena-bg{position:absolute;inset:0;width:100%;height:100%}
 .arena:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
@@ -1788,6 +1789,10 @@ b,strong{font-weight:700}
   .mb-stat{width:186px;max-height:148px}
 }
 .bs .hand.bs-fan .card.paper .dice .rng{font-style:normal;font-weight:700;margin-left:2px}
+/* 부채꼴 손패: 모든 카드에 이름·코스트·주사위가 보이게. 고른 카드만 한 장 올라가고 제목이 이웃에 가리지 않음. */
+.bs .hand.bs-fan .card.paper .nm{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-overflow:ellipsis;word-break:keep-all;overflow-wrap:anywhere;max-height:2.6em}
+.bs .hand.bs-fan .cc.pick{z-index:30}
+.bs .hand.bs-fan .cc.pick .card.paper .nm{-webkit-line-clamp:3;max-height:3.9em}
 .dmg.mini{font-size:24px}.dmg.mini.stag,.dmg.mini.rec{font-size:17px}.dmg.mini .dtag{font-size:9px}
 </style>
 </head>
@@ -5048,14 +5053,45 @@ function bindHandInteract(){
 function layoutHand(){
   const hand=$("#hand"); if(!hand) return;
   const cs=[...hand.children].filter(c=>c.classList.contains("cc")); const n=cs.length; if(!n) return;
-  cs.forEach(c=>{ c.style.margin="0"; c.style.transform="none"; });
-  const cw=cs[0].offsetWidth, ch=cs[0].offsetHeight, W=hand.clientWidth;
-  const land=matchMedia("(orientation:landscape) and (max-height:500px)").matches;   // 가로: 부채꼴을 얕게 → 카드가 화면 아래로 잘리지 않게
-  let rotStep=n<2?0:Math.min(land?3.2:7,(land?20:44)/(n-1)), dip=land?.7:1.2;
-  const amax0=(n-1)/2*rotStep*Math.PI/180;
-  const pad=Math.ceil(ch*Math.sin(amax0)/2+cw*(1-Math.cos(amax0))/2)+9;   // 기울어진 바깥 카드의 모서리까지 화면 안에
-  const avail=W-2*pad;
-  let step=n<2?0:Math.min(cw*0.67,(avail-cw)/(n-1));
+  /* 카드 크기를 CSS 기본값으로 되돌린 뒤, 안 들어가면 조금 줄이거나 가로로 스크롤한다. */
+  cs.forEach(c=>{ c.style.margin="0"; c.style.transform="none"; c.style.width=""; c.style.height=""; });
+  hand.style.overflowX="";
+  const land=matchMedia("(orientation:landscape) and (max-height:500px)").matches;   // 가로 짧은 화면: 부채꼴을 얕게
+  const vis=el=>{ if(!el) return false; const s=getComputedStyle(el); return s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity!==0&&el.getBoundingClientRect().width>1; };
+  const ceiling=()=>{
+    let y=0;
+    const go=document.getElementById("btn-mb-go");
+    if(vis(go)) y=Math.max(y,go.getBoundingClientRect().bottom);
+    const hr=hand.getBoundingClientRect();
+    document.querySelectorAll(".mb-stat").forEach(el=>{ if(!vis(el)) return; const r=el.getBoundingClientRect(); if(r.right>hr.left+8&&r.left<hr.right-8) y=Math.max(y,r.bottom); });
+    return y;
+  };
+  const sizeOf=()=>{ const c=cs[0]; return {cw:c.offsetWidth, ch:c.offsetHeight, W:hand.clientWidth}; };
+  let {cw,ch,W}=sizeOf();
+  /* 이름·코스트·주사위가 이웃에 가리지 않게 충분히 벌린다(겹침은 22% 안쪽). */
+  const narrow=land&&innerWidth<=700;
+  const MIN_RATIO=narrow?0.72:0.78;
+  const MIN_SCALE=narrow?0.7:0.78;
+  let rotStep=n<2?0:Math.min(land?4.4:4.2,(land?26:26)/(n-1)), dip=land?.28:.65;
+  const padFor=(cwX,chX,rot)=>{ const a=((n-1)/2*rot)*Math.PI/180; return Math.ceil(chX*Math.sin(a)/2+cwX*(1-Math.cos(a))/2)+9; };
+  const needW=(cwX,ratio)=>n<2?cwX:cwX+cwX*ratio*(n-1);
+  /* 먼저 벌리고, 안 되면 카드를 살짝 줄이고, 그래도 안 되면 가로 스크롤. */
+  let scrolled=false;
+  let pad=padFor(cw,ch,rotStep), avail=W-2*pad;
+  if(n>=2 && avail<needW(cw,MIN_RATIO)){
+    const scale=Math.max(MIN_SCALE, (avail-((n-1)*cw*MIN_RATIO))/cw);
+    if(scale<0.999){
+      cs.forEach(c=>{ c.style.width=Math.round(cw*scale)+"px"; c.style.height=Math.round(ch*scale)+"px"; });
+      ({cw,ch,W}=sizeOf());
+      pad=padFor(cw,ch,rotStep); avail=W-2*pad;
+    }
+  }
+  if(n>=2 && avail<needW(cw,MIN_RATIO)-1){
+    scrolled=true;
+    hand.style.overflowX="auto";
+    hand.style.webkitOverflowScrolling="touch";
+  }
+  let step=n<2?0: (scrolled?cw*MIN_RATIO:Math.min(cw*0.88,Math.max(cw*MIN_RATIO,(avail-cw)/(n-1))));
   const left0=(W-(cw+step*(n-1)))/2;
   const s=Math.min(1.9,Math.max(1.12,Math.min(190,W*0.5)/cw));
   hand._geo={n,cw,ch,step,left0,W,s};
@@ -5069,20 +5105,11 @@ function layoutHand(){
     });
     void hand.offsetWidth;
   };
-  /* 개막 버튼·상태판 바로 위까지만 올리고, 바깥 카드는 화면 안에 둔다 (허용 0~2px). 카드 크기는 그대로. */
-  const vis=el=>{ if(!el) return false; const s=getComputedStyle(el); return s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity!==0&&el.getBoundingClientRect().width>1; };
-  const ceiling=()=>{
-    let y=0;
-    const go=document.getElementById("btn-mb-go");
-    if(vis(go)) y=Math.max(y,go.getBoundingClientRect().bottom);
-    const hr=hand.getBoundingClientRect();
-    document.querySelectorAll(".mb-stat").forEach(el=>{ if(!vis(el)) return; const r=el.getBoundingClientRect(); if(r.right>hr.left+8&&r.left<hr.right-8) y=Math.max(y,r.bottom); });
-    return y;
-  };
   const box=()=>{
     const rs=cs.map(c=>c.getBoundingClientRect());
     return {minL:Math.min(...rs.map(r=>r.left)), maxR:Math.max(...rs.map(r=>r.right)), minT:Math.min(...rs.map(r=>r.top)), maxB:Math.max(...rs.map(r=>r.bottom))};
   };
+  /* 부채는 얕게 펼쳐 가운데 카드가 두 장 떠 있는 것처럼 보이지 않게. 고른 카드만 따로 올린다. */
   let lift=Math.ceil((cw/2)*Math.sin(((n-1)/2*rotStep)*Math.PI/180)+dip*((n-1)/2*rotStep));
   const room0=()=>{ const y=ceiling(); paint(dip,rotStep,0); const top=Math.min(...cs.map(c=>c.getBoundingClientRect().top)); return Math.max(0,top-y-2); };
   lift=Math.max(0,Math.min(lift,room0()));
@@ -5100,9 +5127,7 @@ function layoutHand(){
       }
       if(rotStep>0.8&&(overflowB>0.5||overflowX>0.5)){ rotStep=Math.max(0.8,rotStep*0.72); paint(dip,rotStep,lift); continue; }
       if(overflowX>0.5&&n>=2){
-        const span=cw+step*(n-1);
-        const need=span+overflowX+2;
-        if(need>W && step>cw*0.28){ step=Math.max(cw*0.28,step-(overflowX+2)/(n-1)); hand._geo.step=step; paint(dip,rotStep,lift); continue; }
+        if(step>cw*MIN_RATIO){ step=Math.max(cw*MIN_RATIO,step-(overflowX+2)/(n-1)); hand._geo.step=step; paint(dip,rotStep,lift); continue; }
       }
       const b2=box();
       return Math.max(0,b2.maxB-innerHeight)<=2 && Math.max(0,-b2.minL,b2.maxR-innerWidth)<=2;
@@ -5111,6 +5136,49 @@ function layoutHand(){
     return Math.max(0,b.maxB-innerHeight)<=2 && Math.max(0,-b.minL,b.maxR-innerWidth)<=2;
   };
   fit();
+  /* 마지막: 화면 안에 무조건 넣는다. 그래도 나가면 각도를 0으로 하고 가운데로 민다. */
+  for(let i=0;i<8;i++){
+    const b=box();
+    const ox=Math.max(0,-b.minL,b.maxR-innerWidth), oy=Math.max(0,b.maxB-innerHeight);
+    if(ox<=2&&oy<=2) break;
+    if(rotStep>0.15){ rotStep=Math.max(0,rotStep*0.5); paint(dip,rotStep,lift); continue; }
+    if(dip>0){ dip=0; paint(dip,rotStep,lift); continue; }
+    if(oy>2&&lift>0){ lift=Math.max(0,lift-Math.ceil(oy)); paint(dip,rotStep,lift); continue; }
+    if(n>=2&&ox>2&&step>cw*0.55){ step=Math.max(cw*0.55,step-(ox+4)/(n-1)); hand._geo.step=step; paint(dip,rotStep,lift); continue; }
+    break;
+  }
+  {
+    let b=box();
+    let ox=Math.max(0,-b.minL,b.maxR-innerWidth), oy=Math.max(0,b.maxB-innerHeight);
+    if(ox>2||oy>2){
+      rotStep=0; dip=0;
+      for(let i=0;i<8;i++){
+        if(oy>2) lift=Math.max(0,lift-Math.ceil(oy));
+        if(n>=2&&ox>2){ step=Math.max(cw*0.5, step-Math.max(4,(ox+8)/(n-1))); hand._geo.step=step; }
+        paint(0,0,lift);
+        b=box();
+        ox=Math.max(0,-b.minL,b.maxR-innerWidth); oy=Math.max(0,b.maxB-innerHeight);
+        if(ox<=2&&oy<=2) break;
+        const shift=(Math.max(0,-b.minL+3)-Math.max(0,b.maxR-(innerWidth-3))) / 2;
+        if(Math.abs(shift)>0.5){
+          cs.forEach(c=>{ c._base=`translateX(${shift}px) `+(c._base||""); c.style.transform=c._base; });
+          b=box();
+          ox=Math.max(0,-b.minL,b.maxR-innerWidth); oy=Math.max(0,b.maxB-innerHeight);
+          if(ox<=2&&oy<=2) break;
+        }
+      }
+    }
+  }
+  /* 고른 카드만 한 장 올림. 개막·상태판을 가리지 않는 범위에서. */
+  const picks=cs.filter(c=>c.classList.contains("pick"));
+  picks.slice(1).forEach(c=>c.classList.remove("pick"));
+  const pick=picks[0];
+  if(pick){
+    const room=Math.max(0,pick.getBoundingClientRect().top-ceiling()-2);
+    const extra=Math.min(land?14:18, room);
+    if(extra>0){ pick._base+=` translateY(${-extra}px)`; pick.style.transform=pick._base; }
+    pick.style.zIndex=30; pick._z=30;
+  }
   hand.classList.toggle("crowd",n>=6);
 }
 
@@ -6222,9 +6290,8 @@ function mbStageOpts(){
       const info=m&&m.info||cardInfoOf(id,u&&u.id);
       const dice=(m&&m.dice)||(info&&info.dice);
       const locked=m?!m.usable:!!(info&&info.usable===false);
-      return paperCardHtml(page,{prev:true,noPrev:true,assign:true,unitId:u&&u.id,dice,locked,noInfo:!dice}); },
+      return paperCardHtml(page,{mini:true,prev:true,noPrev:true,assign:true,unitId:u&&u.id,dice,locked,noInfo:!dice}); },
     onHand:hd=>{ hd.id="hand"; layoutHand();
-      hd.querySelectorAll(".cc.pick").forEach(c=>{ c._base+=" translateY(-16px)"; c.style.transform=c._base; c.style.zIndex=30; c._z=30; });
       bindHandScrub(c=>{ if(!busy) BattleStage.pickCard(c.dataset.card); });
       bindPageInspect("#hand .cc",null); },
     dieInfo:mbDieInfo,
