@@ -8,16 +8,21 @@
 import * as THREE from "three";
 import { MOODS, DEFAULT_MOOD } from "./moods.js";
 import { buildProp } from "./props.js";
+import { loadCharacters, makeFigure } from "./characters.js";
+import { lookOf } from "./looks.js";
 
 const PIXEL_RATIO_MAX = 1.5;
 const CAM = { fov: 34, pos: new THREE.Vector3(0, 2.7, 8.2), look: new THREE.Vector3(0, 1.05, 0), baseAspect: 844 / 390 };
 /* 소품 자리: 무대 가장자리, 가운데(유닛 자리 x∈[-3.4,3.4], z∈[-0.9,0.9])를 피해서 */
 const PROP_SLOTS = [[-5.0, -2.4], [5.0, -2.4], [-6.0, 0.6], [6.0, 0.6], [-3.0, -4.3], [3.0, -4.3]];
 const MAX_PROP_LIGHTS = 3;
+/* 유닛 자리: 사서 왼쪽 x∈[-3.4,-2.0], 적 오른쪽(대칭). 한 편 n명일 때 [x, z] (z 앞=+) */
+const SLOTS = { 1: [[2.6, 0]], 2: [[3.1, -0.7], [2.0, 0.7]], 3: [[2.6, -0.1], [3.8, -1.1], [1.6, 0.9]] };
+const FACE = Math.PI / 2 * 0.62;          /* 서로 마주 보되 카메라 쪽으로 조금 */
 
 function nullStage() {
   const done = () => Promise.resolve();
-  return { ok: false, setFloor() {}, resize() {}, setUnits: done, play: done, finishNow() {}, unitPoint: () => null,
+  return { ok: false, setFloor() {}, resize() {}, setUnits: done, play: done, finishNow() {}, unitPoint: () => null, figure: () => null,
     onFrame() {}, dispose() {}, debug: { mood: null, props: [], frames: 0 } };
 }
 
@@ -120,10 +125,41 @@ export async function createStage(canvas) {
   document.addEventListener("visibilitychange", wake);
   wake();
 
+  /* ---------- 유닛 ---------- */
+  const figures = new Map();   /* id → {F, home:Vector3, side} */
+  let unitsRoot = null;
+  async function setUnits(units, guest) {
+    await loadCharacters();
+    if (unitsRoot) { scene.remove(unitsRoot); }
+    figures.clear(); unitsRoot = new THREE.Group(); unitsRoot.name = "units"; scene.add(unitsRoot);
+    for (const side of ["ally", "enemy"]) {
+      /* 우두머리를 가운데 줄(첫 자리)에 */
+      const list = units.filter(u => u.side === side).sort((a, b) => (b.leader ? 1 : 0) - (a.leader ? 1 : 0));
+      const slots = SLOTS[Math.min(3, list.length)] || SLOTS[3];
+      list.forEach((u, i) => {
+        const [ax, z] = slots[i] || [2.6 + i * 0.3, 0], x = side === "ally" ? -ax : ax;
+        const look = lookOf(u, guest), F = makeFigure(look);
+        const depth = 0.8 + 0.2 * ((z + 0.9) / 1.8);          /* 뒷줄 최대 20% 작게 */
+        F.obj.scale.setScalar(look.scale * depth);
+        F.obj.position.set(x, 0, z); F.obj.rotation.y = side === "ally" ? FACE : -FACE;
+        F.act("Idle"); unitsRoot.add(F.obj);
+        figures.set(u.id, { F, home: F.obj.position.clone(), side, unit: u });
+      });
+    }
+  }
+  tickers.add(dt => { for (const { F } of figures.values()) F.update(dt); });
+  const v3 = new THREE.Vector3();
+  function unitPoint(id) {
+    const f = figures.get(id); if (!f) return null;
+    const o = f.F.obj; v3.set(o.position.x, o.position.y + f.F.height * o.scale.y + 0.25, o.position.z).project(cam);
+    const r = canvas.getBoundingClientRect();
+    return { x: r.left + (v3.x + 1) / 2 * r.width, y: r.top + (1 - v3.y) / 2 * r.height };
+  }
+
   const S = {
     ok: true, three: THREE, scene, camera: cam, renderer, debug, camShake, tickers,
     setFloor, resize,
-    setUnits: () => Promise.resolve(), unitPoint: () => null,
+    setUnits, unitPoint, figure: id => (figures.get(id) || {}).F || null, figures,
     play: () => Promise.resolve(), finishNow() {},
     onFrame(f) { tickers.add(f); return () => tickers.delete(f); },
     dispose() { cancelAnimationFrame(raf); ro.disconnect(); document.removeEventListener("visibilitychange", wake); if (world) disposeTree(world); renderer.dispose(); },

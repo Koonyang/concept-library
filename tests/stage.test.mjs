@@ -29,6 +29,31 @@ ok(t3.mood2==="moon"&&JSON.stringify(t3.props2)==='["globe"]',"모르는 소품�
 await goStage("?nogl");
 const ng=await p.evaluate(async()=>{ const S=await __stageMod.createStage(document.getElementById("stage")); const t=performance.now(); await S.play({}); S.setFloor(Game.data.floorStage("crime")); return {ok:S.ok,ms:performance.now()-t}; });
 ok(ng.ok===false&&ng.ms<50,"WebGL 없으면 ok=false, play 즉시 끝",ng);
+/* ---------- Task 4: 캐릭터 배치·동작 ---------- */
+const setup3v3=`(async()=>{ const G=__studyGame, s=G.save;
+  s.unlockedKeyIds=["novice","reading-room","midnight","archivist","classical-robe","panopticon-coat","truth-robe","pad8","pad9","pad10"]; G.libs.sync(s);
+  G.libs.equipKey(s,"lib2","archivist"); G.libs.equipKey(s,"lib3","classical-robe"); window.__party=G.libs.setParty(s,["kyu","lib2","lib3"]); Game.battle.leave(); Game.battle.begin("beccaria");
+  const S=await __stageMod.createStage(document.getElementById("stage")); window.__S=S; S.setFloor(Game.data.floorStage("crime"));
+  await S.setUnits(Game.battle.state.units, Game.data.GUEST_BY.beccaria); await new Promise(r=>setTimeout(r,300));
+  const U=Game.battle.state.units, c=document.getElementById("stage").getBoundingClientRect();
+  return { n:U.length, allies:U.filter(u=>u.side==="ally").map(u=>S.figure(u.id).obj.position.x), enemies:U.filter(u=>u.side==="enemy").map(u=>({x:S.figure(u.id).obj.position.x,s:S.figure(u.id).obj.scale.x,leader:u.leader})),
+    pts:U.map(u=>S.unitPoint(u.id)), w:c.width, h:c.height, cur:U.map(u=>S.figure(u.id).current), placeholder:U.map(u=>S.figure(u.id).placeholder) }; })()`;
+for(const [w,h] of [[844,390],[390,844]]){
+  await p.setViewportSize({width:w,height:h}); await goStage();
+  const r=await p.evaluate(setup3v3);
+  ok(r.n===6&&r.allies.every(x=>x<0)&&r.enemies.every(e=>e.x>0),`${w}×${h}: 3:3, 사서 왼쪽 적 오른쪽`,r);
+  const ld=r.enemies.filter(e=>e.leader), fo=r.enemies.filter(e=>!e.leader);
+  ok(ld.length&&fo.length&&Math.min(...ld.map(e=>e.s))>Math.max(...fo.map(e=>e.s)),`${w}×${h}: 우두머리가 더 큼`,r.enemies);
+  ok(r.pts.every(q=>q&&q.x>=0&&q.x<=r.w&&q.y>=0&&q.y<=r.h),`${w}×${h}: 모든 유닛 머리 위 좌표가 화면 안`,r.pts);
+  ok(r.cur.every(c=>c==="Idle")&&r.placeholder.every(x=>x===false),`${w}×${h}: 모두 Idle, 진짜 모델`,{cur:r.cur,ph:r.placeholder});
+  await p.screenshot({path:join(ROOT,`shots/stage-units-${w}.png`)});
+}
+await p.setViewportSize({width:844,height:390});
+await p.route(/\.glb$/, r=>r.fulfill({status:404,body:""}));
+const before=errs.length; await goStage();
+const nf=await p.evaluate(setup3v3);
+ok(nf.n===6&&nf.placeholder.every(x=>x===true)&&nf.cur.every(c=>c==="Idle"),"모델 로드 실패 → 자리표시 캐릭터로 계속",nf);
+errs.splice(before); await p.unroute(/\.glb$/);
 /* @@NEXT@@ */
 ok(errs.filter(e=>!/Error creating WebGL context/.test(e)).length===0,"오류 없음 (nogl 페이지의 WebGL 생성 실패 로그는 의도)",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);
