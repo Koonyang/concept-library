@@ -42,7 +42,11 @@ while(!(await p.$('#ui[data-screen="result"]'))&&scenes<40){
 ok(!!(await p.$('#ui[data-screen="result"]')),"결과 화면",{scenes});
 ok(!!(await p.$('#result img[src$="book-7.webp"]')),"결과에 베카리아 책 표지");
 await p.screenshot({path:join(ROOT,"shots/app-result-844.png")});
-await p.click("#btn-floors");
+/* 이겨서 책을 얻었으면 결과에서 바로 도서관 책 탭으로(그 손님 책 선택) */
+ok(!!(await p.$("#btn-burn")),"결과에 [도서관에서 소각]");
+await p.click("#btn-burn"); await p.waitForSelector('#ui[data-screen="library"] .lib-tab[data-tab="books"].on');
+ok(!!(await p.$('.book-item.sel[data-guest="beccaria"]'))&&!!(await p.$("#btn-burn1:not([disabled])")),"책 탭에서 베카리아 책이 골라져 있고 바로 소각 가능");
+await p.evaluate(()=>window.__app.nav.floors());
 await p.waitForSelector('#ui[data-screen="floors"]');
 ok(await p.evaluate(()=>JSON.parse(localStorage.getItem("concept-library-game-v1")).conqueredIds.includes("beccaria")),"저장에 베카리아가 책이 됨");
 for(const [w,h] of [[844,390],[390,844]]){ await p.setViewportSize({width:w,height:h}); await p.waitForTimeout(300); await p.screenshot({path:join(ROOT,`shots/app-floors-${w}.png`)});

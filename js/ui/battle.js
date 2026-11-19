@@ -151,6 +151,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     if (correct) { sfx.correct(); setMsg("정답 · 이번 막 내 주사위가 커져", "good", 3500); }
     else {
       sfx.wrong(); setMsg("오답 · 이번 막 내 주사위가 작아져", "bad", 3500);
+      if (stage.wrongBonk) stage.wrongBonk().catch(() => {});   /* 사서 머리에 책이 떨어지고 화면이 짧게 흔들림(옛 결정) */
       const ans = q.type === "short" ? q.answer : (q.options || [])[q.correctIndex];
       el.learn.innerHTML = `<b>정답 · ${esc(ans)}${typed ? ` <span style="color:var(--muted);font-weight:400">(내 답 · ${esc(typed)})</span>` : ""}</b><p>${esc(guest.explanation)}</p>`;
       el.learn.classList.add("on");

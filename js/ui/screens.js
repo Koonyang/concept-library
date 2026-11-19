@@ -56,8 +56,9 @@ export function renderResult(root, r, nav) {
        <p class="expl">${esc(r.explanation)}</p><p class="score num">정답 ${r.correct}/${r.total}</p></div>`;
   const next = G().battle.nextGuest(r.guestId);
   root.innerHTML = `<div id="result" class="${r.won ? "won" : "lost"}"><div class="rcard">${body}
-    <div class="acts"><button id="btn-retry" type="button">다시 접대</button>${r.won && next ? `<button id="btn-next" type="button">다음 손님</button>` : ""}<button id="btn-floors" type="button" class="primary">층으로</button></div></div></div>`;
+    <div class="acts">${r.won && r.books > 0 ? `<button id="btn-burn" type="button">도서관에서 소각</button>` : ""}<button id="btn-retry" type="button">다시 접대</button>${r.won && next ? `<button id="btn-next" type="button">다음 손님</button>` : ""}<button id="btn-floors" type="button" class="primary">층으로</button></div></div></div>`;
   root.querySelector("#btn-retry").addEventListener("click", () => nav.battle(r.guestId));
+  const bb = root.querySelector("#btn-burn"); if (bb) bb.addEventListener("click", () => nav.library("books", r.guestId));
   root.querySelector("#btn-floors").addEventListener("click", () => nav.floors());
   const nb = root.querySelector("#btn-next"); if (nb) nb.addEventListener("click", () => nav.battle(next.id));
 }

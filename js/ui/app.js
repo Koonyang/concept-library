@@ -21,18 +21,35 @@ function playBgm(kind) { bgmWant = kind || bgmWant; if (!bgmOn()) { audio.pause(
   const src = BGM[bgmWant]; if (!audio.src.endsWith(src)) audio.src = src; audio.play().catch(() => {}); }
 sfx.setMuted(!!G.save.sfxMuted);
 
+/* ---------- 가로 고정 (큐 양 결정: 기본 켜짐) ----------
+   브라우저는 전체 화면일 때만 방향을 고정할 수 있어서, 휴대폰(터치)에서 첫 탭에 전체 화면 + 가로 고정을 요청한다.
+   홈 화면에 설치한 앱은 manifest 의 orientation: landscape 로 이미 가로. 설정에서 끌 수 있다(이 기기에만 저장). */
+const LAND_KEY = "concept-library-landscape";
+function landOn() { try { return localStorage.getItem(LAND_KEY) !== "off"; } catch (e) { return true; } }
+function setLand(on) { try { localStorage.setItem(LAND_KEY, on ? "on" : "off"); } catch (e) {} }
+const touchDevice = () => matchMedia("(pointer: coarse)").matches;
+const standalone = () => matchMedia("(display-mode: standalone), (display-mode: fullscreen)").matches;
+async function lockLandscape() {
+  if (!landOn() || !touchDevice() || standalone()) return;
+  try { const el = document.documentElement; if (!document.fullscreenElement && el.requestFullscreen) await el.requestFullscreen({ navigationUI: "hide" }); } catch (e) {}
+  try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock("landscape"); } catch (e) {}
+}
+document.addEventListener("pointerup", function first() { document.removeEventListener("pointerup", first, true); lockLandscape(); }, true);
+
 /* ---------- 설정 (기본 화면에서만, 화면 안에서 펼침) ---------- */
 const setBtn = document.createElement("div"); setBtn.id = "settings";
 function paintSettings(open) {
   setBtn.innerHTML = `<button id="btn-set" type="button" aria-expanded="${!!open}" aria-label="설정">설정</button>${open ? `<div class="set-panel">
     <button type="button" data-k="bgm" aria-pressed="${bgmOn()}">배경음 ${bgmOn() ? "켜짐" : "꺼짐"}</button>
-    <button type="button" data-k="sfx" aria-pressed="${!G.save.sfxMuted}">효과음 ${G.save.sfxMuted ? "꺼짐" : "켜짐"}</button></div>` : ""}`;
+    <button type="button" data-k="sfx" aria-pressed="${!G.save.sfxMuted}">효과음 ${G.save.sfxMuted ? "꺼짐" : "켜짐"}</button>
+    <button type="button" data-k="land" aria-pressed="${landOn()}">가로 고정 ${landOn() ? "켜짐" : "꺼짐"}</button></div>` : ""}`;
 }
 setBtn.addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   if (b.id === "btn-set") { paintSettings(b.getAttribute("aria-expanded") !== "true"); return; }
   if (b.dataset.k === "bgm") { G.setAudio({ bgm: !bgmOn() }); playBgm(); }
   if (b.dataset.k === "sfx") { G.setAudio({ sfx: !!G.save.sfxMuted }); sfx.setMuted(!!G.save.sfxMuted); }
+  if (b.dataset.k === "land") { setLand(!landOn()); if (!landOn()) { try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) {} } }
   sfx.tap(); paintSettings(true);
 });
 function withSettings() { paintSettings(false); root.appendChild(setBtn); }
@@ -47,7 +64,7 @@ const nav = {
   floors() { leaveBattle(); stage.setUnits([], null); renderFloors(root, nav); chrome("floors"); playBgm("lobby"); if (floorId) showFloor(floorId); },
   preview(id) { showFloor(id); },
   floor(id) { floorId = id; try { localStorage.setItem("concept-library-floor", id); } catch (e) {} sfx.tap(); showFloor(id); renderGuests(root, id, nav); chrome("floors"); },
-  library(tab) { leaveBattle(); sfx.tap(); if (floorId) showFloor(floorId); renderLibrary(root, stage, nav, tab); chrome("library"); playBgm("lobby"); },
+  library(tab, pick) { leaveBattle(); sfx.tap(); if (floorId) showFloor(floorId); renderLibrary(root, stage, nav, tab, pick); chrome("library"); playBgm("lobby"); },   /* pick: 책 탭에서 미리 고를 손님 id */
   moon() { leaveBattle(); sfx.tap(); stage.setUnits([], null); shownFloor = null; stage.setFloor({ mood: "moon", accent: "#a99be0", props: ["orb", "bookpile"] });
     sub = renderMoon(root, stage, nav, { chrome: on => { const n = root.querySelector("#nav"); if (on && !n) chrome("moon"); if (!on) { n && n.remove(); setBtn.remove(); } } }); playBgm("lobby"); },
   async battle(gid) {

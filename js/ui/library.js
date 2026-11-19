@@ -10,7 +10,8 @@ const TYPES = ["참격", "관통", "타격", "방어", "회피"], RARITIES = ["N
 const filt = { floor: "all", type: "all", cost: "all", rarity: "all" };
 let bookSel = null;
 
-export function renderLibrary(root, stage, nav, tab) {
+export function renderLibrary(root, stage, nav, tab, pick) {
+  if (pick) bookSel = pick;
   if (!tab) { try { tab = localStorage.getItem(TAB_KEY); } catch (e) {} }
   if (!TABS.some(t => t[0] === tab)) tab = "books";
   try { localStorage.setItem(TAB_KEY, tab); } catch (e) {}
