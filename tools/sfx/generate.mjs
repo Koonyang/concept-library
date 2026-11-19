@@ -27,7 +27,7 @@ for (const n of names) {
   const peakOf = (af) => parseFloat((spawnSync("ffmpeg", ["-hide_banner", "-i", raw, ...(af ? ["-af", af + ",volumedetect"] : ["-af", "volumedetect"]), "-f", "null", "-"])
     .stderr.toString().match(/max_volume: (-?[\d.]+) dB/) || [])[1] || "0");
   const peak = peakOf("");
-  const trim = `silenceremove=start_periods=1:start_threshold=${(peak - 40).toFixed(0)}dB:detection=peak,areverse,silenceremove=start_periods=1:start_threshold=${(peak - 55).toFixed(0)}dB:detection=peak,afade=t=in:d=0.05,areverse,afade=t=in:d=0.004${p.lowpass ? `,lowpass=f=${p.lowpass},lowpass=f=${p.lowpass}` : ""}`;
+  const trim = `silenceremove=start_periods=1:start_threshold=${(peak - 40).toFixed(0)}dB:detection=peak,areverse,silenceremove=start_periods=1:start_threshold=${(peak - 55).toFixed(0)}dB:detection=peak,afade=t=in:d=0.05,areverse,afade=t=in:d=0.004${p.lowpass ? `,lowpass=f=${p.lowpass},lowpass=f=${p.lowpass}` : ""}${p.highpass ? `,highpass=f=${p.highpass},highpass=f=${p.highpass}` : ""}`;
   const gain = (p.peak ?? -3) - peak;
   execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", raw, "-af", `${trim},volume=${gain.toFixed(1)}dB`,
     "-ac", "1", "-ar", "44100", "-b:a", "96k", join(out, `${n}.mp3`)]);

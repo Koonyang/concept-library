@@ -1,19 +1,25 @@
 {
-  "_note": "ElevenLabs 효과음 프롬프트. node tools/sfx/generate.mjs [이름...] 로 다시 만든다. 결과는 assets/audio/sfx/<이름>.mp3 / lowpass(Hz): 날카로운 고음을 깎는다",
+  "_note": "ElevenLabs 효과음 프롬프트. node tools/sfx/generate.mjs [이름...] 로 다시 만든다. 결과는 assets/audio/sfx/<이름>.mp3 / lowpass·highpass(Hz): 고음·저음(마이크 파열음)을 깎는다 / peak(dB): 최고 크기(기본 -3)",
   "tap-1": {
     "seconds": 0.5,
     "text": "a single quick soft paper rustle, flicking the corner of one book page, very short, dry, close microphone, no music",
-    "lowpass": 3800
+    "lowpass": 3800,
+    "highpass": 350,
+    "peak": -9
   },
   "tap-2": {
     "seconds": 0.5,
     "text": "one light crisp paper flick, a thin sheet brushed by a fingertip, very short, dry, no music",
-    "lowpass": 3800
+    "lowpass": 3800,
+    "highpass": 350,
+    "peak": -9
   },
   "tap-3": {
     "seconds": 0.5,
     "text": "one crisp page of a book turned quickly by hand, short paper swish, close microphone, no music",
-    "lowpass": 3800
+    "lowpass": 3800,
+    "highpass": 350,
+    "peak": -9
   },
   "correct": {
     "seconds": 0.8,
