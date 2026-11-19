@@ -32,7 +32,7 @@ function keyPageOf(libId) {
 }
 
 /* lookOf(unit, guest, keyPage?) → {model, palette, accessory|null, scale, librarian, outfit?}
-   사서는 장착 장서복의 look(선택: model·cloth·show·hide·props, docs/ui.md 9절)을 합친다. look 이 없으면 outfit 도 없다 */
+   사서는 장착 장서복의 look(선택: model·cloth·body·show·hide·props, docs/ui.md 9절)을 합친다. look 이 없으면 outfit 도 없다 */
 export function lookOf(unit, guest, keyPage) {
   if (unit.side === "ally") {
     const id = unit.libId || "kyu";
@@ -41,7 +41,7 @@ export function lookOf(unit, guest, keyPage) {
     if (!L || typeof L !== "object") return base;
     if (L.model && OUTFIT_MODELS.includes(L.model)) base.model = L.model;
     else if (L.model) console.warn("[stage] 모르는 복장 모델:", L.model);
-    base.outfit = { cloth: L.cloth || null, show: [].concat(L.show || []), hide: [].concat(L.hide || []),
+    base.outfit = { cloth: L.cloth || null, body: L.body || null, show: [].concat(L.show || []), hide: [].concat(L.hide || []),
       props: [].concat(L.props || []).filter(q => q && q.name) };
     return base;
   }

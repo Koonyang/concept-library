@@ -77,7 +77,7 @@ assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/bui
 서로 맞춰야 하는 곳: 교환 이벤트 `ev`(전투가 만들고 무대가 연출하고 UI가 넘김), 층 무대 이름(학습내용이 값을 정하고 무대가 이름 목록을 관리), `data.js`(전투·학습내용이 같이 씀).
 
 ## 8. 남은 일
-- 장서복별 복장 데이터(`KEY_PAGES[].look`)는 구조만 있고 실제 복장은 아직 없다(9절).
+- 장서복 복장 6벌(`KEY_PAGES[].look`, novice 는 기본 모습) 첫 판. 등 소품은 정면에서 잘 안 보여 조정 필요(9절).
 - 덱 프리셋은 하나만 쓴다(여러 개는 큐 양에게 물어볼 것).
 - 전용 연출을 줄 SR·SSR 책장은 큐 양이 아직 고르지 않았다(지금은 등급 연출만 나온다).
 - 옛 1:1 전투 화면은 없다(엔진만 남음).
@@ -86,7 +86,8 @@ assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/bui
 복장 하나 = `js/core/data.js`의 `KEY_PAGES[i]`에 `look` 한 줄. 무대 코드는 고치지 않는다. 사서가 그 장서복을 입으면 전투(`setUnits`)와 도서관(`showLibrarian`)에서 바로 보인다. `look`이 없으면 사서 기본 모습(kyu=Mage, lib2=Knight, lib3=Rogue).
 ```js
 look: { model:"Knight",                        // 몸: Knight | Barbarian | Mage | Rogue | Rogue_Hooded (없으면 사서 기본)
-        cloth:"#3a5a8a",                       // 망토·모자·투구·두건 색(텍스처에 곱해지니 조금 밝게 고른다)
+        cloth:"#3a5a8a",                       // 망토·모자·투구·두건 색(텍스처에 곱해지니 1.5배 밝혀 적용)
+        body:"#5a8c88",                        // 몸통·팔 색(선택, 같은 방식)
         show:["Round_Shield"], hide:["Knight_Helmet"],   // 모델 부품 켜고 끄기(아래 표). 기본 무기 규칙보다 우선
         props:[{name:"lantern", bone:"back", scale:0.5, pos:[0,0.1,-0.34], rot:[0,0,0]}] }  // 공용 소품을 뼈에 붙이기
 ```

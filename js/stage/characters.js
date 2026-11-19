@@ -67,9 +67,13 @@ function realFigure(look) {
   const holder = new THREE.Group(); obj.scale.setScalar(k); holder.add(obj);
   /* 장서복 복장(look.outfit): show/hide 가 기본 무기 규칙보다 우선. "book" 은 사서의 책(모델 책·코드 책) */
   const O = look.outfit || null, show = new Set(O ? O.show : []), hide = new Set(O ? O.hide : []);
-  const keep = new Set(WEAPONS[look.model] || []), bookName = look.librarian && !hide.has("book") ? LIB_BOOK[look.model] : null;
+  /* 왼손에 방패·보조 무기·소품을 들면 사서 책(모델 책 포함)은 뺀다 */
+  const leftBusy = [...show].some(x => /Shield|Offhand|Spellbook|Mug/.test(x)) || !!(O && O.props.some(q => q.bone === "hand.l"));
+  const keep = new Set(WEAPONS[look.model] || []), bookName = look.librarian && !hide.has("book") && !leftBusy ? LIB_BOOK[look.model] : null;
   if (bookName) keep.add(bookName);
-  const cloth = O && O.cloth ? new THREE.Color(O.cloth) : new THREE.Color(look.palette.accent).lerp(new THREE.Color(0xffffff), 0.25);
+  /* 텍스처가 어두운 편이라 복장 색은 1.5배 밝혀 곱한다(지정한 색에 가깝게 보이도록) */
+  const cloth = O && O.cloth ? new THREE.Color(O.cloth).multiplyScalar(1.5) : new THREE.Color(look.palette.accent).lerp(new THREE.Color(0xffffff), 0.25);
+  const body = O && O.body ? new THREE.Color(O.body).multiplyScalar(1.5) : null;
   let handL = null, handR = null;
   obj.traverse(n => {
     if (n.name === "handslot.l" || n.name === "handslotl") handL = n; if (n.name === "handslot.r" || n.name === "handslotr") handR = n;   /* GLTFLoader 는 이름의 점을 지운다 */
@@ -79,9 +83,9 @@ function realFigure(look) {
     n.userData.fromModel = true; n.frustumCulled = false; n.material = phongOf(n.material);
     if (ALL_WEAPONS.test(n.name) && !show.has(n.name)) n.visible = keep.has(n.name) && !hide.has(n.name);
     if (CLOTH.test(n.name)) { n.material = n.material.clone(); n.userData.ownMat = true; n.material.color.copy(cloth); }
+    if (body && /_(Body|ArmLeft|ArmRight)$/.test(n.name)) { n.material = n.material.clone(); n.userData.ownMat = true; n.material.color.copy(body); }
   });
   /* 왼손에 다른 것(방패·보조 무기·소품)을 들면 코드 책은 안 든다 */
-  const leftBusy = [...show].some(x => /Shield|Offhand|Spellbook|Mug/.test(x)) || (O && O.props.some(q => q.bone === "hand.l"));
   if (look.librarian && !bookName && handL && !hide.has("book") && !leftBusy) { const b = codeBook(new THREE.Color(look.palette.accent)); b.scale.setScalar(1 / k); handL.add(b); }
   if (O && O.props.length) {
     holder.updateMatrixWorld(true); const ws = new THREE.Vector3(), acc = new THREE.Color(O.cloth || look.palette.accent);

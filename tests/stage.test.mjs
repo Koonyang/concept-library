@@ -208,6 +208,20 @@ const lt=await p.evaluate(async()=>{ const S=await __stageMod.createStage(docume
 ok(lt.px>=0.4&&lt.px<=0.6&&lt.py>=0.25&&lt.py<=0.45&&lt.feetY<=0.46,"showLibrarian(390×844): 가로 가운데, 머리가 위쪽 25~45%, 발이 아래 패널(54%) 위",lt);
 await p.screenshot({path:join(ROOT,"shots/stage-library-390.png")});
 await p.setViewportSize({width:844,height:390});
+/* ---------- 실제 복장 데이터: 모든 장서복 look 이 경고 없이 입혀지고 소품 수가 맞음 ---------- */
+await goStage();
+const warns=[]; p.on("console",m=>{ if(m.type()==="warning"&&/\[stage\]/.test(m.text())) warns.push(m.text()); });
+const outfits=await p.evaluate(async()=>{ const S=await __stageMod.createStage(document.getElementById("stage")); S.setFloor(Game.data.floorStage("crime"));
+  const s=__studyGame.save, all=Game.data.KEY_PAGES.map(k=>k.id); s.unlockedKeyIds=all.slice(); __studyGame.libs.sync(s);
+  const out=[];
+  for(const k of Game.data.KEY_PAGES){ for(const lib of ["kyu"]){ Game.libs.equipKey(k.id); await S.showLibrarian("kyu");
+    const F=S.figure("kyu")||[...S.figures.values()][0].F; let props=0; F.obj.traverse(n=>{ if(/^prop:/.test(n.name)&&n.parent&&!/^prop:/.test(n.parent.name)) props++; });
+    out.push({id:k.id,has:!!k.look,want:(k.look&&k.look.props||[]).length,props}); } }
+  return out; });
+const withLook=outfits.filter(o=>o.has);
+ok(withLook.length>=6,"장서복 6벌 이상에 복장(look)",outfits.map(o=>o.id+":"+o.has));
+ok(withLook.every(o=>o.props>=o.want),"복장 소품이 다 붙음",outfits);
+ok(warns.length===0,"복장 데이터에 모르는 소품·부품·뼈 없음",warns);
 /* @@NEXT@@ */
 ok(errs.filter(e=>!/Error creating WebGL context/.test(e)).length===0,"오류 없음 (nogl 페이지의 WebGL 생성 실패 로그는 의도)",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);
