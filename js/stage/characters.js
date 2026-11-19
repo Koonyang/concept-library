@@ -7,7 +7,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
-import { WEAPONS, LIB_BOOK } from "./looks.js";
+import { WEAPONS, LIB_BOOK, OUTFIT_BONES } from "./looks.js";
 import { buildProp } from "./props.js";
 
 const BASE = new URL("../../assets/models/characters/", import.meta.url).href;
@@ -43,24 +43,52 @@ function phongOf(m) {
   return p;
 }
 
+/* 복장 소품 기본 자리(키 1.9 기준 단위, 뼈 좌표계). head·back: 위 +y, 앞 +z / hand: 무기가 뻗는 쪽 +y */
+const PROP_DEFAULT = { head: { scale: 0.35, pos: [0, 0.9, 0] }, back: { scale: 0.5, pos: [0, 0.1, -0.34] },
+  "hand.l": { scale: 0.4, pos: [0, 0.05, 0] }, "hand.r": { scale: 0.4, pos: [0, 0.05, 0] } };
+/* 자리표시 도형에서 뼈 대신 쓰는 점(몸통 근처) */
+const PH_ANCHOR = { head: [0, 1.17, 0], back: [0, 1.2, 0], "hand.l": [-0.42, 0.95, 0.15], "hand.r": [0.42, 0.95, 0.15] };
+const V = a => Array.isArray(a) && a.length === 3 && a.every(Number.isFinite);
+/* 소품 하나를 parent 에 붙인다. unit = parent 쪽 1단위가 화면에서 몇 배인지(모델 보정 k) */
+function attachProp(parent, q, unit, accent, anchor) {
+  const d = PROP_DEFAULT[q.bone]; if (!d) { console.warn("[stage] 모르는 복장 뼈:", q.bone); return null; }
+  const p = buildProp(q.name, accent); if (!p) return null;
+  const pos = V(q.pos) ? q.pos : d.pos, a = anchor || [0, 0, 0], sc = Number.isFinite(q.scale) ? q.scale : d.scale;
+  p.position.set((a[0] + pos[0]) / unit, (a[1] + pos[1]) / unit, (a[2] + pos[2]) / unit);
+  if (V(q.rot)) p.rotation.set(q.rot[0], q.rot[1], q.rot[2]);
+  p.scale.setScalar(sc / unit); p.userData.outfit = q.bone; parent.add(p); return p;
+}
+
 function realFigure(look) {
   const src = models[look.model] || models.Rogue_Hooded;
   const obj = SkeletonUtils.clone(src);
   const box = new THREE.Box3().setFromObject(src), h = box.max.y - box.min.y || 1;
   const k = TARGET_H / h;
   const holder = new THREE.Group(); obj.scale.setScalar(k); holder.add(obj);
-  const keep = new Set(WEAPONS[look.model] || []), bookName = look.librarian ? LIB_BOOK[look.model] : null;
+  /* 장서복 복장(look.outfit): show/hide 가 기본 무기 규칙보다 우선. "book" 은 사서의 책(모델 책·코드 책) */
+  const O = look.outfit || null, show = new Set(O ? O.show : []), hide = new Set(O ? O.hide : []);
+  const keep = new Set(WEAPONS[look.model] || []), bookName = look.librarian && !hide.has("book") ? LIB_BOOK[look.model] : null;
   if (bookName) keep.add(bookName);
-  const cloth = new THREE.Color(look.palette.accent);
+  const cloth = O && O.cloth ? new THREE.Color(O.cloth) : new THREE.Color(look.palette.accent).lerp(new THREE.Color(0xffffff), 0.25);
   let handL = null, handR = null;
   obj.traverse(n => {
-    if (n.name === "handslot.l") handL = n; if (n.name === "handslot.r") handR = n;
+    if (n.name === "handslot.l" || n.name === "handslotl") handL = n; if (n.name === "handslot.r" || n.name === "handslotr") handR = n;   /* GLTFLoader 는 이름의 점을 지운다 */
+    if (n.isBone) return;
+    if (show.has(n.name)) n.visible = true; else if (hide.has(n.name)) n.visible = false;
     if (!n.isMesh) return;
     n.userData.fromModel = true; n.frustumCulled = false; n.material = phongOf(n.material);
-    if (ALL_WEAPONS.test(n.name)) n.visible = keep.has(n.name);
-    if (CLOTH.test(n.name)) { n.material = n.material.clone(); n.userData.ownMat = true; n.material.color.copy(cloth).lerp(new THREE.Color(0xffffff), 0.25); }
+    if (ALL_WEAPONS.test(n.name) && !show.has(n.name)) n.visible = keep.has(n.name) && !hide.has(n.name);
+    if (CLOTH.test(n.name)) { n.material = n.material.clone(); n.userData.ownMat = true; n.material.color.copy(cloth); }
   });
-  if (look.librarian && !bookName && handL) { const b = codeBook(new THREE.Color(look.palette.accent)); b.scale.setScalar(1 / k); handL.add(b); }
+  /* 왼손에 다른 것(방패·보조 무기·소품)을 들면 코드 책은 안 든다 */
+  const leftBusy = [...show].some(x => /Shield|Offhand|Spellbook|Mug/.test(x)) || (O && O.props.some(q => q.bone === "hand.l"));
+  if (look.librarian && !bookName && handL && !hide.has("book") && !leftBusy) { const b = codeBook(new THREE.Color(look.palette.accent)); b.scale.setScalar(1 / k); handL.add(b); }
+  if (O && O.props.length) {
+    holder.updateMatrixWorld(true); const ws = new THREE.Vector3(), acc = new THREE.Color(O.cloth || look.palette.accent);
+    for (const q of O.props) { const bn = OUTFIT_BONES[q.bone], bone = bn ? (obj.getObjectByName(bn) || obj.getObjectByName(bn.replace(/\./g, ""))) : null;   /* GLTFLoader 는 이름의 점을 지운다(handslot.r → handslotr) */
+      if (!bone) { if (!OUTFIT_BONES[q.bone]) console.warn("[stage] 모르는 복장 뼈:", q.bone); continue; }
+      bone.getWorldScale(ws); attachProp(bone, q, ws.x || k, acc); }
+  }
   const mixer = new THREE.AnimationMixer(obj), actions = {};
   let cur = null;
   const F = {
@@ -85,11 +113,13 @@ function realFigure(look) {
 
 /* 자리표시(모델이 없을 때): 시안 같은 도형. act 는 시간만 기다린다 */
 function placeholderFigure(look) {
-  const g = new THREE.Group(), c = new THREE.Color(look.palette.accent), m = new THREE.MeshStandardMaterial({ color: c, flatShading: true });
+  const O = look.outfit || null;
+  const g = new THREE.Group(), c = new THREE.Color(O && O.cloth || look.palette.accent), m = new THREE.MeshStandardMaterial({ color: c, flatShading: true });
   const cloak = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.35, 6), m); cloak.position.y = 0.68;
   const chest = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.32, 0.5, 6), m); chest.position.y = 1.32;
   const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.25, 0), m); head.position.y = 1.8;
   g.add(cloak, chest, head);
+  if (O) for (const q of O.props) attachProp(g, q, 1, c, PH_ANCHOR[q.bone]);
   const holder = new THREE.Group(); holder.add(g);
   let t = 0;
   const F = {

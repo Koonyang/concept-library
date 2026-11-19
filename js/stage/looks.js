@@ -22,11 +22,28 @@ export const WEAPONS = {
 export const LIB_BOOK = { Mage: "Spellbook_open" };   /* 모델에 책이 있으면 그것, 없으면 코드로 만든 책 */
 export const MAGIC_MODELS = new Set(["Mage"]);          /* 공격 동작을 마법(Spellcast_Shoot)으로 */
 
-/* lookOf(unit, guest) → {model, palette, accessory|null, scale, librarian} */
-export function lookOf(unit, guest) {
+/* 복장 뼈 이름(장서복 look.props[].bone) → 모델 뼈. back 은 가슴 뼈에 붙이고 뒤로 민다 */
+export const OUTFIT_BONES = { head: "head", back: "chest", "hand.l": "handslot.l", "hand.r": "handslot.r" };
+export const OUTFIT_MODELS = ["Knight", "Barbarian", "Mage", "Rogue", "Rogue_Hooded"];
+
+/* 사서의 장착 장서복(코어 Game.libs.keyOf). 코어가 없거나 오류면 null */
+function keyPageOf(libId) {
+  try { const L = typeof window !== "undefined" && window.Game && window.Game.libs; return (L && L.keyOf && L.keyOf(libId)) || null; } catch (e) { return null; }
+}
+
+/* lookOf(unit, guest, keyPage?) → {model, palette, accessory|null, scale, librarian, outfit?}
+   사서는 장착 장서복의 look(선택: model·cloth·show·hide·props, docs/ui.md 9절)을 합친다. look 이 없으면 outfit 도 없다 */
+export function lookOf(unit, guest, keyPage) {
   if (unit.side === "ally") {
     const id = unit.libId || "kyu";
-    return { model: LIB_MODEL[id] || "Mage", palette: PALETTES[LIB_PALETTE[id]] || PALETTES.teal, accessory: null, scale: 1.0, librarian: true };
+    const base = { model: LIB_MODEL[id] || "Mage", palette: PALETTES[LIB_PALETTE[id]] || PALETTES.teal, accessory: null, scale: 1.0, librarian: true };
+    const kp = keyPage === undefined ? keyPageOf(id) : keyPage, L = kp && kp.look;
+    if (!L || typeof L !== "object") return base;
+    if (L.model && OUTFIT_MODELS.includes(L.model)) base.model = L.model;
+    else if (L.model) console.warn("[stage] 모르는 복장 모델:", L.model);
+    base.outfit = { cloth: L.cloth || null, show: [].concat(L.show || []), hide: [].concat(L.hide || []),
+      props: [].concat(L.props || []).filter(q => q && q.name) };
+    return base;
   }
   const g = guest || {};
   const lead = ARCH_MODEL[g.archetype] || "Rogue_Hooded";

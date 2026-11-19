@@ -32,7 +32,10 @@ assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/bui
 ```
 
 ## 3. 화면
-`#ui[data-screen]`: `floors` → `guests` → `battle` → `result` → (다시 접대 | 다음 손님 | 층으로).
+`#ui[data-screen]`: `floors` → `guests` → `battle` → `result` → (다시 접대 | 다음 손님 | 층으로), 그리고 `library`, `moon`.
+- 메뉴는 왼쪽 위 책갈피 서랍(`js/ui/nav.js`, `NAV_ITEMS` 배열에 항목 추가): 접대·도서관·계시. 기본 화면에만 있고 전투·퀴즈 진행·결과에선 숨긴다(큐 양 결정).
+- 도서관(`js/ui/library.js`): 하위 탭 책(소각) · 덱(편성, 필터, 정답·오답 범위) · 사서(고르기·접대 명단·장서복) · 기프트(부위 칸·착용·세트). 장착·덱을 바꿔도 목록 스크롤은 그대로(`keepScroll`). 무대엔 지금 사서 한 명(`stage.showLibrarian`).
+- 달의 계시(`js/ui/moon.js`): intro → quiz(시간 막대, 정답 0.17초·오답 0.65초 표시 중 시계 멈춤) → bridge(재현시/건너뛰기) → result. 떠나면 시계를 정리한다.
 - 층을 고르면 `stage.setFloor(Game.data.floorStage(id))`. 층 겉모습은 `FLOORS[].stage {mood, accent, props}` 한 줄이다(`docs/content.md`). `accent`가 UI의 `--accent`도 된다.
 - 설정(오른쪽 위)은 층·손님 화면에만 있다. 배경음은 기본 꺼짐이다(`save.bgmMuted`).
 
@@ -74,6 +77,43 @@ assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/bui
 서로 맞춰야 하는 곳: 교환 이벤트 `ev`(전투가 만들고 무대가 연출하고 UI가 넘김), 층 무대 이름(학습내용이 값을 정하고 무대가 이름 목록을 관리), `data.js`(전투·학습내용이 같이 씀).
 
 ## 8. 남은 일
-- 도서관(책 소각·덱 편성·사서·장서복·기프트)과 달의 계시 화면은 아직 없다. 규칙은 `Game.books / deck / libs / moon`에 있다.
+- 장서복별 복장 데이터(`KEY_PAGES[].look`)는 구조만 있고 실제 복장은 아직 없다(9절).
+- 덱 프리셋은 하나만 쓴다(여러 개는 큐 양에게 물어볼 것).
 - 전용 연출을 줄 SR·SSR 책장은 큐 양이 아직 고르지 않았다(지금은 등급 연출만 나온다).
 - 옛 1:1 전투 화면은 없다(엔진만 남음).
+
+## 9. 복장 추가법 (장서복 `look`, 3D 무대)
+복장 하나 = `js/core/data.js`의 `KEY_PAGES[i]`에 `look` 한 줄. 무대 코드는 고치지 않는다. 사서가 그 장서복을 입으면 전투(`setUnits`)와 도서관(`showLibrarian`)에서 바로 보인다. `look`이 없으면 사서 기본 모습(kyu=Mage, lib2=Knight, lib3=Rogue).
+```js
+look: { model:"Knight",                        // 몸: Knight | Barbarian | Mage | Rogue | Rogue_Hooded (없으면 사서 기본)
+        cloth:"#3a5a8a",                       // 망토·모자·투구·두건 색(텍스처에 곱해지니 조금 밝게 고른다)
+        show:["Round_Shield"], hide:["Knight_Helmet"],   // 모델 부품 켜고 끄기(아래 표). 기본 무기 규칙보다 우선
+        props:[{name:"lantern", bone:"back", scale:0.5, pos:[0,0.1,-0.34], rot:[0,0,0]}] }  // 공용 소품을 뼈에 붙이기
+```
+- 기본 무기: Knight `1H_Sword`, Mage `1H_Wand`(+사서 책 `Spellbook_open`), Barbarian `2H_Axe`, Rogue·Rogue_Hooded `Knife`. 나머지 무기·방패는 숨김.
+- `hide:["book"]`은 사서가 왼손에 드는 책을 뺀다. 왼손에 방패·보조 무기를 `show`하거나 `hand.l` 소품을 붙이면 책은 저절로 빠진다.
+- `props[]`: `name`(PROP_KIT), `bone`(아래 4개), 선택 `scale`(기본: head 0.35, back 0.5, 손 0.4), `pos`(키 1.9 기준 단위, 뼈 좌표계), `rot`(라디안). 모르는 소품·뼈는 경고 한 줄 뒤 건너뛴다. 모델을 못 받으면(자리표시 도형) 몸통 근처에 붙는다.
+
+| 뼈 | 실제 뼈 | 좌표계 |
+|---|---|---|
+| `head` | `head` | 위 +y, 앞 +z. 기본 `pos` [0, 0.9, 0] = 머리 위 |
+| `back` | `chest` | 같음. 기본 [0, 0.1, -0.34] = 등 뒤 |
+| `hand.l` / `hand.r` | `handslot.l` / `handslot.r` | 무기가 뻗는 쪽 +y. 기본 [0, 0.05, 0] |
+
+모델별 켜고 끌 수 있는 부품(`assets/models/characters/*.glb` 노드 이름):
+
+| 모델 | 무기·방패·소지품 | 모자·망토 |
+|---|---|---|
+| Knight | `1H_Sword`, `1H_Sword_Offhand`, `2H_Sword`, `Badge_Shield`, `Rectangle_Shield`, `Round_Shield`, `Spike_Shield` | `Knight_Helmet`, `Knight_Cape` |
+| Barbarian | `1H_Axe`, `1H_Axe_Offhand`, `2H_Axe`, `Barbarian_Round_Shield`, `Mug` | `Barbarian_Hat`, `Barbarian_Cape` |
+| Mage | `1H_Wand`, `2H_Staff`, `Spellbook`, `Spellbook_open` | `Mage_Hat`, `Mage_Cape` |
+| Rogue | `Knife`, `Knife_Offhand`, `1H_Crossbow`, `2H_Crossbow`, `Throwable` | `Rogue_Cape` |
+| Rogue_Hooded | Rogue와 같음 | `Rogue_Cape` (두건은 머리 `Rogue_Head_Hooded`와 한 덩어리) |
+
+몸 부품(`<모델>_Body`, `_Head`, `_ArmLeft/Right`, `_LegLeft/Right`)은 숨기지 않는다.
+
+`PROP_KIT`(`js/stage/props.js`): scales, candles, hourglass, globe, clock, bookpile, scroll, lantern, chain, quill, mirror, watch, banner, gear, cage, orb. 새 소품은 `MAKERS`에 하나 추가한다.
+
+예시: `{id:"…", …, look:{model:"Knight", cloth:"#3a5a8a", hide:["Knight_Helmet"], show:["Round_Shield"], props:[{name:"lantern", bone:"back"}]}}`
+
+무대 API(도서관): `await stage.showLibrarian(libId)` — 유닛 없이 그 사서 한 명을 정면 약간 비스듬히 Idle로 세운다. 목록 패널을 피해 가로 화면(aspect ≥ 1)은 왼쪽 1/3 가운데(x=-2.6, 머리가 폭 15~30%), 세로는 가로 가운데·위쪽 25~45%에 선다(창 크기가 바뀌면 다시 맞춤). 장서복·복장을 바꾼 뒤 다시 부르면 반영된다. `await stage.cheer()` — 서 있는 사서가 Cheer 한 번 하고 Idle로.

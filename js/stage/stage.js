@@ -4,6 +4,8 @@
      S.setFloor({mood, accent, props})   층 분위기·책장·소품 (Game.data.floorStage(id) 결과 그대로)
      S.resize()             캔버스 크기에 맞춤(창 크기 변화는 자동)
      S.play(ev, opts)       교환 연출 → Promise (Task 5)
+     S.showLibrarian(libId) 유닛 없이 그 사서 한 명만 가운데에 세움(장착 장서복 복장 반영) → Promise
+     S.cheer()              서 있는 사서가 Cheer 한 번 → Promise
      S.debug                {mood, props, frames, ...} 테스트용 */
 import * as THREE from "three";
 import { MOODS, DEFAULT_MOOD } from "./moods.js";
@@ -36,7 +38,7 @@ const ATTACK_ANIM = { 참격: "1H_Melee_Attack_Slice_Diagonal", 관통: "1H_Mele
 
 function nullStage() {
   const done = () => Promise.resolve();
-  return { ok: false, setFloor() {}, resize() {}, setUnits: done, play: done, finishNow() {}, syncUnits() {}, setStaggered() {}, unitPoint: () => null, figure: () => null,
+  return { ok: false, setFloor() {}, resize() {}, setUnits: done, showLibrarian: done, cheer: done, play: done, finishNow() {}, syncUnits() {}, setStaggered() {}, unitPoint: () => null, figure: () => null,
     ring: () => null, onFrame() {}, dispose() {}, debug: { mood: null, props: [], frames: 0 } };
 }
 
@@ -151,6 +153,7 @@ export async function createStage(canvas) {
     cam.fov = aspect >= CAM.baseAspect ? CAM.fov : THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(hHalf) / aspect));
     camBase.pos.lerpVectors(CAM.pos, CAM_TALL.pos, t); camBase.look.lerpVectors(CAM.look, CAM_TALL.look, t);
     cam.updateProjectionMatrix(); placeCamera(performance.now());
+    if (typeof placeLibrarian === "function") placeLibrarian();
   }
   function placeCamera(now) {
     const fk = focus.k, P = camBase.pos, L = camBase.look;
@@ -198,11 +201,15 @@ export async function createStage(canvas) {
 
   /* ---------- 유닛 ---------- */
   const figures = new Map();   /* id → {F, home:Vector3, side} */
-  let unitsRoot = null;
-  async function setUnits(units, guest) {
-    await loadCharacters();
+  let unitsRoot = null, unitsSeq = 0;
+  /* 있던 유닛을 다 치우고(자원 정리) 빈 묶음을 새로 만든다 */
+  function resetUnits() {
     if (unitsRoot) { scene.remove(unitsRoot); for (const f of figures.values()) disposeFigure(f); }
-    guestNow = guest || null; figures.clear(); unitsRoot = new THREE.Group(); unitsRoot.name = "units"; scene.add(unitsRoot);
+    figures.clear(); unitsRoot = new THREE.Group(); unitsRoot.name = "units"; scene.add(unitsRoot);
+  }
+  async function setUnits(units, guest) {
+    const my = ++unitsSeq; await loadCharacters(); if (my !== unitsSeq) return;   /* 그새 다른 setUnits/showLibrarian 이 불렸으면 그쪽이 이김 */
+    resetUnits(); guestNow = guest || null; debug.librarian = null;
     for (const side of ["ally", "enemy"]) {
       /* 우두머리를 가운데 줄(첫 자리)에 */
       const list = units.filter(u => u.side === side).sort((a, b) => (b.leader ? 1 : 0) - (a.leader ? 1 : 0));
@@ -220,6 +227,31 @@ export async function createStage(canvas) {
         if (u.hp <= 0) { F.obj.visible = false; ringM.visible = false; }
       });
     }
+  }
+  /* 도서관: 사서 한 명만, 정면에서 조금 비스듬히. 장서복(복장)을 바꾼 뒤 다시 부르면 새로 입힌다.
+     목록 패널을 피한다: 가로(aspect ≥ 1)는 패널이 오른쪽 64% → 화면 왼쪽 1/3 가운데쯤, 세로는 패널이 아래 54% → 가운데 위쪽 */
+  const LIB_POSE = { wideX: -2.6, tallX: 0, z: 0.4, ry: 0.35 };
+  function placeLibrarian() {
+    if (!debug.librarian) return; const f = figures.get("lib:" + debug.librarian); if (!f) return;
+    const w = canvas.clientWidth || canvas.width, h = canvas.clientHeight || canvas.height, x = w / h >= 1 ? LIB_POSE.wideX : LIB_POSE.tallX;
+    f.F.obj.position.set(x, 0, LIB_POSE.z); f.home.copy(f.F.obj.position);
+  }
+  async function showLibrarian(libId) {
+    const my = ++unitsSeq; await loadCharacters(); if (my !== unitsSeq) return;
+    resetUnits(); guestNow = null; debug.librarian = libId || "kyu";
+    const u = { id: "lib:" + debug.librarian, side: "ally", libId: debug.librarian, hp: 1 };
+    const look = lookOf(u, null), F = makeFigure(look);
+    F.obj.scale.setScalar(look.scale); F.obj.position.set(LIB_POSE.tallX, 0, LIB_POSE.z); F.obj.rotation.y = LIB_POSE.ry;
+    F.act("Idle"); unitsRoot.add(F.obj);
+    const ringM = sideRing(RING.ally); ringM.visible = false; F.obj.add(ringM);   /* 편 고리는 전투에서만 */
+    F.look = look; figures.set(u.id, { F, home: F.obj.position.clone(), side: "ally", unit: u, look, dead: false, ring: ringM, ringR: RING.ally.r });
+    placeLibrarian();
+  }
+  /* 서 있는 사서가 Cheer 한 번 하고 Idle 로. 그새 사서가 치워져도 3초 안에 끝난다 */
+  function cheer() {
+    const list = [...figures.values()].filter(f => f.side === "ally" && !f.dead);
+    const capped = pr => Promise.race([pr, new Promise(r => setTimeout(r, 3000))]);
+    return Promise.all(list.map(f => capped(f.F.act("Cheer", { once: true })).then(() => { if (figures.get(f.unit.id) === f && f.F.current === "Cheer") f.F.act("Idle", { fadeMs: 200 }); })));
   }
   tickers.add(dt => { for (const { F } of figures.values()) F.update(dt * time.scale); });
   function disposeFigure(f) {
@@ -396,7 +428,7 @@ export async function createStage(canvas) {
   const S = {
     ok: true, three: THREE, scene, camera: cam, renderer, debug, camShake, tickers,
     setFloor, resize,
-    setUnits, unitPoint, ring: ringInfo, figure: id => (figures.get(id) || {}).F || null, figures,
+    setUnits, showLibrarian, cheer, unitPoint, ring: ringInfo, figure: id => (figures.get(id) || {}).F || null, figures,
     play, finishNow, setStaggered, syncUnits, fx,
     onFrame(f) { tickers.add(f); return () => tickers.delete(f); },
     dispose() { cancelAnimationFrame(raf); ro.disconnect(); document.removeEventListener("visibilitychange", wake); if (world) disposeTree(world); renderer.dispose(); },

@@ -128,6 +128,86 @@ const cl=await p.evaluate(async()=>{ const S=await __stageMod.createStage(docume
   return {lostFlag,lostFrames,resumed:S.debug.frames-f2,colors:set.size,after:S.debug.contextLost}; });
 ok(cl.skip||(cl.lostFlag===true&&cl.lostFrames===0),"컨텍스트 손실 중엔 그리기 멈춤",cl);
 ok(cl.skip||(cl.after===false&&cl.resumed>0&&cl.colors>20),"복구되면 다시 그려짐(검은 화면 아님)",cl);
+/* ---------- 복장(장서복 look): 데이터 한 줄로 겉모습 바꾸기, 도서관 사서 한 명 ---------- */
+const LOOK_RED=`{cloth:"#ff0000",hide:["Mage_Hat"],props:[{name:"orb",bone:"hand.r"}]}`;
+const kyuFig=`(S=>{ const u=Game.battle.state.units.find(u=>u.side==="ally"&&u.libId==="kyu"); return u&&S.figure(u.id); })`;
+const probe=`(F=>{ if(!F) return null; const o=F.obj, n=k=>o.getObjectByName(k), hs=n("handslot.r")||n("handslotr"), cape=n("Mage_Cape");
+  const props=[]; o.traverse(x=>{ if(/^prop:/.test(x.name)) props.push(x.name+"@"+(x.parent&&x.parent.name)); });
+  return { hat:n("Mage_Hat")?n("Mage_Hat").visible:null, wand:n("1H_Wand")?n("1H_Wand").visible:null, book:n("Spellbook_open")?n("Spellbook_open").visible:null,
+    orbInHand:!!(hs&&hs.getObjectByName("prop:orb")), props, cape:cape&&cape.material?"#"+cape.material.color.getHexString():null, placeholder:F.placeholder, current:F.current }; })`;
+await goStage();
+const lk=await p.evaluate(async([LOOK,KF,PR])=>{ const o={}, KF_=eval(KF), PR_=eval(PR), K=Game.data.KEY_PAGES;
+  o.kyuKey=(Game.libs.keyOf("kyu")||{}).id; o.isFirst=Game.libs.keyOf("kyu")===K[0]; o.hadLook="look" in K[0];
+  const S=await __stageMod.createStage(document.getElementById("stage")); window.__S=S; S.setFloor(Game.data.floorStage("crime"));
+  Game.battle.leave(); Game.battle.begin("beccaria"); const g=Game.data.GUEST_BY.beccaria;
+  await S.setUnits(Game.battle.state.units,g); o.plain=PR_(KF_(S));
+  K[0].look=eval("("+LOOK+")");
+  await S.setUnits(Game.battle.state.units,g); o.red=PR_(KF_(S));
+  /* 몸 바꾸기 + 부품 켜고 끄기 + 등 소품 */
+  K[0].look={model:"Knight",show:["Round_Shield"],hide:["Knight_Helmet"],props:[{name:"lantern",bone:"back",scale:0.5},{name:"candles",bone:"head"},{name:"없는소품",bone:"hand.l"}]};
+  await S.setUnits(Game.battle.state.units,g); { const F=KF_(S), n=k=>F.obj.getObjectByName(k), ch=n("chest");
+    o.knight={body:!!n("Knight_Body"), shield:n("Round_Shield")&&n("Round_Shield").visible, helmet:n("Knight_Helmet")&&n("Knight_Helmet").visible,
+      sword:n("1H_Sword")&&n("1H_Sword").visible, lanternOnChest:!!(ch&&ch.getObjectByName("prop:lantern")), candlesOnHead:!!(n("head")&&n("head").getObjectByName("prop:candles"))};
+    /* 소품이 화면에서 자연스러운 크기: 등 소품 높이가 키(1.9)의 15%~50% */
+    F.obj.updateMatrixWorld(true); const L=F.obj.getObjectByName("prop:lantern"); if(L){ const b=new S.three.Box3().setFromObject(L); o.knight.lanternH=+(b.max.y-b.min.y).toFixed(3); } }
+  /* 도서관: 사서 한 명만 가운데 */
+  K[0].look=eval("("+LOOK+")");
+  await S.showLibrarian("kyu"); { const ids=[...S.figures.keys()], F=S.figure(ids[0]); const up=S.unitPoint(ids[0]), r=document.getElementById("stage").getBoundingClientRect();
+    o.lib={n:ids.length, x:+F.obj.position.x.toFixed(2), ry:+F.obj.rotation.y.toFixed(2), px:+(up.x/r.width).toFixed(3), py:+(up.y/r.height).toFixed(3), ...PR_(F)}; }
+  /* 장서복 바꾼 뒤 다시 부르면 반영 */
+  delete K[0].look; await S.showLibrarian("kyu"); { const F=S.figure([...S.figures.keys()][0]); o.lib2=PR_(F); }
+  K[0].look=eval("("+LOOK+")"); await S.showLibrarian("kyu");
+  const cp=S.cheer(); { const F=S.figure([...S.figures.keys()][0]); o.cheerNow=F.current; } await cp; o.cheerAfter=S.figure([...S.figures.keys()][0]).current;
+  /* 반복해도 자원·ticker 가 늘지 않음 */
+  const count=()=>({g:S.renderer.info.memory.geometries,t:S.renderer.info.memory.textures,k:S.tickers.size});
+  const run=async()=>{ await S.showLibrarian("kyu"); await new Promise(r=>setTimeout(r,60)); await S.setUnits(Game.battle.state.units,g); await new Promise(r=>setTimeout(r,60)); };
+  await run(); await run(); o.a=count(); for(let i=0;i<4;i++) await run(); o.b=count();
+  /* 빠르게 두 번 불러도 한 명 */
+  S.showLibrarian("kyu"); await S.showLibrarian("kyu"); o.twice=S.figures.size;
+  delete K[0].look; await S.setUnits(Game.battle.state.units,g); o.restored=PR_(KF_(S)); o.lookGone=!("look" in K[0]);
+  Game.battle.leave(); return o; },[LOOK_RED,kyuFig,probe]);
+ok(lk.kyuKey==="novice"&&lk.isFirst&&!lk.hadLook,"kyu 기본 장서복 = novice = KEY_PAGES[0], 원래 look 없음",lk);
+ok(lk.plain&&lk.plain.hat===true&&lk.plain.wand===true&&lk.plain.book===true&&lk.plain.props.length===0,"look 없으면 기존 그대로(모자·지팡이·책, 소품 없음)",lk.plain);
+ok(lk.red&&lk.red.hat===false&&lk.red.orbInHand&&lk.red.wand===true,"look.hide 로 모자 숨김, 오른손 뼈에 prop:orb",lk.red);
+{ const c=lk.red&&lk.red.cape, n=c?parseInt(c.slice(1),16):0, R=n>>16, G=n>>8&255, B=n&255; ok(R>180&&G<90&&B<90,"look.cloth → 망토 색 빨강 계열",{cape:c,plain:lk.plain&&lk.plain.cape}); }
+ok(lk.knight.body&&lk.knight.shield===true&&lk.knight.helmet===false&&lk.knight.sword===true&&lk.knight.lanternOnChest&&lk.knight.candlesOnHead,"look.model·show·hide·뼈(back→chest, head) 반영, 모르는 소품은 건너뜀",lk.knight);
+ok(lk.knight.lanternH>=0.18&&lk.knight.lanternH<=0.95,"뼈에 붙인 소품 크기가 자연스러움(모델 보정 고려, 키 1.9의 10~50%)",lk.knight);
+ok(lk.lib.n===1&&lk.lib.px>=0.15&&lk.lib.px<=0.30&&lk.lib.hat===false&&lk.lib.orbInHand&&lk.lib.current==="Idle"&&Math.abs(lk.lib.ry)>0.05&&Math.abs(lk.lib.ry)<0.8,"showLibrarian(844×390): 사서 한 명, 머리가 폭 15~30%(왼쪽 1/3), 정면 약간 비스듬히, Idle, 복장 반영",lk.lib);
+ok(lk.lib2.hat===true&&!lk.lib2.orbInHand,"장서복(look) 바뀐 뒤 다시 부르면 반영",lk.lib2);
+ok(lk.cheerNow==="Cheer"&&lk.cheerAfter==="Idle","cheer: Cheer 한 번 하고 Idle 로",lk);
+ok(lk.b.k<=lk.a.k&&lk.b.g<=lk.a.g+2&&lk.b.t<=lk.a.t+2,"showLibrarian·setUnits 반복해도 ticker·지오메트리·텍스처가 늘지 않음",lk);
+ok(lk.twice===1,"showLibrarian 을 겹쳐 불러도 사서는 한 명",lk);
+ok(lk.restored.hat===true&&lk.restored.props.length===0&&lk.lookGone,"임시 look 되돌림 → 원래 모습",lk.restored);
+await p.route(/\.glb$/, r=>r.fulfill({status:404,body:""}));
+{ const before=errs.length; await goStage();
+  const ph=await p.evaluate(async([LOOK,KF,PR])=>{ const K=Game.data.KEY_PAGES; K[0].look=eval("("+LOOK+")"); K[0].look.props.push({name:"lantern",bone:"back"},{name:"quill",bone:"head"},{name:"bookpile",bone:"hand.l"});
+    const S=await __stageMod.createStage(document.getElementById("stage")); S.setFloor(Game.data.floorStage("crime"));
+    Game.battle.leave(); Game.battle.begin("beccaria"); await S.setUnits(Game.battle.state.units,Game.data.GUEST_BY.beccaria); const a=eval(PR)(eval(KF)(S));
+    await S.showLibrarian("kyu"); const F=S.figure([...S.figures.keys()][0]), b=eval(PR)(F); await S.cheer(); delete K[0].look; Game.battle.leave(); return {a,b,n:S.figures.size}; },[LOOK_RED,kyuFig,probe]);
+  ok(ph.a.placeholder&&ph.b.placeholder&&ph.n===1&&ph.b.props.length>=1,"glb 404: 자리표시에서도 복장·showLibrarian·cheer 오류 없음",ph);
+  { const e=errs.slice(before).filter(m=>!/Failed to load resource|404/.test(m)); ok(e.length===0,"glb 404 복장: 오류 없음(404 로드 실패 로그 빼고)",e); } errs.splice(before); }
+await p.unroute(/\.glb$/);
+/* 손 뼈(F.hand): 점이 지워진 이름(handslotl)도 찾음 → 책 없는 모델 사서(lib2 Knight·lib3 Rogue)는 왼손에 코드 책 */
+await goStage();
+const hd=await p.evaluate(async()=>{ const G=__studyGame, s=G.save;
+  s.unlockedKeyIds=["novice","reading-room","midnight","archivist","classical-robe","panopticon-coat","truth-robe","pad8","pad9","pad10"]; G.libs.sync(s);
+  G.libs.equipKey(s,"lib2","archivist"); G.libs.equipKey(s,"lib3","classical-robe"); G.libs.setParty(s,["kyu","lib2","lib3"]); Game.battle.leave(); Game.battle.begin("beccaria");
+  const S=await __stageMod.createStage(document.getElementById("stage")); await S.setUnits(Game.battle.state.units,Game.data.GUEST_BY.beccaria);
+  const r=Game.battle.state.units.filter(u=>u.side==="ally").map(u=>{ const F=S.figure(u.id), L=F.hand("l"), R=F.hand("r");
+    return {lib:u.libId, l:!!L, r:!!R, lKids:L?L.children.filter(c=>c.visible&&!c.isBone).map(c=>c.name||c.type):[]}; });
+  Game.battle.leave(); return r; });
+ok(hd.length===3&&hd.every(h=>h.l&&h.r),"F.hand(l/r) 가 손 뼈를 돌려줌",hd);
+ok(hd.filter(h=>h.lib!=="kyu").every(h=>h.lKids.includes("Group")),"lib2·lib3 왼손에 코드 책",hd);
+ok(hd.find(h=>h.lib==="kyu").lKids.includes("Spellbook_open"),"kyu(Mage) 왼손은 모델 책 Spellbook_open",hd);
+/* 세로 화면 도서관: 가로 가운데, 머리가 위쪽 25~45% */
+await p.setViewportSize({width:390,height:844}); await goStage();
+const lt=await p.evaluate(async()=>{ const S=await __stageMod.createStage(document.getElementById("stage")); S.setFloor(Game.data.floorStage("crime"));
+  await S.showLibrarian("kyu"); const id=[...S.figures.keys()][0], up=S.unitPoint(id), r=document.getElementById("stage").getBoundingClientRect(), F=S.figure(id);
+  const o=F.obj.position, v=o.clone().project(S.camera);
+  return {px:+(up.x/r.width).toFixed(3), py:+(up.y/r.height).toFixed(3), feetY:+((1-v.y)/2).toFixed(3)}; });
+ok(lt.px>=0.4&&lt.px<=0.6&&lt.py>=0.25&&lt.py<=0.45&&lt.feetY<=0.46,"showLibrarian(390×844): 가로 가운데, 머리가 위쪽 25~45%, 발이 아래 패널(54%) 위",lt);
+await p.screenshot({path:join(ROOT,"shots/stage-library-390.png")});
+await p.setViewportSize({width:844,height:390});
 /* @@NEXT@@ */
 ok(errs.filter(e=>!/Error creating WebGL context/.test(e)).length===0,"오류 없음 (nogl 페이지의 WebGL 생성 실패 로그는 의도)",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);
