@@ -21,14 +21,15 @@ const measure=`(()=>{ const R=e=>{ const r=e.getBoundingClientRect(); return {x:
   document.querySelectorAll(".die-row").forEach(e=>vis(e)&&boxes.push({k:"dice:"+e.dataset.unit,g:"dice:"+e.dataset.unit,...R(e)}));
   document.querySelectorAll("#clash-panel .cp-side").forEach(e=>vis(e)&&boxes.push({k:"clash:"+(e.classList.contains("l")?"l":"r"),g:"clash:"+(e.classList.contains("l")?"l":"r"),...R(e)}));
   { const h=document.querySelector("#skip-layer.on .hint"); if(h&&vis(h)) boxes.push({k:"skip-hint",g:"skip-hint",...R(h)}); }
-  for(const id of ["hand","btn-open","status","question","learn","enemy-info"]){ const e=document.getElementById(id); if(e&&vis(e)) boxes.push({k:id,g:id,...R(e)}); }
+  document.querySelectorAll("#dice-stack.on .st-row").forEach((e,i)=>vis(e)&&boxes.push({k:"stack"+i,g:"stack",...R(e)}));
+  for(const id of ["hand","btn-open","btn-orb","status","question","learn","enemy-info"]){ const e=document.getElementById(id); if(e&&vis(e)) boxes.push({k:id,g:id,...R(e)}); }
   /* 화살표: 곡선 위 점 몇 개를 작은 상자로(이어지는 주사위와는 비교 안 함) */
   document.querySelectorAll("#target-arrows path").forEach((p,i)=>{ const L=p.getTotalLength(); for(const t of [0.25,0.5,0.75]){ const q=p.getPointAtLength(L*t); boxes.push({k:"arrow"+i+"@"+t,g:"arrow",x:q.x-2,y:q.y-2,w:4,h:4}); } });
   const hits=[]; for(let i=0;i<boxes.length;i++) for(let j=i+1;j<boxes.length;j++){ const a=boxes[i], b=boxes[j]; if(a.g===b.g) continue; if(a.g==="arrow"&&b.g.startsWith("dice")||b.g==="arrow"&&a.g.startsWith("dice")) continue; if(a.g==="arrow"&&b.g==="arrow") continue;
     const ox=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x), oy=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y); if(ox>2&&oy>2) hits.push(a.k+" × "+b.k); }
   const W=innerWidth,H=innerHeight, out=boxes.filter(b=>b.g!=="arrow"&&(b.x<-1||b.y<-1||b.x+b.w>W+1||b.y+b.h>H+1)).map(b=>b.k+" 화면 밖");
   return {n:boxes.length,hits:hits.concat(out)}; })()`;
-async function scene(gid, setup, phase, fullHand){
+async function scene(gid, setup, phase, fullHand, peek){
   /* 사서 구성은 다시 불러오면 장서복 검사로 줄어들 수 있으니, 같은 페이지에서 설정한 뒤 전투를 새로 띄운다 */
   await p.goto(BASE+"tests/battle.html?guest="+gid); await p.waitForFunction(()=>window.__ready,null,{timeout:20000});
   await p.evaluate(setup); await p.evaluate(async()=>{ window.__battle.unmount(); Game.battle.leave(); window.__battle=await window.__mount(); });
@@ -41,13 +42,19 @@ async function scene(gid, setup, phase, fullHand){
     await p.click(`.speed-die[data-side="ally"]`); await p.click(`.speed-die[data-side="enemy"]`); }   /* 적 주사위 정보창도 연 상태로 */
   if(phase==="resolve"){ await p.evaluate(()=>{ const B=Game.battle.state; for(const u of B.units.filter(u=>u.side==="ally")) u.dice.forEach((d,i)=>{ const e=B.units.find(x=>x.side==="enemy"&&x.hp>0); const c=Game.battle.hand(u.id).find(c=>Game.battle.usable(u.id,c).usable); if(c&&!d.card) Game.battle.assign(u.id,i,c,{unit:e.id,die:e.dice.length?0:null}); }); });
     await p.click("#btn-open"); await p.waitForSelector("#clash-panel.on .cp-die.shown",{timeout:30000}); await p.waitForTimeout(120); return p.evaluate(measure); }
+  if(peek){ /* 전황 수정구슬을 누르고 있는 동안: 모든 내 주사위에 책장·대상을 놓아 더미를 가장 길게 */
+    await p.evaluate(()=>{ const B=Game.battle.state; for(const u of B.units.filter(u=>u.side==="ally"&&u.hp>0)) u.dice.forEach((d,i)=>{ if(d.card) return; const e=B.units.find(x=>x.side==="enemy"&&x.hp>0); const c=Game.battle.hand(u.id).find(c=>Game.battle.usable(u.id,c).usable); if(c&&e) Game.battle.assign(u.id,i,c,{unit:e.id,die:e.dice.length?i%e.dice.length:null}); }); });
+    await p.evaluate(()=>{ const o=document.getElementById("btn-orb"); o.dispatchEvent(new PointerEvent("pointerdown",{pointerId:7,bubbles:true})); });
+    await p.waitForTimeout(500); const r=await p.evaluate(measure);
+    await p.evaluate(()=>{ const o=document.getElementById("btn-orb"); o.dispatchEvent(new PointerEvent("pointerup",{pointerId:7,bubbles:true})); });
+    return r; }
   await p.waitForTimeout(500); return p.evaluate(measure);
 }
 let total=0;
-for(const [w,h] of [[844,390],[390,844]]) for(const [pn,setup] of [["1:3",solo],["3:3",party3]]) for(const [ph,full] of [["question",false],["assign",false],["assign-hand8",true],["resolve",false]]){
+for(const [w,h] of [[844,390],[390,844]]) for(const [pn,setup] of [["1:3",solo],["3:3",party3]]) for(const [ph,full] of [["question",false],["assign",false],["assign-hand8",true],["assign-peek",false],["resolve",false]]){
   if(pn==="1:3"&&ph==="assign-hand8") continue;
   await p.setViewportSize({width:w,height:h});
-  const r=await scene("beccaria",setup,ph==="resolve"?"resolve":ph.startsWith("assign")?"assign":"question",full);
+  const r=await scene("beccaria",setup,ph==="resolve"?"resolve":ph.startsWith("assign")?"assign":"question",full,ph==="assign-peek");
   total+=r.hits.length; console.log(`${r.hits.length?"FAIL":"PASS"} ${w}x${h} ${pn} ${ph}: overlaps ${r.hits.length} (상자 ${r.n})`+(r.hits.length?" — "+r.hits.slice(0,6).join(", "):""));
   if(r.hits.length) await p.screenshot({path:join(ROOT,`shots/overlap/${w}-${pn.replace(":","v")}-${ph}.png`)});
 }

@@ -1,6 +1,9 @@
 /* 전투 화면(DOM, 무대 위). 규칙은 Game.battle, 그림은 stage.
    mountBattle(root, stage, guestId, {onEnd}) → {unmount()}
-   막 진행: 문제 → 답 → 배정(내 주사위 → 카드 → 적) → [개막] → 교환마다 stage.play → 다음 막 | 끝(settle → onEnd(result))
+   막 진행: 문제 → 답 → 배정(내 주사위 → 책장 → 그 주사위를 상대 주사위·몸으로 끌어다 놓기) → [개막] → 교환마다 stage.play → 다음 막 | 끝(settle → onEnd(result))
+   합이 맞물린 주사위 짝은 머리에서 떨어져 가운데 바닥 더미로(아군 왼쪽·적 오른쪽, 먼저 발동하는 짝이 아래). 일방 공격은 머리 위에 남아 화살표로.
+   [전황] 수정구슬(배치 중에만)을 누르고 있으면 일방 공격까지 모두 더미로 떨어져 진행 순서를 미리 본다. 개막하면 전부 더미로, 교환마다 한 줄씩 빠짐.
+   대상이 있는 내 주사위 탭 = 대상만 해제, 대상 없이 책장만 끼운 주사위 탭 = 책장 해제. 책장을 끼우고 대상이 없는 주사위가 있으면 [개막] 안 됨. 책장 없는 주사위는 개막하면 사라짐
    연출 중: 화면 탭 = 남은 교환 빨리 감기, 450ms 이상 누르기 = 막 끝까지 건너뛰기 */
 import { sfx } from "./sfx.js";
 
@@ -18,6 +21,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     <div id="hud-bars"><div class="side ally"></div><div class="side enemy"></div></div>
     <svg id="target-arrows" aria-hidden="true"></svg>
     <div id="dice-layer"></div>
+    <div id="dice-stack" aria-label="이번 막 합 순서"></div>
     <div id="status"><span class="scene num"></span><span class="guest"></span><span class="msg"></span></div>
     <div id="learn" role="note"></div>
     <div id="enemy-info" role="note" aria-live="polite"></div>
@@ -25,9 +29,10 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     <div id="question" aria-live="polite"></div>
     <div id="hand" hidden><div class="info"></div><div class="cards"></div></div>
     <button id="btn-open" type="button" hidden>개막</button>
+    <button id="btn-orb" type="button" hidden aria-label="전황 보기(누르고 있기)" title="누르고 있으면 이번 막 진행 순서"><i></i><span>전황</span></button>
     <div id="skip-layer"><span class="hint">탭: 빨리 · 길게: 건너뛰기</span></div>`;
   const $ = s => root.querySelector(s);
-  const el = { bars: $("#hud-bars"), arrows: $("#target-arrows"), dice: $("#dice-layer"), status: $("#status"), learn: $("#learn"), info: $("#enemy-info"), clash: $("#clash-panel"), q: $("#question"), hand: $("#hand"), open: $("#btn-open"), skip: $("#skip-layer") };
+  const el = { bars: $("#hud-bars"), arrows: $("#target-arrows"), dice: $("#dice-layer"), stack: $("#dice-stack"), orb: $("#btn-orb"), status: $("#status"), learn: $("#learn"), info: $("#enemy-info"), clash: $("#clash-panel"), q: $("#question"), hand: $("#hand"), open: $("#btn-open"), skip: $("#skip-layer") };
   let sel = null, selCard = null, busy = false, alive = true, raf = 0, barSnap = null, msgT = 0;
 
   await stage.setUnits(B().units, guest);
@@ -50,16 +55,49 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   }
   const snapUnits = () => Object.fromEntries(B().units.map(u => [u.id, { hp: u.hp, stagger: u.stagger, staggered: u.staggered }]));
 
+  const dieKey = (uid, i) => uid + ":" + i;
+  const chipHtml = (u, d, i, extra) => {
+    const cls = ["speed-die"]; if (u.side === "ally" && d.card) cls.push("set"); if (sel && sel.unit === u.id && sel.die === i) cls.push("sel"); if (extra) cls.push(extra);
+    if (u.side === "enemy" && selHasCard()) cls.push("can-target");
+    return `<button type="button" class="${cls.join(" ")}" data-unit="${u.id}" data-die="${i}" data-side="${u.side}" data-k="${dieKey(u.id, i)}" aria-label="${esc(u.name)} 속도 ${d.speed}">${d.speed}</button>`; };
+  const selHasCard = () => { if (!sel) return false; const u = B().units.find(x => x.id === sel.unit), d = u && u.dice[sel.die]; return !!(d && d.card); };
+  const short = n => { n = String(n || ""); return n.length > 5 ? n.slice(0, 5) + "…" : n; };
   function renderDice() {
-    const phase = B().phase;
+    const st = B(), phase = st.phase, before = chipRects(), rows = stackRows(), onFloor = new Set();
+    rows.forEach(r => { onFloor.add(dieKey(r.a.unit, r.a.die)); if (r.b) onFloor.add(dieKey(r.b.unit, r.b.die)); });
+    /* 머리 위: 바닥 더미에 내려가지 않은 주사위. 적은 몸을 누르는 투명 자리도(일방 공격 대상) */
     el.dice.innerHTML = units().filter(u => u.hp > 0).map(u => {
-      const chips = u.dice.map((d, i) => {
-        const cls = ["speed-die"]; if (u.side === "ally" && d.card) cls.push("set"); if (sel && sel.unit === u.id && sel.die === i) cls.push("sel");
-        if (u.side === "enemy" && selCard) cls.push("can-target");
-        return `<button type="button" class="${cls.join(" ")}" data-unit="${u.id}" data-die="${i}" data-side="${u.side}" aria-label="${esc(u.name)} 속도 ${d.speed}">${d.speed}</button>`; }).join("");
-      const tgt = u.side === "enemy" && !u.dice.length && phase === "assign" ? `<button type="button" class="enemy-target${selCard ? " can-target" : ""}" data-unit="${u.id}" aria-label="${esc(u.name)} 노리기"></button>` : "";
-      return `<div class="die-row" data-unit="${u.id}">${chips}</div>${tgt}`; }).join("");
-    placeDice();
+      const chips = u.dice.map((d, i) => onFloor.has(dieKey(u.id, i)) ? "" : chipHtml(u, d, i)).join("");
+      const tgt = u.side === "enemy" && phase === "assign" ? `<button type="button" class="enemy-target${selHasCard() ? " can-target" : ""}" data-unit="${u.id}" aria-label="${esc(u.name)} 노리기"></button>` : "";
+      return `${chips ? `<div class="die-row" data-unit="${u.id}">${chips}</div>` : ""}${tgt}`; }).join("");
+    renderStack(rows);
+    placeDice(); placeStack(); flip(before);
+  }
+  /* 가운데 바닥 더미: 먼저 발동하는 짝이 맨 아래(쌓이는 순서). 아군 왼쪽 · 적 오른쪽 */
+  /* 더미에 보일 줄: 개막 중엔 넘겨받은 남은 순서, 배치 중엔 합 짝만(전황을 누르고 있으면 전부) */
+  let peek = false;
+  const stackRows = () => B().phase === "assign" && !busy ? G.battle.plan().filter(r => peek || r.b) : [];
+  function renderStack(rows) {
+    const st = B(); rows = rows || stackRows(); const full = peek || busy;
+    /* 개막 중에는 다음 4줄만(합 판·안내와 안 겹치게), 나머지는 "+N" */
+    const more = busy && rows.length > 4 ? rows.length - 4 : 0; if (more) rows = rows.slice(0, 4);
+    const U = id => st.units.find(u => u.id === id);
+    el.stack.innerHTML = rows.map((r, n) => {
+      const ua = U(r.a.unit), ub = r.b && U(r.b.unit), A = { u: ua, d: ua && ua.dice[r.a.die], i: r.a.die }, Bd = ub ? { u: ub, d: ub.dice[r.b.die], i: r.b.die } : null;
+      const ally = A.u && A.u.side === "ally" ? A : Bd, enemy = A.u && A.u.side === "enemy" ? A : Bd, tgt = U(r.target);
+      const cell = (x, side) => x && x.d ? `<span class="nm">${esc(short(x.u.name))}</span>${chipHtml(x.u, x.d, x.i, "stacked")}`
+        : `<span class="to">${side === "ally" ? (tgt && tgt.side === "ally" ? "→ " + esc(short(tgt.name)) : "") : (tgt && tgt.side === "enemy" ? "→ " + esc(short(tgt.name)) : "")}</span>`;
+      return `<div class="st-row${Bd ? " clash" : ""}" data-k="${dieKey(r.a.unit, r.a.die)}"><span class="st-l">${cell(ally, "ally")}</span><b class="st-n num">${full ? (Bd ? `${n + 1}<small>합</small>` : n + 1) : "합"}</b><span class="st-r">${cell(enemy, "enemy")}</span></div>`;
+    }).join("") + (more ? `<span class="st-more num">+${more}</span>` : "");
+    el.stack.classList.toggle("on", rows.length > 0);
+  }
+  /* 머리 → 더미(또는 반대)로 옮겨 간 주사위는 원래 자리에서 날아가듯 움직인다 */
+  function chipRects() { const m = new Map(); root.querySelectorAll(".speed-die[data-k]").forEach(n => { const r = n.getBoundingClientRect(); if (r.width) m.set(n.dataset.k, { x: r.left, y: r.top, stacked: n.classList.contains("stacked") }); }); return m; }
+  function flip(before) {
+    if (!before.size || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    root.querySelectorAll(".speed-die[data-k]").forEach(n => { const o = before.get(n.dataset.k); if (!o || o.stacked === n.classList.contains("stacked")) return;
+      const r = n.getBoundingClientRect(); const dx = o.x - r.left, dy = o.y - r.top; if (Math.abs(dx) + Math.abs(dy) < 2) return;
+      n.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "translate(0, 0)" }], { duration: 300, easing: "cubic-bezier(.3,.7,.3,1)" }); });
   }
   /* 머리 위 좌표(무대) — 무대가 없으면 화면 왼쪽/오른쪽 가운데에 세운다 */
   function pointOf(id) {
@@ -91,27 +129,40 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     }
     for (const t of el.dice.querySelectorAll(".enemy-target")) { const p = pointOf(t.dataset.unit); setPos(t, p.x, p.y); }
   }
+  /* 더미 자리: 가운데, 손패(없으면 개막 버튼·화면 아래) 바로 위에서 위로 쌓임. 높이가 모자라면 줄여서 */
+  function placeStack() {
+    if (!el.stack.classList.contains("on")) return;
+    const W = innerWidth, H = innerHeight, hr = !el.hand.hidden ? el.hand.getBoundingClientRect() : null, qr = el.q.classList.contains("on") ? el.q.getBoundingClientRect() : null;
+    const bottom = Math.min(hr && hr.height ? hr.top : H, qr && qr.height ? qr.top : H) - 8, top = topFloor(W / 2 - 110, 220) + 2;
+    const h = el.stack.offsetHeight || 1, k = Math.min(1, Math.max(0.55, (bottom - top) / h));
+    const key = `${Math.round(W / 2)}|${Math.round(bottom)}|${k.toFixed(2)}`; if (el.stack.dataset.p === key) return; el.stack.dataset.p = key;
+    el.stack.style.left = Math.round(W / 2) + "px"; el.stack.style.top = Math.round(bottom) + "px"; el.stack.style.setProperty("--k", k.toFixed(3));
+  }
   function centerOf(unit, die) {
     const n = die == null ? el.dice.querySelector(`.die-row[data-unit="${unit}"]`) : el.dice.querySelector(`.speed-die[data-unit="${unit}"][data-die="${die}"]`);
     if (!n) { const p = pointOf(unit); return p; }
     const r = n.getBoundingClientRect(); if (!r.width) { const p = pointOf(unit); return p; } return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   }
+  /* 화살표: 머리 위에 남은 일방 공격(내 것·적 것)의 대상, 그리고 끌어다 놓는 중인 선. 바닥 더미에 내려간 합 짝은 안 그림 */
   function drawArrows() {
-    const st = B(); if (!st || busy || st.phase !== "assign") { el.arrows.innerHTML = ""; return; }
-    const paths = [];
-    for (const u of st.units) { if (u.hp <= 0) continue; u.dice.forEach((d, i) => { if (!d.target) return; if (u.side === "ally" && !d.card) return;
-      const a = centerOf(u.id, i), b = centerOf(d.target.unit, d.target.die), lift = Math.max(30, Math.abs(b.x - a.x) * 0.22);
-      /* 곡선 꼭대기(≈(a.y+2c+b.y)/4)가 막대 아래에 머물도록 */
-      const lim = barsFloor(Math.min(a.x, b.x), Math.max(a.x, b.x)) + 8;
+    const st = B(); if (!st || busy || st.phase !== "assign" || peek) { if (el.arrows.firstChild) el.arrows.innerHTML = ""; return; }
+    const paths = [], curve = (a, b, cls) => { const lift = Math.max(30, Math.abs(b.x - a.x) * 0.22), lim = barsFloor(Math.min(a.x, b.x), Math.max(a.x, b.x)) + 8;
       let cy = Math.min(a.y, b.y) - lift; cy = Math.max(cy, 2 * lim - (a.y + b.y) / 2);
-      const cls = G.battle.isClash(u.id, i) ? "clash" : u.side;
-      paths.push(`<path class="${cls}" d="M${a.x.toFixed(1)} ${a.y.toFixed(1)} Q${((a.x + b.x) / 2).toFixed(1)} ${cy.toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}"/>`); }); }
-    el.arrows.innerHTML = paths.join("");
+      paths.push(`<path class="${cls}" d="M${a.x.toFixed(1)} ${a.y.toFixed(1)} Q${((a.x + b.x) / 2).toFixed(1)} ${cy.toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}"/>`); };
+    for (const u of st.units) { if (u.hp <= 0) continue; u.dice.forEach((d, i) => { if (!d.target || G.battle.isClash(u.id, i)) return; if (drag && drag.on && drag.uid === u.id && drag.i === i) return;
+      const n = el.dice.querySelector(`.speed-die[data-k="${dieKey(u.id, i)}"]`); if (!n) return;
+      const r = n.getBoundingClientRect(), a = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      const tn = d.target.die != null && el.dice.querySelector(`.speed-die[data-k="${dieKey(d.target.unit, d.target.die)}"]`), tr = tn && tn.getBoundingClientRect();
+      curve(a, tr && tr.width ? { x: tr.left + tr.width / 2, y: tr.top + tr.height / 2 } : pointOf(d.target.unit), u.side); }); }
+    if (drag && drag.on) curve(drag.from, drag.at, drag.over ? "clash" : "ally");
+    const html = paths.join(""); if (el.arrows.dataset.h !== html) { el.arrows.innerHTML = html; el.arrows.dataset.h = html; }
   }
 
   function renderHand() {
     const st = B(); const show = st.phase === "assign" && !busy;
     el.hand.hidden = !show; el.open.hidden = !show; el.open.disabled = busy;
+    el.open.classList.toggle("wait", show && !G.battle.ready());
+    el.orb.hidden = !show; if (!show && peek) setPeek(false);
     if (!show) return;
     const uid = (sel && sel.unit) || (liveAllies()[0] || {}).id; if (!uid) return;
     const u = st.units.find(x => x.id === uid), L = G.battle.lightOf ? G.battle.lightOf(uid) : { light: u.light, maxLight: u.maxLight, emotion: u.emotion };
@@ -278,34 +329,81 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
 
   /* ---------- 배정 ---------- */
   function firstEmptyDie() { for (const u of liveAllies()) { const i = u.dice.findIndex(d => !d.card); if (i >= 0) return { unit: u.id, die: i }; } return null; }
-  el.dice.addEventListener("click", e => {
+  const dieOf = (uid, i) => { const u = B().units.find(x => x.id === uid); return u && u.dice[i]; };
+  const failMsg = r => setMsg(r.reason === "light" ? "빛이 모자라" : r.reason === "emotion" ? "감정 단계가 모자라" : "놓을 수 없어", "bad", 1800);
+  /* 책장 끼운 내 주사위(uid,i)의 대상을 정한다: 적 주사위면 그 주사위, 몸이면 일방 공격 */
+  function aim(uid, i, target) {
+    const r = G.battle.target(uid, i, target); if (!r.ok) { failMsg(r); return false; }
+    sfx.tap(); selCard = null; sel = firstEmptyDie(); render(); return true;
+  }
+  let drag = null, eatClick = false;
+  el.dice.addEventListener("click", onDieClick); el.stack.addEventListener("click", onDieClick);
+  function onDieClick(e) {
+    if (eatClick) { eatClick = false; return; }
     if (busy || B().phase !== "assign") return;
     const chip = e.target.closest(".speed-die, .enemy-target"); if (!chip) return;
     const uid = chip.dataset.unit, die = chip.dataset.die == null ? null : +chip.dataset.die, u = B().units.find(x => x.id === uid);
     if (u.side === "ally") {
-      if (u.dice[die].card) { G.battle.unassign(uid, die); sfx.tap(); sel = { unit: uid, die }; selCard = null; }
-      else { sel = { unit: uid, die }; selCard = null; sfx.tap(); }
-      render(); return;
+      const d = u.dice[die];
+      if (d.target) { G.battle.target(uid, die, null); setMsg("합을 풀었어 · 다시 끌어다 놓아 줘", "", 1600); }   /* 더미의 내 주사위: 대상만 해제(책장은 그대로) */
+      else if (d.card) G.battle.unassign(uid, die);                                                          /* 머리 위 책장 끼운 주사위: 책장 해제 */
+      sel = { unit: uid, die }; selCard = null; sfx.tap(); render(); return;
     }
-    if (!selCard) { if (die != null) showEnemyInfo(uid, die); else setMsg("책장을 먼저 골라 줘", "", 1800); return; }
-    if (!sel) { setMsg("내 주사위를 먼저 골라 줘", "", 1800); return; }
-    const r = G.battle.assign(sel.unit, sel.die, selCard, { unit: uid, die });
-    if (!r.ok) { setMsg(r.reason === "light" ? "빛이 모자라" : r.reason === "emotion" ? "감정 단계가 모자라" : "놓을 수 없어", "bad", 1800); return; }
-    sfx.tap(); selCard = null; sel = firstEmptyDie() || sel; render();
+    /* 적: 고른 내 주사위에 책장이 있으면 탭으로도 대상 지정(끌기 대신) */
+    if (selHasCard()) { aim(sel.unit, sel.die, { unit: uid, die }); return; }
+    if (die != null) showEnemyInfo(uid, die); else setMsg("내 주사위에 책장을 먼저 끼워 줘", "", 1800);
+  }
+  /* 끌기: 책장 끼운 내 주사위를 상대 주사위나 몸 위에 놓는다 */
+  function dropAt(x, y) {
+    const hit = document.elementsFromPoint(x, y).find(n => n.matches && n.matches('.speed-die[data-side="enemy"], .enemy-target'));
+    return hit ? { unit: hit.dataset.unit, die: hit.dataset.die == null ? null : +hit.dataset.die, el: hit } : null;
+  }
+  root.addEventListener("pointerdown", e => {
+    if (busy || B().phase !== "assign") return;
+    const chip = e.target.closest('.speed-die[data-side="ally"]'); if (!chip) return;
+    const uid = chip.dataset.unit, i = +chip.dataset.die, d = dieOf(uid, i); if (!d || !d.card) return;
+    const r = chip.getBoundingClientRect();
+    drag = { uid, i, chip, id: e.pointerId, sx: e.clientX, sy: e.clientY, on: false, from: { x: r.left + r.width / 2, y: r.top + r.height / 2 }, at: { x: e.clientX, y: e.clientY }, over: null };
   });
+  root.addEventListener("pointermove", e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    drag.at = { x: e.clientX, y: e.clientY };
+    if (!drag.on && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 8) { drag.on = true; drag.chip.classList.add("dragging"); root.classList.add("aiming"); sel = { unit: drag.uid, die: drag.i }; }
+    if (!drag.on) return;
+    const t = dropAt(e.clientX, e.clientY); if (drag.over && (!t || t.el !== drag.over)) drag.over.classList.remove("drop"); drag.over = t ? t.el : null; if (drag.over) drag.over.classList.add("drop");
+    drawArrows(); e.preventDefault();
+  }, { passive: false });
+  const endDrag = (e, cancel) => {
+    if (!drag || e.pointerId !== drag.id) return; const D = drag; drag = null;
+    D.chip.classList.remove("dragging"); root.classList.remove("aiming"); if (D.over) D.over.classList.remove("drop");
+    if (!D.on) return; eatClick = true; setTimeout(() => { eatClick = false; }, 0);
+    const t = !cancel && dropAt(e.clientX, e.clientY);
+    if (t) aim(D.uid, D.i, { unit: t.unit, die: t.die }); else render();
+  };
+  root.addEventListener("pointerup", e => endDrag(e, false)); root.addEventListener("pointercancel", e => endDrag(e, true));
+
   el.hand.addEventListener("click", e => {
     const c = e.target.closest(".card"); if (!c || busy) return;
     if (c.classList.contains("disabled")) { setMsg("지금은 못 쓰는 책장이야", "", 1500); return; }
     if (!sel) sel = firstEmptyDie(); if (!sel) return;
-    selCard = c.dataset.card; sfx.tap();
-    /* 노릴 적이 하나뿐이면 바로 놓는다 */
+    const cid = c.dataset.card, d = dieOf(sel.unit, sel.die); if (!d) return;
+    /* 노릴 적이 하나뿐이면 바로 대상까지, 아니면 이미 정한 대상은 그대로 두고 책장만 바꿔 끼운다 */
     const targets = units("enemy").filter(u => u.hp > 0);
-    if (targets.length === 1 && targets[0].dice.length <= 1) {
-      const r = G.battle.assign(sel.unit, sel.die, selCard, { unit: targets[0].id, die: targets[0].dice.length ? 0 : null });
-      if (r.ok) { selCard = null; sel = firstEmptyDie() || sel; }
-    }
+    const auto = targets.length === 1 && targets[0].dice.length <= 1 ? { unit: targets[0].id, die: targets[0].dice.length ? 0 : null } : null;
+    const r = G.battle.assign(sel.unit, sel.die, cid, d.target ? { ...d.target } : auto);
+    if (!r.ok) { failMsg(r); return; }
+    sfx.tap(); selCard = null;
+    if (dieOf(sel.unit, sel.die).target) sel = firstEmptyDie() || sel; else setMsg("주사위를 상대 주사위(또는 몸)로 끌어다 놓아 줘", "", 2600);
     render();
   });
+
+  /* ---------- 전황(수정구슬): 누르고 있는 동안 일방 공격까지 바닥 더미로 ---------- */
+  function setPeek(on) { if (peek === on) return; peek = on; el.orb.classList.toggle("on", on); root.classList.toggle("peek", on); if (on) hideInfo(); renderDice(); drawArrows(); }
+  el.orb.addEventListener("pointerdown", e => { if (busy || B().phase !== "assign") return; e.preventDefault(); try { el.orb.setPointerCapture(e.pointerId); } catch (x) {} setPeek(true); sfx.tap(); });
+  for (const ev of ["pointerup", "pointercancel", "lostpointercapture"]) el.orb.addEventListener(ev, () => setPeek(false));
+  el.orb.addEventListener("keydown", e => { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); setPeek(true); } });
+  el.orb.addEventListener("keyup", e => { if (e.key === " " || e.key === "Enter") setPeek(false); });
+  el.orb.addEventListener("contextmenu", e => e.preventDefault());
 
   /* ---------- 개막 ---------- */
   let fast = false, skipAll = false, holdT = 0;
@@ -319,15 +417,21 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   }
   async function runOpen() {
     if (busy || B().phase !== "assign") return;
+    if (!G.battle.ready()) { setMsg("대상을 정하지 않은 주사위가 있어 · 상대 주사위로 끌어다 놓아 줘", "bad", 2400); return; }
+    const plan = G.battle.plan();
     const R = G.battle.stepBegin(); if (!R) return;
     busy = true; fast = false; skipAll = false; sel = null; selCard = null; el.learn.classList.remove("on"); hideInfo();
-    barSnap = snapUnits(); render();
+    const before = chipRects(); barSnap = snapUnits(); render();
+    renderStack(plan); el.dice.hidden = true; placeStack(); flip(before);   /* 개막: 남은 주사위가 모두 바닥 더미로 */
     for (;;) {
       const before = snapUnits();
       const ev = G.battle.stepNext(R); if (!ev) break;
       if (ev.kind === "skip") continue;
       if (skipAll) { barSnap = null; continue; }
       barSnap = before; renderBars(barSnap);
+      /* 바닥 더미에서 지금 교환의 줄을 치운다(남은 줄이 다음 순서) */
+      const at = plan.findIndex(r => (r.a.unit === ev.a.unit && r.a.die === ev.a.die) || (r.b && ev.b && r.b.unit === ev.a.unit && r.b.die === ev.a.die));
+      if (at >= 0) plan.splice(0, at + 1); renderStack(plan); placeStack();
       sfx.clash(); showClash(ev, fast);
       try { await stage.play(ev, { fast: fast || skipAll, final: G.battle.outcome === "win", onStep: i => revealClash(i), onHit: i => {
         const s = ev.steps[i]; if (!s || !s.dmg) return; const side = (B().units.find(u => u.id === s.dmg.unit) || {}).side;
@@ -339,7 +443,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
       if ((ev.result && ev.result.dead || []).some(id => id[0] === "e")) sfx.book();
       if (!alive) return;
     }
-    G.battle.stepEnd(R); barSnap = null; hideClash();
+    G.battle.stepEnd(R); barSnap = null; hideClash(); renderStack([]);
     /* 막 끝: 합 치러 나갔던 캐릭터·카메라를 한 번에 제자리로 */
     if (stage.sceneEnd) { try { await stage.sceneEnd({ fast: fast || skipAll }); } catch (e) { console.warn(e); } if (!alive) return; }
     if (stage.syncUnits) stage.syncUnits(B().units);   /* 건너뛴 교환에서 쓰러진 적·흐트러짐까지 무대에 맞춤 */
@@ -355,7 +459,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   el.open.addEventListener("click", () => { sfx.tap(); runOpen(); });
 
   /* ---------- 매 프레임: 주사위·화살표를 무대 위치에 붙인다 ---------- */
-  const loop = () => { if (!alive) return; placeDice(); placeClash(); drawArrows(); raf = requestAnimationFrame(loop); };
+  const loop = () => { if (!alive) return; placeDice(); placeStack(); placeClash(); drawArrows(); raf = requestAnimationFrame(loop); };
   render(); raf = requestAnimationFrame(loop);
   return { unmount() { alive = false; cancelAnimationFrame(raf); clearTimeout(msgT); flashT.forEach(clearTimeout); root.innerHTML = ""; delete root.dataset.screen; } };
 }

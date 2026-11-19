@@ -61,7 +61,12 @@ assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/bui
 ## 5. 전투 화면 (`js/ui/battle.js`)
 - 자리(가로): 막대는 위 왼쪽(사서)·위 오른쪽(적), 상태판·오답 해설은 위 가운데, 속도 주사위는 머리 위(막대·상태판 아래로, 다른 유닛 주사위와 안 겹치게 밀어냄), 손패는 아래 가운데, [개막]은 아래 오른쪽, 문제 패널은 아래.
 - 세로: 막대 위 두 줄, 상태판·해설 그 아래, 무대 가운데, 손패·[개막]·문제는 아래.
-- 조작: 문제를 풀고 → 내 주사위 → 카드 → 적 주사위(주사위 없는 적은 몸)를 누른다. 노릴 적이 하나면 카드만 눌러도 놓인다. 놓인 주사위를 다시 누르면 뺀다.
+- 조작(2026-11-19): 문제를 풀고 → 내 주사위 탭 → 책장 탭(대상 없이 끼워짐) → 그 주사위를 적 주사위나 적 몸으로 **끌어다 놓기**(끌지 않고 적 주사위를 탭해도 됨). 노릴 적이 하나면 책장만 눌러도 대상까지 정해진다.
+  - 대상이 있는 내 주사위를 탭 = 대상만 해제(책장 그대로, 다시 끌어 놓으면 됨). 대상 없이 책장만 끼운 주사위를 탭 = 책장 해제. 책장을 바꿔 끼워도 대상은 유지.
+  - 책장은 끼웠는데 대상이 없는 주사위가 있으면 [개막]이 흐려지고 눌러도 안내만 뜬다(`Game.battle.ready()`). 책장 없는 주사위는 개막하면 그냥 사라진다.
+  - **바닥 더미**(`#dice-stack`): 합이 맞물린 주사위 짝(`Game.battle.plan()`의 `b`가 있는 줄)은 주인 머리에서 떨어져 가운데(손패 위)에 쌓인다. 아군 왼쪽 · 적 오른쪽, 먼저 발동하는 짝이 맨 아래. 일방 공격은 머리 위에 남아 화살표로 대상을 보인다.
+  - **[전황] 수정구슬**(`#btn-orb`, 배치 중에만, 가로는 개막 위·세로는 개막 오른쪽): 누르고 있는 동안 일방 공격까지 모두 더미로 떨어져 번호(1 = 맨 아래 = 먼저)로 진행 순서를 보여 준다. 떼면 돌아간다.
+  - [개막]을 누르면 남은 주사위가 모두 더미로 떨어지고, 교환이 하나 끝날 때마다 아래 줄부터 빠진다(가로 화면 겹침 때문에 다음 4줄만, 나머지는 "+N").
 - 합 판(`#clash-panel`): 양쪽 책장 판 `.cp-side.l`(내 쪽)·`.cp-side.r`이 각 캐릭터 옆(가로: 내 판은 캐릭터 왼쪽, 상대 판은 오른쪽 / 세로: 머리 위, 화면 반씩)을 따라다닌다(`placeClash`, 막대·상태판 아래로). 단계마다 숫자 공개(`.cp-die.shown`) + 튀어 오름(`.pop`), 이긴 판 `.hit`·피해 받은 판 `.hurt` 0.18초. 대응 없는 쪽은 `.cp-side.none`. 합 연출 중 `#dice-layer`는 숨김.
 - [개막] → `Game.battle.stepBegin/stepNext/stepEnd`로 교환마다 `stage.play`. 진행 중에는 입력이 잠기고, 화면을 탭하면 빨리 감기, 450ms 넘게 누르면 남은 교환을 연출 없이 처리한다.
 - DOM id·클래스(테스트와 겹침 검사가 씀): `.unit-bar[data-unit]`, `.die-row`, `.speed-die[data-unit][data-die][data-side]`, `.enemy-target`, `#target-arrows`, `#hand .card[data-card]`, `#btn-open`, `#status`, `#learn`, `#question .q-opt[data-i]` / `#q-short` `#q-submit`, `#skip-layer`, `#clash-panel .cp-side[data-unit]`.
@@ -69,7 +74,7 @@ assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/bui
 ## 6. 테스트
 - `node tests/run.mjs`: core, libs, mbdata, sim, assets, stage, ui, app, overlap-check. 전부 통과해야 배포한다.
 - `tests/battle.html?guest=<id>`: 전투만 띄우는 페이지. `tests/stage.html`: 무대만 띄우는 페이지.
-- 겹침 검사 `node tests/overlap-check.mjs`: 844×390·390×844 × (사서 1:적 3, 3:3) × (문제, 배정, 손패 8장). 겹치면 `shots/overlap/`에 스크린샷.
+- 겹침 검사 `node tests/overlap-check.mjs`: 844×390·390×844 × (사서 1:적 3, 3:3) × (문제, 배정, 손패 8장, 전황 누름, 개막 중). 바닥 더미 줄·수정구슬도 전투 UI로 센다. 겹치면 `shots/overlap/`에 스크린샷.
 - Chromium은 `--use-gl=swiftshader`로 3D를 그린다(느리다). 배포 전 844×390·390×844 스크린샷을 직접 본다.
 
 ## 7. 역할 (2026-11-18 큐 양 결정)
