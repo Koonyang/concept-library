@@ -179,7 +179,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     const left = side(L), right = side(Rk), tgt = st.units.find(u => u.id === ev.target);
     /* 대응 주사위가 없는 쪽(일방 공격을 받는 쪽): 맞는 유닛 이름 + "대응 없음" */
     const head = (o, cls) => o ? `<div class="cp-side ${cls}"><span class="who">${esc(o.u ? o.u.name : "")}</span><b>${esc(o.name)}</b>${o.big ? `<em>큰 일격</em>` : ""}</div>` : `<div class="cp-side ${cls} none"><span class="who">${esc(tgt ? tgt.name : "")}</span><b>대응 없음</b></div>`;
-    const die = (d, r) => d ? `<span class="t-${d.type}">${d.type} <span class="num rng">${d.min}~${d.max}</span> ▸ <b class="num val">?</b></span>${r ? `<i class="res r-${r}" hidden>${RES[r] || ""}</i>` : ""}` : `<span class="muted">—</span>`;
+    const die = (d, r) => d ? `<span class="t-${d.type}">${d.type}${d.reused ? `<small class="reuse">재사용</small>` : ""} <span class="num rng">${d.min}~${d.max}</span> ▸ <b class="num val">?</b></span>${r ? `<i class="res r-${r}" hidden>${RES[r] || ""}</i>` : ""}` : `<span class="muted">—</span>`;
     const rows = (ev.steps || []).map((s, i) => {
       const dl = s[L + "Die"], dr = s[Rk + "Die"], rl = s[L + "Result"], rr = s[Rk + "Result"];
       const parts = [];

@@ -48,6 +48,7 @@ assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/bui
 | `await play(ev, {fast, onHit, final})` | 교환 하나 연출(ev 모양은 `docs/battle.md` 4절). 합 1.0초(+단계당 0.2초, 최대 1.6초), fast 0.35초. 맞는 순간(40%)부터 단계마다 `onHit(i)`. 쓰러진 적은 조각으로 흩어지고 책(손님 표지)이 떨어진다 |
 | `finishNow()` | 진행 중 연출을 바로 끝냄(길게 누르기) |
 | `await burnBook({cover, n, fast})` | 도서관 책 소각: 사서 앞 공중에 그 손님 책(표지 `cover`)이 떠올라 빛나다가 낱장이 흩날리고 불씨와 함께 오그라들어 사라짐, 끝에 사서 cheer. 1.4초(fast 0.4초), `finishNow()`로 바로 끝. 종이 14장+권당 3장(최대 36). 빈 무대는 바로 끝 |
+| `await wrongBonk(ids?)` | 오답: 살아 있는 사서(유닛 id 목록, 없으면 전부) 머리 위에서 코드로 만든 작은 책(진한 표지)이 떨어져 "콩" 맞고 옆으로 튕겨 사라짐. 맞는 순간(32%) 사서 Hit_A 움찔 + 짧은 카메라 흔들림, 끝나면 Idle. 0.6초 뒤 resolve, 입력을 막지 않음. 겹쳐 부르면 앞의 것은 바로 치움, `finishNow()`로 바로 끝, 빈 무대는 바로 끝 |
 | `unitPoint(id)` | 유닛 머리 위 화면 좌표(CSS px). UI가 주사위·숫자를 붙인다 |
 | `setStaggered(id, on)` | 머리 위 별 고리 |
 | `registerFx(pageId, async ctx => …)` | 그 책장만의 전용 연출. 없으면 등급 연출: N 기본, R 불꽃 2배, SR 클로즈업+어둡게, SSR 크게 어둡게+클로즈업+감속+고리. 적 카드는 큰 일격(`big`)이 SR |

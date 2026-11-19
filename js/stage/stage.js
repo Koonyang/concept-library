@@ -453,7 +453,9 @@ export async function createStage(canvas) {
     let hit = false;
     const doHit = () => { if (hit) return; hit = true; camShake.amp = Math.max(camShake.amp, 0.09);
       list.forEach(f => { if (figures.get(f.unit.id) === f && !f.dead) f.F.act("Hit_A", { once: true, speed: 1.7, fadeMs: 40 }); }); };
-    try { await tween(tok, BONK_MS, k => { books.forEach(B => B.set(k)); if (k >= BONK_HIT_AT && k < 1) doHit(); }); }
+    /* 맞는 순간은 프레임이 아니라 시계로(느린 기기에서 프레임이 늦어도 움찔·흔들림이 제때) */
+    sleep(tok, BONK_MS * BONK_HIT_AT).then(() => { if (!tok.abort) doHit(); });
+    try { await tween(tok, BONK_MS, k => books.forEach(B => B.set(k))); }
     finally {
       books.forEach(B => B.end());
       if (bonkTok === tok) { bonkTok = null; debug.bonk.books = 0; }

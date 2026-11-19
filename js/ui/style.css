@@ -374,3 +374,4 @@ button { font: inherit; color: inherit; }
 .cp-side.none b { color: var(--muted); font-weight: 600; font-size: 12px; }
 @media (max-aspect-ratio: 1/1) { #skip-layer .hint { top: calc(max(8px, env(safe-area-inset-top)) + 150px); } }
 @media (max-aspect-ratio: 1/1) { #clash-panel { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 40px); } }
+.cp-dice .reuse { margin-left: 4px; font-size: 9.5px; color: var(--ally); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; }
