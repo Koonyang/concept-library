@@ -2,6 +2,8 @@
 
 학습내용 담당이 맡았던 손님·문제·책장·장서복·어휘 데이터를 이어받을 사람을 위한 문서입니다. 전투 수치·엔진은 [docs/battle.md](battle.md), 화면·연출은 [docs/ui.md](ui.md), 저장소 규칙과 배포는 [docs/HANDOFF.md](HANDOFF.md)와 루트 `CLAUDE.md`를 보세요. 결정의 배경은 [docs/decisions.md](decisions.md)에 있습니다.
 
+> **2026-11-19:** 새 강의 넣기 절차는 스킬 `.claude/skills/add-lecture/SKILL.md`(Claude Code에서 `/add-lecture`)와 빠른 검사 `npm run check:content`로 옮겼습니다. 데이터는 이제 `index.html`이 아니라 `js/core/data.js`(층·손님·책장·장서복·풀·기프트), `js/core/engine.js`(`KEY_QUESTIONS`·`GUEST_COMBAT`), `js/core/battle.js`(`ENEMY_BODY`)에 있고, 장서복 겉모습은 `OUTFITS`/`KEY_LOOK` 대신 `KEY_PAGES[].look`(docs/ui.md 9절)입니다. 아래 본문은 옛 위치 기준의 자세한 설명입니다.
+
 대상은 맥락 없이 새 강의를 손님으로 넣는 사람입니다. 아래에 적은 필드 이름은 모두 `index.html`과 `assets/data/`에 실제로 있는 이름입니다. 없는 필드를 만들지 말고, 강의 노트가 애매하면 큐 양에게 물으세요.
 
 ## 1. 데이터가 있는 곳

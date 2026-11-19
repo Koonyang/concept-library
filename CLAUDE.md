@@ -53,4 +53,5 @@ python3 -m http.server 8000   # 저장소 루트에서. 그다음 http://localho
 - `docs/ui.md` — 새 UI·3D 무대·전투 화면·테스트·역할 (UI/UX·3D 무대)
 - `docs/superpowers/` — 이번 새 UI 설계(specs)와 작업 계획(plans)
 - `legacy/README.md` — 보관한 옛 화면·에셋·테스트
-- `docs/content.md` — 손님·문제·단어 데이터, 새 손님 추가 순서 (학습내용)
+- `docs/content.md` — 손님·문제·단어 데이터 자세한 설명 (학습내용)
+- 새 강의 넣기: 스킬 `/add-lecture`(`.claude/skills/add-lecture/SKILL.md`) + 빠른 검사 `npm run check:content [손님id]`
