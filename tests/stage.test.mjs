@@ -261,22 +261,23 @@ const wb=await p.evaluate(async()=>{ const S=__S, o={}, allies=Game.battle.state
   let t=performance.now(), peakBooks=0, peakShake=0, hit=new Set(); const pr=S.wrongBonk();
   const iv=setInterval(()=>{ peakBooks=Math.max(peakBooks,(S.debug.bonk&&S.debug.bonk.books)||0); peakShake=Math.max(peakShake,S.camShake.amp);
     for(const id of allies){ const c=S.figure(id).current; if(/^Hit_/.test(c)) hit.add(id); } },20);
-  await pr; o.ms=performance.now()-t; clearInterval(iv); o.peakBooks=peakBooks; o.peakShake=peakShake; o.hit=hit.size; o.after=S.debug.bonk.books;
+  await pr; o.ms=performance.now()-t; clearInterval(iv); peakShake=Math.max(peakShake,S.camShake.amp); for(const id of allies){ if(/^Hit_/.test(S.figure(id).current)) hit.add(id); }
+  o.peakBooks=peakBooks; o.peakShake=peakShake; o.hit=hit.size; o.after=S.debug.bonk.books;
   /* 한 명만 */
   let pk1=0; const p1=S.wrongBonk([allies[0]]); const iv1=setInterval(()=>{ pk1=Math.max(pk1,S.debug.bonk.books); },20); await p1; clearInterval(iv1); o.one=pk1;
   /* finishNow 로 바로 끝 */
-  t=performance.now(); const p2=S.wrongBonk(); setTimeout(()=>S.finishNow(),100); await p2; o.skipMs=performance.now()-t; o.skipAfter=S.debug.bonk.books;
+  const p2=S.wrongBonk(); let tf=0; setTimeout(()=>{ tf=performance.now(); S.finishNow(); },100); await p2; o.skipMs=performance.now()-tf; o.skipAfter=S.debug.bonk.books;
   await new Promise(r=>setTimeout(r,400)); o.a2=count();
   for(let i=0;i<5;i++){ await S.wrongBonk(); await new Promise(r=>setTimeout(r,40)); }
   /* 겹쳐 불러도 */
   S.wrongBonk(); await S.wrongBonk();
-  await new Promise(r=>setTimeout(r,400)); o.b=count(); o.cur=allies.map(id=>S.figure(id).current); return o; });
+  await new Promise(r=>setTimeout(r,1000)); o.b=count(); o.cur=allies.map(id=>S.figure(id).current); return o; });
 ok(!wb.missing&&wb.ms>=400&&wb.ms<=1200,"wrongBonk: 0.4~1.2초 안에 끝남",wb);
 ok(wb.peakBooks===wb.allies&&wb.allies===3&&wb.after===0,"wrongBonk: 진행 중 책 수 = 살아 있는 사서 수, 끝나면 0",wb);
 ok(wb.peakShake>0,"wrongBonk: 카메라 흔들림",wb);
 ok(wb.hit===wb.allies,"wrongBonk: 사서가 움찔(Hit_)",wb);
 ok(wb.one===1,"wrongBonk([id]): 그 사서에게만 책 1권",wb);
-ok(wb.skipMs<=400&&wb.skipAfter===0,"wrongBonk: finishNow 로 바로 끝",wb);
+ok(wb.skipMs<=300&&wb.skipAfter===0,"wrongBonk: finishNow 부르면 0.3초 안에 끝남",wb);
 ok(wb.b&&wb.b.k<=wb.a.k&&wb.b.g<=wb.a2.g&&wb.b.t<=wb.a.t&&wb.b.fx<=wb.a.fx,"wrongBonk 반복해도 지오메트리·텍스처·ticker·이펙트 안 늘어남",wb);
 ok(wb.cur&&wb.cur.every(c=>c==="Idle"),"wrongBonk 뒤 사서는 Idle 로",wb&&wb.cur);
 await goStage("?nogl");

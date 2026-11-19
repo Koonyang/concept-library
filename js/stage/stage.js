@@ -442,7 +442,7 @@ export async function createStage(canvas) {
   /* ---------- 오답 연출 ---------- */
   /* 머리 위에서 책이 떨어져 콩(맞는 순간 Hit_A·흔들림) → 옆으로 튕겨 사라짐. 입력은 막지 않는다(UI 가 기다리지 않아도 됨).
      겹쳐 부르면 앞의 것은 바로 치우고 새로. finishNow() 로 바로 끝 */
-  let bonkTok = null; debug.bonk = { books: 0, count: 0 };
+  let bonkTok = null; debug.bonk = { books: 0, count: 0, hits: 0 };
   async function wrongBonk(ids) {
     if (bonkTok) { bonkTok.abort = true; for (const w of [...bonkTok.waits]) w(); }
     const tok = bonkTok = { abort: false, waits: new Set() };
@@ -452,14 +452,17 @@ export async function createStage(canvas) {
     debug.bonk.books = books.length; debug.bonk.count++;
     let hit = false;
     const doHit = () => { if (hit) return; hit = true; camShake.amp = Math.max(camShake.amp, 0.09);
-      list.forEach(f => { if (figures.get(f.unit.id) === f && !f.dead) f.F.act("Hit_A", { once: true, speed: 1.7, fadeMs: 40 }); }); };
+      debug.bonk.hits++;
+      const capped = pr => Promise.race([pr, new Promise(r => setTimeout(r, 1500))]);
+      list.forEach(f => { if (figures.get(f.unit.id) !== f || f.dead) return;
+        capped(f.F.act("Hit_A", { once: true, speed: 1.7, fadeMs: 40 })).then(() => { if (figures.get(f.unit.id) === f && !f.dead && f.F.current === "Hit_A") f.F.act("Idle", { fadeMs: 150 }); }); }); };
     /* 맞는 순간은 프레임이 아니라 시계로(느린 기기에서 프레임이 늦어도 움찔·흔들림이 제때) */
     sleep(tok, BONK_MS * BONK_HIT_AT).then(() => { if (!tok.abort) doHit(); });
     try { await tween(tok, BONK_MS, k => books.forEach(B => B.set(k))); }
     finally {
+      if (!tok.abort) doHit();     /* 프레임·타이머가 아주 늦은 기기에서도 움찔·흔들림은 빠지지 않게 */
       books.forEach(B => B.end());
       if (bonkTok === tok) { bonkTok = null; debug.bonk.books = 0; }
-      list.forEach(f => { if (figures.get(f.unit.id) === f && !f.dead && f.F.current === "Hit_A") f.F.act("Idle", { fadeMs: 150 }); });
     }
   }
   const v3 = new THREE.Vector3();
