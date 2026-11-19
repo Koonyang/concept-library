@@ -67,16 +67,32 @@ await answer(true); await assignAll(); await p.click("#btn-open");
 const recovered=await p.waitForFunction(()=>window.__end||(Game.battle.state.phase==="question"&&document.querySelector("#question.on")),null,{timeout:20000}).then(()=>true).catch(()=>false);
 ok(recovered,"연출 예외가 나도 다음 막으로 진행");
 errs.splice(0,errs.length,...errs.filter(e=>!/연출 실패 시험/.test(e)));
-/* 합 중: 양쪽 책장 이름 · 주사위 종류·나온 값 · 승패 · 피해를 보여 줌 */
+/* 합 중: 양쪽 책장 판(각 캐릭터 옆) · 주사위 값 공개 · 결과 · 속도 주사위 숨김 */
 await go("beccaria"); await answer(true); await assignAll();
 const myCard=await p.evaluate(()=>{ const a=Game.battle.state.units.find(u=>u.side==="ally"); const d=a.dice.find(d=>d.card); return d&&Game.battle.cardInfo(d.card,a.id).name; });
+await p.evaluate(()=>{ window.__cpTexts=[]; const cp=document.getElementById("clash-panel"); new MutationObserver(()=>window.__cpTexts.push(cp.textContent)).observe(cp,{childList:true,subtree:true,characterData:true}); });
 await p.click("#btn-open");
-const cp=await p.waitForFunction(()=>{ const e=document.querySelector("#clash-panel.on"); return e&&/\d/.test(e.querySelector(".cp-steps")?.textContent||"")&&e.textContent; },null,{timeout:15000}).then(h=>h.jsonValue()).catch(()=>"");
-ok(!!cp&&/VS|일방/.test(cp)&&/(승|패|무승부|막음|회피|일방)/.test(cp),"합 표시: 양쪽·결과",String(cp).slice(0,200));
-const seen=await p.waitForFunction(n=>{ const t=document.querySelector("#clash-panel")?.textContent||""; return !n||t.includes(n)?true:null; },myCard,{timeout:15000}).then(()=>true).catch(()=>false);
+const cs=await p.waitForFunction(()=>{ const e=document.querySelector("#clash-panel.on"); if(!e) return null; const v=e.querySelector(".cp-die.shown .val"); if(!v||!/\d/.test(v.textContent)) return null;
+  const sides=[...e.querySelectorAll(".cp-side")], L=e.querySelector(".cp-side.l"), R=e.querySelector(".cp-side.r"), u=id=>Game.battle.state.units.find(x=>x.id===id);
+  const pt=id=>id&&__stage.unitPoint(id), lr=L.getBoundingClientRect(), rr=R.getBoundingClientRect();
+  return { n:sides.length, lSide:u(L.dataset.unit)?.side, text:e.textContent, diceHidden:document.getElementById("dice-layer").hidden,
+    lRight:lr.right, lPt:pt(L.dataset.unit), rLeft:rr.left, rPt:pt(R.dataset.unit), rNone:R.classList.contains("none")||L.classList.contains("none") }; },null,{timeout:15000,polling:50}).then(h=>h.jsonValue()).catch(()=>null);
+ok(cs&&cs.n===2&&cs.lSide==="ally","합 표시: 판 2장(내 쪽 왼쪽)",cs);
+ok(cs&&/(승|패|무승부|막음|회피|대응 없음)/.test(cs.text),"합 표시: 결과 글자",cs&&cs.text.slice(0,200));
+ok(cs&&cs.diceHidden===true,"합 중 속도 주사위 숨김",cs&&cs.diceHidden);
+ok(cs&&cs.lPt&&cs.lRight<=cs.lPt.x+4&&(cs.rNone||cs.rPt&&cs.rLeft>=cs.rPt.x-4),"판이 캐릭터 옆(가로)",cs);
+const seen=await p.waitForFunction(n=>!n||window.__cpTexts.some(t=>t.includes(n))?true:null,myCard,{timeout:15000}).then(()=>true).catch(()=>false);
 ok(seen,"내 책장 이름이 합 표시에 나옴",{myCard});
 await p.waitForFunction(()=>Game.battle.state.phase==="question"||window.__end,null,{timeout:30000});
 ok(!(await p.$("#clash-panel.on")),"막이 끝나면 합 표시 닫힘");
+if(!(await p.evaluate(()=>window.__end))){ await answer(true); ok(await p.evaluate(()=>!document.getElementById("dice-layer").hidden),"막이 끝나면 속도 주사위 다시 보임"); }
+/* 길게 누르면 판이 남지 않음 */
+await go("beccaria"); await answer(true); await assignAll(); await p.click("#btn-open");
+await p.waitForSelector("#clash-panel.on",{timeout:15000});
+{ const sk=await p.$("#skip-layer"), bb=await sk.boundingBox(); await p.mouse.move(bb.x+bb.width/2,bb.y+bb.height/2); await p.mouse.down(); await p.waitForTimeout(600); await p.mouse.up(); }
+await p.waitForFunction(()=>Game.battle.state.phase!=="resolve"||window.__end,null,{timeout:20000}).catch(()=>{});
+await p.waitForTimeout(300);
+ok(!(await p.$("#clash-panel.on"))&&!(await p.$("#clash-panel .cp-side")),"길게 누르면 판 닫힘");
 /* 주사위 없는 적(흐트러짐)의 몸을 누르는 자리는 투명해야 함(회색 사각형 버그) */
 await go("beccaria");
 const etBg=await p.evaluate(()=>{ const b=document.createElement("button"); b.className="enemy-target"; document.getElementById("dice-layer").appendChild(b); const c=getComputedStyle(b); const r={bg:c.backgroundColor,img:c.backgroundImage,border:c.borderTopWidth}; b.remove(); return r; });

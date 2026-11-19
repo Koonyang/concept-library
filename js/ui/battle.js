@@ -169,34 +169,87 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   });
   el.learn.addEventListener("click", () => el.learn.classList.toggle("open"));
 
-  /* ---------- 합 표시: 양쪽 책장 · 단계마다 주사위 종류·나온 값 · 승패 · 피해 (내 쪽은 늘 왼쪽) ---------- */
+  /* ---------- 합 표시: 양쪽 책장 판이 각 캐릭터 옆(세로는 머리 위)을 따라다님. 내 쪽은 늘 왼쪽 ----------
+     단계마다(stage onStep) 숫자 공개 + 튀어 오름, 이긴 판 .hit · 피해 받은 판 .hurt 번쩍임 */
   const RES = { win: "승", lose: "패", draw: "무승부", block: "막음", evade: "회피", none: "" };
-  let clashT = 0;
+  let clashEv = null, clashFast = false, clashL = "a", clashR = "b", clashShown = -1;
+  const flashT = new Set();
   function showClash(ev, isFast) {
     const st = B(), uA = st.units.find(u => u.id === ev.a.unit), allyFirst = uA && uA.side === "ally";
-    const L = allyFirst ? "a" : "b", Rk = allyFirst ? "b" : "a";
-    const side = k => { const x = ev[k]; if (!x) return null; const u = st.units.find(q => q.id === x.unit), c = G.battle.cardInfo(x.card, x.unit) || {}; return { u, name: c.name || "?", big: c.big }; };
-    const left = side(L), right = side(Rk), tgt = st.units.find(u => u.id === ev.target);
-    /* 대응 주사위가 없는 쪽(일방 공격을 받는 쪽): 맞는 유닛 이름 + "대응 없음" */
-    const head = (o, cls) => o ? `<div class="cp-side ${cls}"><span class="who">${esc(o.u ? o.u.name : "")}</span><b>${esc(o.name)}</b>${o.big ? `<em>큰 일격</em>` : ""}</div>` : `<div class="cp-side ${cls} none"><span class="who">${esc(tgt ? tgt.name : "")}</span><b>대응 없음</b></div>`;
-    const die = (d, r) => d ? `<span class="t-${d.type}">${d.type}${d.reused ? `<small class="reuse">재사용</small>` : ""} <span class="num rng">${d.min}~${d.max}</span> ▸ <b class="num val">?</b></span>${r ? `<i class="res r-${r}" hidden>${RES[r] || ""}</i>` : ""}` : `<span class="muted">—</span>`;
-    const rows = (ev.steps || []).map((s, i) => {
-      const dl = s[L + "Die"], dr = s[Rk + "Die"], rl = s[L + "Result"], rr = s[Rk + "Result"];
-      const parts = [];
-      if (s.dmg) { const du = st.units.find(u => u.id === s.dmg.unit); parts.push(`${esc(du ? du.name : "")} 체력 -${s.dmg.hp}${s.dmg.stagger ? ` · 흐트러짐 -${s.dmg.stagger}` : ""}`); }
-      if (s.blocked) parts.push(`${s.blocked} 막음`); if (s.recovered) parts.push(`흐트러짐 +${s.recovered} 회복`);
-      if (!parts.length) parts.push(rl === "draw" ? "무승부 · 피해 없음" : "피해 없음");
-      return `<li class="cp-step" data-i="${i}" data-l="${dl ? dl.value : ""}" data-r="${dr ? dr.value : ""}"><div class="cp-dice"><span class="l">${die(dl, rl)}</span><span class="vs num">${i + 1}</span><span class="r">${die(dr, rr)}</span></div><p class="cp-out" hidden>${parts.join(" · ")}</p></li>`; }).join("");
-    el.clash.innerHTML = `<div class="cp-head">${head(left, "l")}<span class="cp-vs">${ev.kind === "clash" ? "VS" : "일방"}</span>${head(right, "r")}</div><ol class="cp-steps">${rows}</ol>`;
-    el.clash.classList.add("on");
-    clearTimeout(clashT); clashT = setTimeout(() => revealClash(), isFast ? 140 : 420);   /* 맞는 순간(약 40%)에 숫자 공개 */
+    const L = clashL = allyFirst ? "a" : "b", Rk = clashR = allyFirst ? "b" : "a";
+    clashEv = ev; clashFast = !!isFast; clashShown = -1;
+    const tgt = st.units.find(u => u.id === ev.target);
+    const die = (d, r, i) => `<div class="cp-die" data-i="${i}">${d ? `<span class="ty t-${d.type}">${d.type}${d.reused ? `<small class="reuse">재사용</small>` : ""}</span><span class="rng num">${d.min}~${d.max}</span><b class="val num">?</b><i class="res${r ? " r-" + r : ""}" hidden>${RES[r] || ""}</i>` : `<span class="muted">—</span>`}</div>`;
+    const panel = (k, cls) => {
+      const x = ev[k];
+      if (!x) return `<div class="cp-side ${cls} none" data-unit="${tgt ? tgt.id : ""}"><span class="who">${esc(tgt ? tgt.name : "")}</span><b class="cp-card">대응 없음</b><p class="cp-out" hidden></p></div>`;
+      const u = st.units.find(q => q.id === x.unit), c = G.battle.cardInfo(x.card, x.unit) || {};
+      const rows = (ev.steps || []).map((s, i) => die(s[k + "Die"], s[k + "Result"], i)).join("");
+      return `<div class="cp-side ${cls}" data-unit="${x.unit}"><span class="who">${esc(u ? u.name : "")}${c.big ? `<em>큰 일격</em>` : ""}</span><b class="cp-card">${esc(c.name || "?")}</b><div class="cp-dice">${rows}</div><p class="cp-out" hidden></p></div>`;
+    };
+    el.clash.innerHTML = panel(L, "l") + panel(Rk, "r");
+    el.clash.classList.add("on"); el.dice.hidden = true;
+    for (const n of el.clash.querySelectorAll(".cp-side")) delete n.dataset.x;
+    placeClash();
   }
+  /* 단계 i 까지 공개. i 없으면 남은 줄을 조용히 모두 공개 */
   function revealClash(i) {
-    for (const li of el.clash.querySelectorAll(".cp-step")) { if (i != null && +li.dataset.i > i) continue;
-      const vl = li.querySelector(".l .val"), vr = li.querySelector(".r .val"); if (vl) vl.textContent = li.dataset.l; if (vr) vr.textContent = li.dataset.r;
-      li.querySelectorAll("[hidden]").forEach(x => x.hidden = false); li.classList.add("shown"); }
+    if (!clashEv) return;
+    const steps = clashEv.steps || [], last = i == null ? steps.length - 1 : Math.min(i, steps.length - 1), loud = i != null && !clashFast && !fast && !skipAll;
+    for (let k = clashShown + 1; k <= last; k++) revealStep(k, loud && k === last);
+    clashShown = Math.max(clashShown, last);
   }
-  function hideClash() { clearTimeout(clashT); el.clash.classList.remove("on"); el.clash.innerHTML = ""; }
+  function revealStep(k, loud) {
+    const s = clashEv.steps[k], st = B();
+    const sideOf = key => el.clash.querySelector(`.cp-side.${key === clashL ? "l" : "r"}`);
+    for (const key of [clashL, clashR]) {
+      const p = sideOf(key); if (!p) continue; const row = p.querySelector(`.cp-die[data-i="${k}"]`), d = s[key + "Die"], r = s[key + "Result"];
+      if (!row) continue; row.classList.add("shown"); if (d) row.querySelector(".val").textContent = d.value;
+      const rs = row.querySelector(".res"); if (rs) rs.hidden = !r || !RES[r];
+      if (r === "win") row.classList.add("win"); else if (r === "lose") row.classList.add("lose");
+      if (loud) { row.classList.remove("pop"); void row.offsetWidth; row.classList.add("pop"); }
+    }
+    /* 피해 문구는 피해 받은 쪽 판에(없으면 이긴 쪽 판에) */
+    const parts = []; let hurtUnit = null;
+    if (s.dmg) { hurtUnit = s.dmg.unit; parts.push(`체력 -${s.dmg.hp}${s.dmg.stagger ? ` · 흐트러짐 -${s.dmg.stagger}` : ""}`); }
+    if (s.blocked) parts.push(`${s.blocked} 막음`); if (s.recovered) parts.push(`흐트러짐 +${s.recovered} 회복`);
+    if (!parts.length) parts.push(s[clashL + "Result"] === "draw" ? "무승부 · 피해 없음" : "피해 없음");
+    const panels = [...el.clash.querySelectorAll(".cp-side")];
+    const hurtP = hurtUnit && panels.find(p => p.dataset.unit === hurtUnit);
+    const winKey = s[clashL + "Result"] === "win" ? clashL : s[clashR + "Result"] === "win" ? clashR : null;
+    const winP = winKey ? sideOf(winKey) : (hurtP ? panels.find(p => p !== hurtP) : null);
+    const outP = hurtP || winP || panels[0];
+    panels.forEach(p => { const o = p.querySelector(".cp-out"); if (o) { o.hidden = p !== outP; if (p === outP) o.textContent = parts.join(" · "); } });
+    if (loud) { flash(winP && winP !== hurtP ? winP : null, "hit"); flash(hurtP, "hurt"); }
+  }
+  function flash(p, cls) {
+    if (!p) return; p.classList.remove(cls); void p.offsetWidth; p.classList.add(cls);
+    const t = setTimeout(() => { p.classList.remove(cls); flashT.delete(t); }, 180); flashT.add(t);
+  }
+  function hideClash() { flashT.forEach(clearTimeout); flashT.clear(); clashEv = null; el.clash.classList.remove("on"); el.clash.innerHTML = ""; el.dice.hidden = false; }
+  /* 판 자리: 가로 = 내 판은 캐릭터 왼쪽, 상대 판은 오른쪽 / 세로 = 머리 위, 왼쪽 반·오른쪽 반 안에서 */
+  function placeClash() {
+    if (!clashEv) return;
+    const W = innerWidth, H = innerHeight, land = W >= H, want = [];
+    for (const p of el.clash.querySelectorAll(".cp-side")) {
+      const left = p.classList.contains("l"), id = p.dataset.unit, pt = id && B().units.some(u => u.id === id) ? pointOf(id) : { x: left ? W * 0.3 : W * 0.7, y: H * 0.45 };
+      if (!land) p.style.width = Math.floor(W / 2 - 12) + "px"; else p.style.width = "";
+      const w = p.offsetWidth, h = p.offsetHeight; let x, y;
+      if (land) { x = left ? pt.x - 18 - w : pt.x + 18; y = pt.y - 10; }
+      else { const lo = left ? 8 : W / 2 + 4, hi = left ? W / 2 - 4 - w : W - 8 - w; x = Math.min(Math.max(pt.x - w / 2, lo), Math.max(lo, hi)); y = pt.y - 8 - h; }
+      x = Math.min(Math.max(x, 6), W - w - 6);
+      const floor = barsFloor(x, x + w) + 6; if (y < floor) y = floor; if (y + h > H - 6) y = Math.max(floor, H - 6 - h);
+      want.push({ p, x, y, w, h });
+    }
+    if (want.length === 2) { const [a, b] = want; if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) { const lo = a.y <= b.y ? b : a, hi = lo === a ? b : a; lo.y = hi.y + hi.h + 6; } }
+    /* 따라가기: 지난 시간 기준(약 60ms 반감) — 프레임이 느린 기기에서도 뒤처지지 않게 */
+    const now = performance.now(), k = 1 - Math.pow(0.5, Math.min(200, now - (placeClash.t || now)) / 60); placeClash.t = now;
+    for (const r of want) {
+      const ox = r.p.dataset.x == null ? r.x : +r.p.dataset.x, oy = r.p.dataset.y == null ? r.y : +r.p.dataset.y;
+      let nx = ox + (r.x - ox) * k, ny = oy + (r.y - oy) * k; if (Math.abs(r.x - nx) < 1) nx = r.x; if (Math.abs(r.y - ny) < 1) ny = r.y;
+      r.p.dataset.x = nx; r.p.dataset.y = ny; r.p.style.transform = `translate(${Math.round(nx)}px, ${Math.round(ny)}px)`;
+    }
+  }
 
   /* ---------- 적 주사위 정보(책장을 안 고른 상태에서 누르면): 이번 막에 쓸 책장·주사위·속도·대상 ---------- */
   function showEnemyInfo(uid, die) {
@@ -266,7 +319,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
       if (skipAll) { barSnap = null; continue; }
       barSnap = before; renderBars(barSnap);
       sfx.clash(); showClash(ev, fast);
-      try { await stage.play(ev, { fast: fast || skipAll, final: G.battle.outcome === "win", onHit: i => { revealClash(i);
+      try { await stage.play(ev, { fast: fast || skipAll, final: G.battle.outcome === "win", onStep: i => revealClash(i), onHit: i => {
         const s = ev.steps[i]; if (!s || !s.dmg) return; const side = (B().units.find(u => u.id === s.dmg.unit) || {}).side;
         sfx.hit(); if (s.dmg.hp) floatNum(s.dmg.unit, "-" + s.dmg.hp, "hp" + (side === "ally" ? " ally" : "")); if (s.dmg.stagger) floatNum(s.dmg.unit, "-" + s.dmg.stagger, "st");
         barSnap = null; renderBars(); } });
@@ -290,7 +343,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   el.open.addEventListener("click", () => { sfx.tap(); runOpen(); });
 
   /* ---------- 매 프레임: 주사위·화살표를 무대 위치에 붙인다 ---------- */
-  const loop = () => { if (!alive) return; placeDice(); drawArrows(); raf = requestAnimationFrame(loop); };
+  const loop = () => { if (!alive) return; placeDice(); placeClash(); drawArrows(); raf = requestAnimationFrame(loop); };
   render(); raf = requestAnimationFrame(loop);
-  return { unmount() { alive = false; cancelAnimationFrame(raf); clearTimeout(msgT); root.innerHTML = ""; delete root.dataset.screen; } };
+  return { unmount() { alive = false; cancelAnimationFrame(raf); clearTimeout(msgT); flashT.forEach(clearTimeout); root.innerHTML = ""; delete root.dataset.screen; } };
 }
