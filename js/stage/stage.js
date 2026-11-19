@@ -7,13 +7,14 @@
      S.showLibrarian(libId) 유닛 없이 그 사서 한 명만 가운데에 세움(장착 장서복 복장 반영) → Promise
      S.cheer()              서 있는 사서가 Cheer 한 번 → Promise
      S.burnBook({cover, n, fast}) 도서관 책 소각: 사서 앞에서 책이 빛나다 낱장으로 흩날리며 사라짐(1.4초, fast 0.4초) → Promise
+     S.wrongBonk(ids?)      오답: 살아 있는 사서(ids, 없으면 전부) 머리에 작은 책이 떨어져 콩 → 움찔·짧은 흔들림(0.6초) → Promise
      S.debug                {mood, props, frames, ...} 테스트용 */
 import * as THREE from "three";
 import { MOODS, DEFAULT_MOOD } from "./moods.js";
 import { buildProp } from "./props.js";
 import { loadCharacters, makeFigure } from "./characters.js";
 import { lookOf, MAGIC_MODELS } from "./looks.js";
-import { CUSTOM_FX, registerFx, TIERS, tierRank, burst, flash, ring, fragments, dropBook, burnBook as burnBookFx } from "./fx.js";
+import { CUSTOM_FX, registerFx, TIERS, tierRank, burst, flash, ring, fragments, dropBook, burnBook as burnBookFx, bonkBook, BONK_HIT_AT } from "./fx.js";
 export { registerFx };
 
 const PIXEL_RATIO_MAX = 1.5;
@@ -37,11 +38,13 @@ const FACE = Math.PI / 2 * 0.62;          /* 서로 마주 보되 카메라 쪽�
 export const CLASH_MS = 1000, STEP_MS = 200, MAX_MS = 1600, FAST_MS = 350, HIT_AT = 0.4;
 /* 도서관 책 소각 연출 시간(ms) */
 export const BURN_MS = 1400, BURN_FAST_MS = 400;
+/* 오답 연출 시간(ms): 책이 떨어져 맞고 튕겨 사라질 때까지 */
+export const BONK_MS = 600;
 const ATTACK_ANIM = { 참격: "1H_Melee_Attack_Slice_Diagonal", 관통: "1H_Melee_Attack_Stab", 타격: "2H_Melee_Attack_Chop" };
 
 function nullStage() {
   const done = () => Promise.resolve();
-  return { ok: false, setFloor() {}, resize() {}, setUnits: done, showLibrarian: done, cheer: done, play: done, burnBook: done, finishNow() {}, syncUnits() {}, setStaggered() {}, unitPoint: () => null, figure: () => null,
+  return { ok: false, setFloor() {}, resize() {}, setUnits: done, showLibrarian: done, cheer: done, play: done, burnBook: done, wrongBonk: done, finishNow() {}, syncUnits() {}, setStaggered() {}, unitPoint: () => null, figure: () => null,
     ring: () => null, onFrame() {}, dispose() {}, debug: { mood: null, props: [], frames: 0 } };
 }
 
@@ -415,7 +418,7 @@ export async function createStage(canvas) {
       debug.lastPlayMs = performance.now() - t0;
     }
   }
-  function finishNow() { for (const tok of [current, burnTok]) { if (!tok) continue; tok.abort = true; for (const w of [...tok.waits]) w(); } }
+  function finishNow() { for (const tok of [current, burnTok, bonkTok]) { if (!tok) continue; tok.abort = true; for (const w of [...tok.waits]) w(); } }
 
   /* ---------- 도서관 책 소각 ---------- */
   /* 사서 앞 공중, 상반신 높이. 가로는 사서(x=-2.6) 조금 오른쪽 앞, 세로는 가운데 */
@@ -436,6 +439,27 @@ export async function createStage(canvas) {
     finally { B.end(); if (burnTok === tok) burnTok = null; B.info.papers = 0; }
     cheer();
   }
+  /* ---------- 오답 연출 ---------- */
+  /* 머리 위에서 책이 떨어져 콩(맞는 순간 Hit_A·흔들림) → 옆으로 튕겨 사라짐. 입력은 막지 않는다(UI 가 기다리지 않아도 됨).
+     겹쳐 부르면 앞의 것은 바로 치우고 새로. finishNow() 로 바로 끝 */
+  let bonkTok = null; debug.bonk = { books: 0, count: 0 };
+  async function wrongBonk(ids) {
+    if (bonkTok) { bonkTok.abort = true; for (const w of [...bonkTok.waits]) w(); }
+    const tok = bonkTok = { abort: false, waits: new Set() };
+    const want = Array.isArray(ids) ? new Set(ids) : null;
+    const list = [...figures.entries()].filter(([id, f]) => f.side === "ally" && !f.dead && f.F.obj.visible && (!want || want.has(id))).map(([, f]) => f);
+    const books = list.map((f, i) => { const o = f.F.obj; return bonkBook(fx, new THREE.Vector3(o.position.x, o.position.y + f.F.height * o.scale.y, o.position.z), i); });
+    debug.bonk.books = books.length; debug.bonk.count++;
+    let hit = false;
+    const doHit = () => { if (hit) return; hit = true; camShake.amp = Math.max(camShake.amp, 0.09);
+      list.forEach(f => { if (figures.get(f.unit.id) === f && !f.dead) f.F.act("Hit_A", { once: true, speed: 1.7, fadeMs: 40 }); }); };
+    try { await tween(tok, BONK_MS, k => { books.forEach(B => B.set(k)); if (k >= BONK_HIT_AT && k < 1) doHit(); }); }
+    finally {
+      books.forEach(B => B.end());
+      if (bonkTok === tok) { bonkTok = null; debug.bonk.books = 0; }
+      list.forEach(f => { if (figures.get(f.unit.id) === f && !f.dead && f.F.current === "Hit_A") f.F.act("Idle", { fadeMs: 150 }); });
+    }
+  }
   const v3 = new THREE.Vector3();
   function unitPoint(id) {
     const f = figures.get(id); if (!f) return null;
@@ -454,7 +478,7 @@ export async function createStage(canvas) {
     ok: true, three: THREE, scene, camera: cam, renderer, debug, camShake, tickers,
     setFloor, resize,
     setUnits, showLibrarian, cheer, unitPoint, ring: ringInfo, figure: id => (figures.get(id) || {}).F || null, figures,
-    play, finishNow, burnBook, setStaggered, syncUnits, fx,
+    play, finishNow, burnBook, wrongBonk, setStaggered, syncUnits, fx,
     onFrame(f) { tickers.add(f); return () => tickers.delete(f); },
     dispose() { cancelAnimationFrame(raf); ro.disconnect(); document.removeEventListener("visibilitychange", wake); if (world) disposeTree(world); renderer.dispose(); },
   };

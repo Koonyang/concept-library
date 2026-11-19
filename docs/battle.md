@@ -23,7 +23,8 @@
 ### 1:1 (기존 접대)
 - 한 막 = `runScene(o)` → 합 풀기는 `resolveScene(o)`. 화면은 `renderBattle`, 결과는 `showWin`/`showLose`.
 - `resolveScene({P,G,pDice,gDice,correct,isKey,rng,mods,emotion, dmgScale?,pScale?,pTaken?,stMul?,pRangeFn?,gRangeFn?})` → `steps[]`.
-  두 쪽 주사위를 포인터로 맞붙인다. 공격 대 공격은 큰 쪽이 그 값만큼 때림, 방어는 차이만큼 줄여 받거나(지면) 상대 흐트러짐(이기면), 회피는 이기면 흐트러짐 회복하고 **주사위가 남아** 다음 상대와 다시 합(`keeps`, 다음 단계 `reused`).
+  두 쪽 주사위를 포인터로 맞붙인다. 공격 대 공격은 큰 쪽이 그 값만큼 때림, 방어는 차이만큼 줄여 받거나(지면) 상대 흐트러짐(이기면), 회피는 공격 주사위를 상대로 이기면 흐트러짐 회복, 이기거나 **비기면 주사위가 남아** 다음 상대 주사위와 다시 합(`keeps`, 다음 단계 `reused`), 지면 깨진다.
+  상대 주사위가 떨어질 때 남아 있던 회피는 `steps.heldP`/`steps.heldG`(책장 안 주사위 번호, 없으면 null)로 돌려준다. `o.pHeld`/`o.gHeld`(번호)를 주면 그쪽은 그 회피 주사위 하나만으로 처음부터 `reused` 로 맞선다(책장의 다른 주사위는 안 굴림).
   각 step: `{pd:{type,roll,reused,keeps}|null, gd:{…}|null, outcome:"P"|"G"|"tie"|"none", events:[{kind:"hit"|"stag"|"recover",target:"P"|"G",hp,st,newStag,…}], newStag:[], pRange, gRange, pIdx, gIdx, snap}`.
   `pTaken` 은 다대다 오답 막만 넘긴다. `dmgScale`/`pScale` 은 옵션으로만 남아 있고 지금은 아무도 안 넘긴다(=1).
 - 피해 계산: `hitUnit`(저항 `TIER`·`resTier`), `stagOnly`, `recoverSt`. 손님 키트: `guestCombat`(`ARCH_COMBAT` + `GUEST_COMBAT` + `GUEST_SCALE`).
@@ -127,6 +128,9 @@
 - `kind`: `"clash"`(서로 노린 두 주사위) | `"one-sided"` | `"skip"`(흐트러짐·사망으로 못 움직임. `stepNext`·`resolve` 결과에도 나옴)
 - `a`: `{unit, die, card, values:[굴린 값…], expr, side?, body?, form?, leader?}` — 먼저 움직인(빠른) 주사위
 - `b`: 같은 모양 | `null`(일방 공격), `target`: 맞는 유닛 id
+- `reused:true`: **회피 재사용 교환**(2026-11-19). 합으로 남은 회피는 그 막이 끝날 때까지 그 유닛의 `x.heldEvade=[{die,idx}]`에 남는다.
+  합 상대가 없는 공격(일방 공격)이 그 유닛을 노리면 남은 회피(첫 번째)가 `b`(`b.reused:true`, 그 회피를 놓았던 주사위 칸·카드)로 맞서 `kind:"clash"` 가 된다.
+  이기거나 비기면 계속 남고(다음 교환에도), 지면 깨져 빠진다. 흐트러지면 쓰지 못한다. 그 유닛 자신의 주사위와 서로 노린 합은 원래 합 그대로. 막 시작·끝에 비운다.
 - `result`: `{staggered:[새로 흐트러진 id], dead:[쓰러진 id]}`, `expr`: `{유닛id: "idle"|"win"|"hurt"|"shock"}`
 - 예전 필드: `by, speed, ally, allyDie, enemy, enemyDie, allyCard, enemyCard, win:"ally"|"enemy"|"tie"|null, snap`
 - `steps[]`: `resolveScene` step 필드(위) +

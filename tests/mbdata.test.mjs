@@ -77,6 +77,50 @@ ok(stg.right.got===stg.right.exp&&stg.right.exp>stg.right.expNoMul,"correct: lib
 ok(stg.key.got===stg.key.exp&&stg.key.exp>stg.key.expNoMul&&stg.key.exp>=stg.right.exp,"key correct: librarian→enemy stagger ×1.75",stg.key);
 ok(stg.wrong.got===stg.wrong.exp&&stg.wrong.exp===stg.wrong.expNoMul,"wrong: no stagger multiplier",stg.wrong);
 ok([stg.right,stg.key].every(r=>r.gotA!=null&&r.gotA===r.expA),"enemy→librarian stagger is never multiplied (1:1 와 같음)",{r:[stg.right.gotA,stg.right.expA],k:[stg.key.gotA,stg.key.expA]});
+/* ---------- 4b) 회피 재사용 (2026-11-19): 한 번 시전한 회피는 합에서 질 때까지 그 막 동안 남아, 그 유닛을 노린 다음 공격 교환에 다시 맞선다.
+   이기거나 비기면 남고(reused), 지면 깨진다. 사서·적 모두. 시드·주사위 범위·속도·대상은 시험용으로 고정 ---------- */
+const ev4=await p.evaluate(()=>{ const G=__studyGame, A=G.battleApi, E=G.engine;
+  E.PAGE_BY["t-evade"]={id:"t-evade",name:"시험 회피",cost:0,dice:[{type:"회피",min:10,max:10}]};   /* 정답 막 → 12 */
+  E.PAGE_BY["t-hit"]={id:"t-hit",name:"시험 일격",cost:0,dice:[{type:"참격",min:1,max:1},{type:"참격",min:1,max:1}]};
+  /* 시험 판: a1 의 주사위(카드·속도·대상)와 e1 의 주사위(책장·속도·대상)를 직접 정하고, 나머지 유닛 주사위는 비운다 */
+  const setup=(allyDice,enemyDice)=>{ A.begin("beccaria"); const B=G.battle, X=A.internals(), U=id=>B.units.find(u=>u.id===id);
+    A.setRng(()=>0.5); if(A.mb.cur) A.mb.cur.isKey=false; A.answer(true);
+    for(const u of B.units) if(u.id!=="a1"&&u.id!=="e1") u.dice=[];
+    const a1=U("a1"), e1=U("e1"), XA=X.a1, XE=X.e1; U("a1").emotion=0; a1.light=9; XA.mods={...XA.mods,dmgPct:0,staggerPct:0,dieMin:0};
+    XE.cu.resist=E.FLAT_RESIST; XE.cu.hp=XE.cu.hpMax=999; XE.cu.st=XE.cu.stMax=999; XA.cu.hp=XA.cu.hpMax=999; XA.cu.st=XA.cu.stMax=999;
+    XE.diePages=enemyDice.map(d=>({name:"시험",dice:d.dice})); e1.dice=enemyDice.map((d,k)=>{ const cid="e1@t."+k; A.mb.cards[cid]=XE.diePages[k]; return {speed:d.speed,card:cid,target:null}; }); XE.orig=enemyDice.map(d=>d.target);
+    a1.dice=allyDice.map(d=>({speed:d.speed,card:null,target:null})); XA.handIds.splice(0,XA.handIds.length,...allyDice.map(d=>d.card));
+    allyDice.forEach((d,i)=>A.assign("a1",i,d.card,d.target));
+    const hp0={a1:XA.cu.hp,e1:XE.cu.hp}; const ev=A.resolveOnly();
+    const sh=e=>({kind:e.kind,by:e.by,a:e.a&&{unit:e.a.unit,die:e.a.die},b:e.b&&{unit:e.b.unit,die:e.b.die},reused:!!e.reused,
+      steps:(e.steps||[]).map(s=>({pd:s.pd&&{t:s.pd.type,v:s.pd.roll,r:!!s.pd.reused},gd:s.gd&&{t:s.gd.type,v:s.gd.roll,r:!!s.gd.reused},o:s.outcome,aR:s.aDie&&s.aDie.reused,bR:s.bDie&&s.bDie.reused}))});
+    return {ev:ev.filter(e=>e.kind!=="skip").map(sh),hpA:hp0.a1-XA.cu.hp,hpE:hp0.e1-XE.cu.hp,heldA:(XA.heldEvade||[]).length,heldE:(XE.heldEvade||[]).length}; };
+  const atk=v=>[{type:"참격",min:v,max:v}];
+  /* ① 사서 회피 하나가 같은 막 e1 의 공격 교환 3개(그중 하나는 주사위 2개)를 연달아 막는다 */
+  const s1=setup([{speed:99,card:"t-evade",target:{unit:"e1",die:0}}],
+    [{speed:5,dice:atk(1),target:{unit:"a1",die:0}},{speed:4,dice:[...atk(1),...atk(1)],target:{unit:"a1",die:null}},{speed:3,dice:atk(1),target:{unit:"a1",die:null}},{speed:2,dice:atk(1),target:{unit:"a1",die:null}}]);
+  /* ② 회피 12 : 첫 합 1(이김) → 다음 15→12(비김, 남음) → 30→24(짐, 깨짐) → 1 은 그냥 맞는다 */
+  const s2=setup([{speed:99,card:"t-evade",target:{unit:"e1",die:0}}],
+    [{speed:5,dice:atk(1),target:{unit:"a1",die:0}},{speed:4,dice:atk(15),target:{unit:"a1",die:null}},{speed:3,dice:atk(30),target:{unit:"a1",die:null}},{speed:2,dice:atk(1),target:{unit:"a1",die:null}}]);
+  /* ③ 적 회피(50→정답 막 40)가 사서의 다음 일방 공격 두 교환(주사위 2개씩)을 막는다 */
+  const s3=setup([{speed:9,card:"t-hit",target:{unit:"e1",die:0}},{speed:8,card:"t-hit",target:{unit:"e1",die:null}},{speed:7,card:"t-hit",target:{unit:"e1",die:null}}],
+    [{speed:1,dice:[{type:"회피",min:50,max:50}],target:{unit:"a1",die:0}}]);
+  delete E.PAGE_BY["t-evade"]; delete E.PAGE_BY["t-hit"]; A.begin("beccaria");
+  return {s1,s2,s3}; });
+{ const {s1,s2,s3}=ev4, wonBy=(e,side)=>e.steps.every(s=>side==="P"?s.o==="P":s.o==="G");
+  const r1=s1.ev.slice(1);
+  ok(s1.ev.length===4&&s1.ev[0].kind==="clash"&&s1.ev[0].steps[0].pd.r===false&&wonBy(s1.ev[0],"P"),"evade reuse ①: first clash — librarian evade wins, not reused yet",s1);
+  ok(r1.every(e=>e.kind==="clash"&&e.reused&&e.b&&e.b.unit==="a1"&&e.b.die===0&&e.steps.every(s=>s.pd&&s.pd.t==="회피"&&s.pd.r&&s.bR===true)&&wonBy(e,"P"))&&r1.reduce((t,e)=>t+e.steps.length,0)===4,
+    "evade reuse ①: the same evade meets the next 3 attack exchanges on that librarian (4 dice), reused:true on ev and steps",r1);
+  ok(s1.hpA===0&&s1.heldA===0,"evade reuse ①: librarian takes no damage; held evades cleared at scene end",{hp:s1.hpA,held:s1.heldA});
+  const [c0,c1,c2,c3]=s2.ev;
+  ok(s2.ev.length===4&&c1&&c1.reused&&c1.steps[0].o==="tie"&&c1.steps[0].pd.v===c1.steps[0].gd.v,"evade reuse ②: a tie keeps the evade (both values equal)",s2.ev);
+  ok(c2&&c2.reused&&c2.steps[0].o==="G"&&c2.steps[0].pd.r,"evade reuse ②: reused evade that loses breaks",c2);
+  ok(c3&&c3.kind==="one-sided"&&!c3.reused&&!c3.b&&c3.steps[0].pd===null&&s2.hpA===c2.steps[0].gd.v+c3.steps[0].gd.v,"evade reuse ②: after breaking, the next attack is one-sided and hits",{c3,hp:s2.hpA});
+  const e1r=s3.ev.slice(1);
+  ok(s3.ev.length===3&&s3.ev[0].kind==="clash"&&wonBy(s3.ev[0],"G")&&e1r.every(e=>e.kind==="clash"&&e.reused&&e.b&&e.b.unit==="e1"&&e.b.die===0&&e.steps.length===2&&e.steps.every(s=>s.gd&&s.gd.t==="회피"&&s.gd.r&&s.bR===true)&&wonBy(e,"G"))&&s3.hpE===0,
+    "evade reuse ③: enemy evade follows the same rule (blocks the librarian's next one-sided pages)",s3); }
+
 /* ---------- 5) 적 수 상한 3 (manyEnemies / enemyMax 만 4~5), 우두머리 유지, 빠진 적의 문제는 남은 적에게 ---------- */
 const cap=await p.evaluate(()=>{ const G=__studyGame, A=G.battleApi, out={MB:A.MB.ENEMY_MAX,rows:[],bad:[]};
   for(const g of G.data.WEAK_POINTS){ A.begin(g.id); const m=A.mb, en=G.battle.units.filter(u=>u.side==="enemy"), X=A.internals();

@@ -392,7 +392,8 @@ function mbDiceOf(u,i){ return u.side==="ally"?PAGE_BY[u.dice[i].card].dice:mb.x
    mbResolve() 는 이것을 한 번에 다 도는 동기 경로(테스트·즉시 진행).
    교환 이벤트 ev (kind "clash"|"one-sided"):
      a:{unit,die,card,values:[굴린 값…]}  — 먼저 움직인(더 빠른) 주사위
-     b:{unit,die,card,values}|null        — 합 상대. 일방 공격이면 null (맞는 쪽은 ev.target)
+     b:{unit,die,card,values,reused?}|null — 합 상대. 일방 공격이면 null (맞는 쪽은 ev.target)
+     reused:true                          — 맞는 쪽이 이 막에 남겨 둔 회피 주사위(b)가 다시 맞선 교환 (kind "clash", steps 의 그쪽 주사위도 reused)
      target: 맞는 유닛 id (합이면 b.unit)
      steps:[{aVal,bVal,winner:"a"|"b"|"tie",dmg:{unit,hp,stagger}|null, …resolveScene 원래 필드(pd,gd,outcome,events,newStag)}]
      result:{staggered:[이번 교환에서 새로 흐트러진 id], dead:[이번 교환에서 쓰러진 id]}
@@ -403,6 +404,7 @@ function mbResolveBegin(){
   const acts=[];
   for(const u of B.units){ if(u.hp<=0||mb.x[u.id].cu.stag>0) continue; u.dice.forEach((d,i)=>{ if(d.card) acts.push({u,i,d}); }); }
   acts.sort((a,b)=>b.d.speed-a.d.speed||(a.u.side===b.u.side?0:a.u.side==="ally"?-1:1)||a.u.slot-b.u.slot||a.i-b.i);
+  for(const u of B.units) mb.x[u.id].heldEvade=[];
   return {acts,k:0,done:new Set(),events:[],ended:false};
 }
 function mbResolveNext(R){
@@ -418,6 +420,9 @@ function mbResolveNext(R){
     if(tu&&tu.hp>0&&t.die!=null&&tu.dice[t.die]&&!done.has(K(tu.id,t.die))&&mbIsClash(a.u.id,a.i)&&mb.x[tu.id].cu.stag===0) partner={u:tu,i:t.die};
     if(!tu||tu.hp<=0){ const pool=mbLive(a.u.side==="ally"?"enemy":"ally"); if(!pool.length) continue; tu=pool[Math.floor(mb.rng()*pool.length)]; partner=null; }
     if(partner) done.add(K(partner.u.id,partner.i));
+    /* 회피 재사용 (2026-11-19): 합 상대가 없는 공격이면, 맞는 쪽이 이 막에 남겨 둔 회피 주사위가 다시 맞선다 */
+    let held=null;
+    if(!partner&&tu&&tu.hp>0&&mb.x[tu.id].cu.stag===0&&(mb.x[tu.id].heldEvade||[]).length){ held=mb.x[tu.id].heldEvade[0]; partner={u:tu,i:held.die}; }
     const before=Object.fromEntries(B.units.map(u=>[u.id,{alive:u.hp>0,stag:mb.x[u.id].cu.stag>0}]));
     const ally=a.u.side==="ally"?a.u:tu, enemy=a.u.side==="ally"?tu:a.u;
     const allyDie=a.u.side==="ally"?a.i:(partner?partner.i:null), enemyDie=a.u.side==="enemy"?a.i:(partner?partner.i:null);
@@ -426,7 +431,10 @@ function mbResolveNext(R){
     const qc=mbQState();
     /* 흐트러짐 배율은 1:1 과 같다: 정답이면 사서→적 흐트러짐 피해만 ×correctStagger(핵심 ×keyCorrectStagger), 적→사서 는 ×1 (resolveScene 기본값) */
     const steps=resolveScene({P:AX.cu,G:EX.cu,pDice,gDice,correct:qc.correct,isKey:qc.isKey,emotion:ally.emotion||0,rng:mb.rng,mods:AX.mods,
-      pTaken:qc.correct?null:MB.WRONG});
+      pTaken:qc.correct?null:MB.WRONG,pHeld:held&&tu===ally?held.idx:null,gHeld:held&&tu===enemy?held.idx:null});
+    /* 남은 회피 갱신: 이번에 다시 쓴 회피는 지면 빠지고, 새로 남은 회피는 그 유닛 목록에 더한다 */
+    for(const [u,die,h] of [[ally,allyDie,steps.heldP],[enemy,enemyDie,steps.heldG]]){ if(die==null) continue; const L=mb.x[u.id].heldEvade=mb.x[u.id].heldEvade||[];
+      const at=L.findIndex(e=>e.die===die); if(h==null){ if(at>=0) L.splice(at,1); } else if(at<0) L.push({die,idx:h}); else L[at].idx=h; }
     mbPaceHold(enemy);
     mbSync(ally); mbSync(enemy);
     const clash=!!(pDice&&gDice);
@@ -434,12 +442,13 @@ function mbResolveNext(R){
       allyCard:allyDie!=null?ally.dice[allyDie].card:null,enemyCard:enemyDie!=null?enemy.dice[enemyDie].card:null,
       win:clash?(steps.filter(s=>s.outcome==="P").length>steps.filter(s=>s.outcome==="G").length?"ally":steps.some(s=>s.outcome!=="tie"&&s.outcome!=="none")?"enemy":"tie"):null,
       steps,snap:snap()};
+    if(held) res.reused=true;   /* 남아 있던 회피가 다시 맞선 교환 (b 가 그 회피) */
     /* 카메라·연출용 a/b 모양 */
     const aAlly=a.u.side==="ally", aKey=aAlly?"pd":"gd", bKey=aAlly?"gd":"pd", sideOf=w=>w==="P"?(aAlly?"a":"b"):w==="G"?(aAlly?"b":"a"):"tie";
     const vals=k=>steps.map(s=>s[k]&&s[k].roll).filter(v=>v!=null);
     const look=u=>u.side==="enemy"?{side:"enemy",body:u.body,form:u.form,leader:!!u.leader}:{side:"ally"};
     res.a={unit:a.u.id,die:a.i,card:a.d.card,values:vals(aKey),...look(a.u)};
-    res.b=clash?{unit:partner.u.id,die:partner.i,card:partner.u.dice[partner.i].card,values:vals(bKey),...look(partner.u)}:null;
+    res.b=clash?{unit:partner.u.id,die:partner.i,card:partner.u.dice[partner.i].card,values:vals(bKey),...look(partner.u),...(held?{reused:true}:{})}:null;
     res.target=tu.id;
     steps.forEach(s=>{ s.aVal=s[aKey]?s[aKey].roll:null; s.bVal=s[bKey]?s[bKey].roll:null; s.winner=sideOf(s.outcome);
       let dmg=null; for(const e of s.events){ if(e.kind!=="hit"&&e.kind!=="stag") continue; const uid=e.target==="P"?ally.id:enemy.id; dmg=dmg||{unit:uid,hp:0,stagger:0}; if(dmg.unit===uid){ dmg.hp+=e.hp||0; dmg.stagger+=e.st||0; } }
@@ -487,6 +496,7 @@ function mbResolveNext(R){
 function mbResolveEnd(R){
   if(R.ended) return R.events; R.ended=true;
   const B=mb.battle, events=R.events;
+  for(const u of B.units) mb.x[u.id].heldEvade=[];   /* 남은 회피는 그 막에서만 */
   for(const u of mbSide("ally")){ const X=mb.x[u.id]; u.dice.forEach(d=>{ if(d.card){ X.discardIds.push(d.card); if(d.card==="breathe") X.breathe++; } }); }
   for(const u of B.units) u.status=(u.status||[]).map(s=>typeof s.turns==="number"?{...s,turns:s.turns-1}:s).filter(s=>typeof s.turns!=="number"||s.turns>0);
   mb.events=events;

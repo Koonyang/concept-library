@@ -53,15 +53,19 @@ function resolveScene(o){
   const m={hp:(1+(mods.dmgPct||0))*sc, st:(1+(mods.staggerPct||0))*(o.stMul!=null?o.stMul:(correct?(isKey?COMBAT.keyCorrectStagger:COMBAT.correctStagger):1))*sc};
   const one={hp:ps*(pt.hp||1),st:ps*(pt.st||1)};
   const steps=[], pn=pDice?pDice.length:0, gn=gDice?gDice.length:0;
-  /* 두 쪽의 주사위를 포인터로 맞붙인다. 회피 주사위가 합에서 이기면 소모되지 않고
-     (매번 다시 굴려) 상대의 다음 주사위와 다시 맞붙는다 — 지거나 비기거나 상대 주사위가 떨어질 때까지. */
-  let i=0, j=0, heldP=false, heldG=false, guard=0;
-  while((i<pn||j<gn)&&guard++<64){
+  /* 두 쪽의 주사위를 포인터로 맞붙인다. 회피 주사위가 공격 주사위와 합해 이기거나 비기면 소모되지 않고
+     (매번 다시 굴려) 상대의 다음 주사위와 다시 맞붙는다 — 질 때까지(2026-11-19 큐 양: 비겨도 남음).
+     상대 주사위가 떨어질 때 남아 있던 회피는 steps.heldP / steps.heldG(책장 안 주사위 번호)로 돌려준다 → 다대다는 그 막의 다음 공격 교환에 다시 쓴다.
+     o.pHeld / o.gHeld (번호): 그 쪽은 이미 남아 있던 회피 주사위 하나(pDice[o.pHeld])만으로, 처음부터 reused 로 맞선다. */
+  const pH=o.pHeld!=null&&pDice&&pDice[o.pHeld]?o.pHeld:null, gH=o.gHeld!=null&&gDice&&gDice[o.gHeld]?o.gHeld:null;
+  const pEnd=pH!=null?pH+1:pn, gEnd=gH!=null?gH+1:gn;
+  let i=pH!=null?pH:0, j=gH!=null?gH:0, heldP=pH!=null, heldG=gH!=null, carryP=null, carryG=null, guard=0;
+  while((i<pEnd||j<gEnd)&&guard++<64){
     if(P.hp<=0||G.hp<=0) break;
-    const pd=(pDice&&i<pn&&P.stag===0)?pDice[i]:null, gd=(gDice&&j<gn&&G.stag===0)?gDice[j]:null;
+    const pd=(pDice&&i<pEnd&&P.stag===0)?pDice[i]:null, gd=(gDice&&j<gEnd&&G.stag===0)?gDice[j]:null;
     if(!pd&&!gd){ i++; j++; heldP=heldG=false; continue; }
-    if(pd&&!gd&&heldP){ i++; heldP=false; continue; }   /* 남은 상대 주사위가 없으면 재사용 중이던 회피는 그냥 끝난다 */
-    if(gd&&!pd&&heldG){ j++; heldG=false; continue; }
+    if(pd&&!gd&&heldP){ carryP=i; i++; heldP=false; continue; }   /* 남은 상대 주사위가 없으면 회피는 남은 채로 이 교환을 끝낸다 */
+    if(gd&&!pd&&heldG){ carryG=j; j++; heldG=false; continue; }
     let pr=0,gr=0,pRange=null,gRange=null;
     if(pd){ pRange=o.pRangeFn?o.pRangeFn(pd):playerDieRange(pd,correct,isKey,o.emotion,mods.dieMin); pr=randInt(rng,pRange[0],pRange[1]); }
     if(gd){ gRange=o.gRangeFn?o.gRangeFn(gd):guestDieRange(gd,correct,isKey); gr=randInt(rng,gRange[0],gRange[1]); }
@@ -92,9 +96,9 @@ function resolveScene(o){
       }
     } else if(pd){ if(isAttack(pd.type)){ st.outcome="P"; ev("G",hitUnit(G,pd.type,pr,m)); } }
     else if(gd){ if(isAttack(gd.type)){ st.outcome="G"; ev("P",hitUnit(P,gd.type,gr,one)); } }
-    /* 회피 주사위 재사용: 공격 주사위를 상대로 이긴 회피는 남는다 */
-    const keepP=!!(pd&&gd&&pd.type==="회피"&&isAttack(gd.type)&&st.outcome==="P");
-    const keepG=!!(pd&&gd&&gd.type==="회피"&&isAttack(pd.type)&&st.outcome==="G");
+    /* 회피 주사위 재사용: 공격 주사위를 상대로 이기거나 비긴 회피는 남는다 (지면 깨짐) */
+    const keepP=!!(pd&&gd&&pd.type==="회피"&&isAttack(gd.type)&&(st.outcome==="P"||st.outcome==="tie"));
+    const keepG=!!(pd&&gd&&gd.type==="회피"&&isAttack(pd.type)&&(st.outcome==="G"||st.outcome==="tie"));
     if(st.pd) st.pd.keeps=keepP; if(st.gd) st.gd.keeps=keepG;
     st.pRange=pRange; st.gRange=gRange; st.pIdx=pd?i:null; st.gIdx=gd?j:null;   /* 책장 안 몇 번째 주사위(0부터) — 읽기 전용, 결과에 영향 없음 */
     st.snap={pHp:P.hp,pSt:P.st,pStag:P.stag,gHp:G.hp,gSt:G.st,gStag:G.stag};
@@ -104,6 +108,10 @@ function resolveScene(o){
     if(keepP&&keepG){ heldP=heldG=false; i++; j++; }
     /* 재사용 중인 쪽의 상대가 이미 한 칸 넘어갔다면 j/i는 위에서 증가했다 */
   }
+  /* 누가 쓰러져 일찍 끝나도 남아 있던 회피는 남는다 (흐트러지면 위에서 이미 깨졌다) */
+  if(heldP&&carryP==null&&i<pEnd&&P.hp>0&&P.stag===0) carryP=i;
+  if(heldG&&carryG==null&&j<gEnd&&G.hp>0&&G.stag===0) carryG=j;
+  steps.heldP=carryP; steps.heldG=carryG;
   return steps;
 }
 /* ---- guest combat kits (derived from archetype + weakness, overridable per guest) ---- */

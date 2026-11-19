@@ -1,4 +1,4 @@
-/* 3D 무대(js/stage): 분위기·소품 setFloor, 그려짐, 모르는 소품, WebGL 없음 */
+/* 3D 무대(js/stage): 분위기·소품 setFloor, 그려짐, 모르는 소품, WebGL 없음, 책 소각, 오답 연출 */
 import { chromium } from "playwright-core";
 import { LIB_ROOT, launchBrowser } from "./lib/browser.mjs";
 import { createServer } from "http";
@@ -251,6 +251,37 @@ await p.setViewportSize({width:844,height:390});
 await goStage("?nogl");
 const bng=await p.evaluate(async()=>{ const S=await __stageMod.createStage(document.getElementById("stage")); const t=performance.now(); await S.burnBook({cover:null,n:2}); return {ok:S.ok,ms:performance.now()-t}; });
 ok(bng.ok===false&&bng.ms<50,"WebGL 없으면 burnBook 즉시 끝",bng);
+/* ---------- 오답 연출(wrongBonk): 사서 머리에 책이 "콩", 움찔, 짧은 화면 흔들림 ---------- */
+await goStage();
+await p.evaluate(setup3v3);
+const wb=await p.evaluate(async()=>{ const S=__S, o={}, allies=Game.battle.state.units.filter(u=>u.side==="ally"&&u.hp>0).map(u=>u.id); o.allies=allies.length;
+  const count=()=>({g:S.renderer.info.memory.geometries,t:S.renderer.info.memory.textures,k:S.tickers.size,fx:S.scene.children.reduce((a,c)=>a+c.children.length,0)});
+  if(typeof S.wrongBonk!=="function") return {missing:true};
+  o.a=count();
+  let t=performance.now(), peakBooks=0, peakShake=0, hit=new Set(); const pr=S.wrongBonk();
+  const iv=setInterval(()=>{ peakBooks=Math.max(peakBooks,(S.debug.bonk&&S.debug.bonk.books)||0); peakShake=Math.max(peakShake,S.camShake.amp);
+    for(const id of allies){ const c=S.figure(id).current; if(/^Hit_/.test(c)) hit.add(id); } },20);
+  await pr; o.ms=performance.now()-t; clearInterval(iv); o.peakBooks=peakBooks; o.peakShake=peakShake; o.hit=hit.size; o.after=S.debug.bonk.books;
+  /* 한 명만 */
+  let pk1=0; const p1=S.wrongBonk([allies[0]]); const iv1=setInterval(()=>{ pk1=Math.max(pk1,S.debug.bonk.books); },20); await p1; clearInterval(iv1); o.one=pk1;
+  /* finishNow 로 바로 끝 */
+  t=performance.now(); const p2=S.wrongBonk(); setTimeout(()=>S.finishNow(),100); await p2; o.skipMs=performance.now()-t; o.skipAfter=S.debug.bonk.books;
+  await new Promise(r=>setTimeout(r,400)); o.a2=count();
+  for(let i=0;i<5;i++){ await S.wrongBonk(); await new Promise(r=>setTimeout(r,40)); }
+  /* 겹쳐 불러도 */
+  S.wrongBonk(); await S.wrongBonk();
+  await new Promise(r=>setTimeout(r,400)); o.b=count(); o.cur=allies.map(id=>S.figure(id).current); return o; });
+ok(!wb.missing&&wb.ms>=400&&wb.ms<=1200,"wrongBonk: 0.4~1.2초 안에 끝남",wb);
+ok(wb.peakBooks===wb.allies&&wb.allies===3&&wb.after===0,"wrongBonk: 진행 중 책 수 = 살아 있는 사서 수, 끝나면 0",wb);
+ok(wb.peakShake>0,"wrongBonk: 카메라 흔들림",wb);
+ok(wb.hit===wb.allies,"wrongBonk: 사서가 움찔(Hit_)",wb);
+ok(wb.one===1,"wrongBonk([id]): 그 사서에게만 책 1권",wb);
+ok(wb.skipMs<=400&&wb.skipAfter===0,"wrongBonk: finishNow 로 바로 끝",wb);
+ok(wb.b&&wb.b.k<=wb.a.k&&wb.b.g<=wb.a2.g&&wb.b.t<=wb.a.t&&wb.b.fx<=wb.a.fx,"wrongBonk 반복해도 지오메트리·텍스처·ticker·이펙트 안 늘어남",wb);
+ok(wb.cur&&wb.cur.every(c=>c==="Idle"),"wrongBonk 뒤 사서는 Idle 로",wb&&wb.cur);
+await goStage("?nogl");
+const wbn=await p.evaluate(async()=>{ const S=await __stageMod.createStage(document.getElementById("stage")); const t=performance.now(); await S.wrongBonk(); await S.wrongBonk(["x"]); return {ok:S.ok,ms:performance.now()-t}; });
+ok(wbn.ok===false&&wbn.ms<50,"WebGL 없으면 wrongBonk 즉시 끝",wbn);
 /* @@NEXT@@ */
 ok(errs.filter(e=>!/Error creating WebGL context/.test(e)).length===0,"오류 없음 (nogl 페이지의 WebGL 생성 실패 로그는 의도)",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

@@ -113,5 +113,17 @@ ok(qi.lightOk&&qi.badUnit===null&&qi.spent,"lightOf: 사서 빛·최대 빛·감
 ok(qi.keySeen,"핵심 문제 막에서 questionInfo.isKey === true");
 const bk=await p.evaluate(()=>{ const s=__studyGame.save; __studyGame.acq.addBooks(s,"active-recall",3); return {count:Game.books.count("active-recall"),shown:Game.books.shown("active-recall"),total:Game.books.total(),maxed:Game.books.maxed("active-recall")}; });
 ok(bk.count===3&&bk.shown===3&&bk.total>=3&&bk.maxed===false,"Game.books.count/shown/total/maxed 가 저장을 읽음",bk);
+/* 회피 재사용 (2026-11-19): resolveScene — 이기거나 비기면 남고 지면 깨짐, 상대가 떨어지면 남은 회피 번호를 heldP/heldG 로 돌려줌, pHeld 로 다시 시작 */
+const evr=await p.evaluate(()=>{ const E=__studyGame.engine, mk=()=>({P:E.mkUnit(999,999),G:E.mkUnit(999,999)}), ev=[{type:"회피",min:5,max:5}], a=v=>({type:"참격",min:v,max:v}), R=d=>[d.min,d.max];
+  const o={pRangeFn:R,gRangeFn:R,rng:()=>0.5};
+  let u=mk(); const s1=E.resolveScene({...o,P:u.P,G:u.G,pDice:ev,gDice:[a(1),a(5),a(3)]});
+  u=mk(); const s2=E.resolveScene({...o,P:u.P,G:u.G,pDice:ev,gDice:[a(9)]});
+  u=mk(); const s3=E.resolveScene({...o,P:u.P,G:u.G,pDice:[a(2),...ev,a(2)],gDice:[a(1)],pHeld:1});
+  u=mk(); const s4=E.resolveScene({...o,P:u.P,G:u.G,pDice:[a(2)],gDice:[{type:"회피",min:5,max:5}]});
+  return {s1:{o:s1.map(s=>s.outcome),r:s1.map(s=>s.pd.reused),held:s1.heldP},s2:{o:s2.map(s=>s.outcome),held:s2.heldP},s3:{n:s3.length,t:s3[0].pd.type,r:s3[0].pd.reused,idx:s3[0].pIdx,held:s3.heldP},s4:{held:s4.heldG}}; });
+ok(JSON.stringify(evr.s1)==='{"o":["P","tie","P"],"r":[false,true,true],"held":0}',"회피: 이기고·비겨도 남아 다음 주사위와 다시 합, 끝나면 heldP=0",evr.s1);
+ok(evr.s2.o[0]==="G"&&evr.s2.held===null,"회피: 지면 깨짐(heldP null)",evr.s2);
+ok(evr.s3.n===1&&evr.s3.t==="회피"&&evr.s3.r===true&&evr.s3.idx===1&&evr.s3.held===1,"pHeld: 남은 회피 하나만으로 reused 로 시작, 책장의 다른 주사위는 다시 안 굴림",evr.s3);
+ok(evr.s4.held===0,"적 회피도 같은 규칙(heldG)",evr.s4);
 ok(errs.length===0,"오류 없음",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);
