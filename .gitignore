@@ -3,3 +3,4 @@ shots/
 package-lock.json
 tools/assets/.cache/
 .superpowers/
+tools/sfx/raw/

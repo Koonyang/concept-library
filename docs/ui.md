@@ -25,7 +25,7 @@ js/ui/*               DOM 화면
   app.js              진입점: 무대 만들고 화면 오가기, 설정(BGM·효과음), BGM
   screens.js          층 고르기·손님 고르기·결과
   battle.js           전투 화면 mountBattle(root, stage, guestId, {onEnd})
-  sfx.js              WebAudio 합성 효과음
+  sfx.js              도서관 효과음(assets/audio/sfx, ElevenLabs, `npm run sfx`로 다시 만듦). 못 받으면 합성음
   style.css           토큰(:root) + 화면별 스타일
 vendor/three/         three.js 0.180.0 (MIT), GLTFLoader·SkeletonUtils
 assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/build-characters.mjs 로 만듦)
