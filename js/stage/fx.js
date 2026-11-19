@@ -164,21 +164,22 @@ export function burnBook(fx, pos, coverUrl, glowColor, n = 1) {
    시간은 부르는 쪽이 정한다: B.set(k) 를 k=0→1 로, 끝나면(또는 건너뛰면) B.end(). 맞는 순간은 k=BONK_HIT_AT.
    책 모양(표지·속지)은 모든 호출이 같이 쓰고(지우지 않음), 재질만 책마다 만들어 end 에서 지운다 */
 export const BONK_HIT_AT = 0.32;
-const BONK_COLORS = [0x2f4a6e, 0x6e2c38, 0x2f5a44, 0x4a3566];
+/* 진한 표지 색(어두운 책장 앞에서도 보이게 살짝 스스로 빛남) */
+const BONK_COLORS = [0x2c5aa0, 0x9a2f3f, 0x2f7a52, 0x6a3fa0];
 let bonkGeo = null;
 export function bonkBook(fx, head, i = 0) {
-  if (!bonkGeo) bonkGeo = { cover: new THREE.BoxGeometry(0.34, 0.06, 0.44), pages: new THREE.BoxGeometry(0.3, 0.045, 0.4) };
-  const coverM = new THREE.MeshLambertMaterial({ color: BONK_COLORS[i % BONK_COLORS.length], flatShading: true, transparent: true });
+  if (!bonkGeo) bonkGeo = { cover: new THREE.BoxGeometry(0.44, 0.08, 0.58), pages: new THREE.BoxGeometry(0.39, 0.06, 0.52) };
+  const c = BONK_COLORS[i % BONK_COLORS.length], coverM = new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: 0.35, flatShading: true, transparent: true });
   const pageM = new THREE.MeshLambertMaterial({ color: 0xefe6cf, transparent: true });
-  const book = new THREE.Group(), pages = new THREE.Mesh(bonkGeo.pages, pageM); pages.position.x = 0.015;
+  const book = new THREE.Group(), pages = new THREE.Mesh(bonkGeo.pages, pageM); pages.position.x = 0.02;
   book.add(pages, new THREE.Mesh(bonkGeo.cover, coverM));
   const g = new THREE.Group(); g.position.copy(head); g.add(book);
   const dir = i % 2 ? 1 : -1, spin = 0.6 + (i % 3) * 0.25;
   function set(k) {
     if (k < BONK_HIT_AT) { const q = k / BONK_HIT_AT;          /* 위 1.3 에서 점점 빨리 떨어짐 */
-      book.position.set(0, 0.05 + 1.3 * (1 - q * q), 0); book.rotation.set(0.25 * (1 - q), q * 1.2, 0.18 * (1 - q)); }
+      book.position.set(0, 0.06 + 1.3 * (1 - q * q), 0); book.rotation.set(0.25 * (1 - q), q * 1.2, 0.18 * (1 - q)); }
     else { const s = (k - BONK_HIT_AT) / (1 - BONK_HIT_AT);    /* 튕겨 올랐다가 옆으로 떨어짐 */
-      book.position.set(dir * 0.65 * s, 0.05 + 0.5 * s - 1.5 * s * s, 0.15 * s); book.rotation.set(s * 2.2, 1.2 + s * 0.8, -dir * s * 4 * spin); }
+      book.position.set(dir * 0.65 * s, 0.06 + 0.5 * s - 1.5 * s * s, 0.15 * s); book.rotation.set(s * 2.2, 1.2 + s * 0.8, -dir * s * 4 * spin); }
     const op = 1 - Math.max(0, k - 0.7) / 0.3; coverM.opacity = pageM.opacity = Math.max(0, op);
   }
   const entry = fx.add(g, Infinity, () => {}, () => { coverM.dispose(); pageM.dispose(); });
