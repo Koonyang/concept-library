@@ -22,8 +22,9 @@
     "peak": -9
   },
   "correct": {
-    "seconds": 0.8,
-    "text": "a pencil quickly ticking a checkmark on paper, then a soft hollow knock on a wooden bookshelf, satisfying, quiet library, no music"
+    "seconds": 0.5,
+    "text": "a single crisp finger snap, short bright click, dry, close microphone, no reverb, no music",
+    "peak": -4
   },
   "wrong": {
     "seconds": 0.9,
