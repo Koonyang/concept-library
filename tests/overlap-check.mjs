@@ -60,7 +60,7 @@ for(const [w,h] of [[844,390],[390,844]]) for(const [pn,setup] of [["1:3",solo],
 }
 /* 기본 화면(도서관 4탭·계시 퀴즈): 서랍 버튼·설정·제목·탭·패널·퀴즈 요소끼리 */
 const measureMenu=`(()=>{ const vis=e=>{ const s=getComputedStyle(e); return s.display!=="none"&&s.visibility!=="hidden"&&e.getBoundingClientRect().width>0; };
-  const sel=["#nav-bm","#settings","#ui > .lobby-head",".lib-tabs",".lib-pane",".moon-top","#moon-q",".moon-opts",".moon-card:not(#moon-q)"];
+  const sel=["#nav-bm","#settings","#ui > .lobby-head",".lib-tabs",".lib-pane",".moon-top","#moon-q",".moon-opts",".moon-card:not(#moon-q)",".shard-view",".shard-bar"];
   const boxes=[]; for(const s of sel) document.querySelectorAll(s).forEach(e=>{ if(vis(e)){ const r=e.getBoundingClientRect(); boxes.push({k:s,x:r.left,y:r.top,w:r.width,h:r.height}); } });
   const hits=[]; for(let i=0;i<boxes.length;i++) for(let j=i+1;j<boxes.length;j++){ const a=boxes[i], b=boxes[j]; const ox=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x), oy=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y); if(ox>2&&oy>2) hits.push(a.k+" × "+b.k); }
   const W=innerWidth,H=innerHeight; boxes.forEach(b=>{ if(b.x<-1||b.y<-1||b.x+b.w>W+1||b.y+b.h>H+1) hits.push(b.k+" 화면 밖"); });
@@ -69,8 +69,9 @@ for(const [w,h] of [[844,390],[390,844]]){
   await p.setViewportSize({width:w,height:h});
   await p.goto(BASE); await p.evaluate(()=>{ __studyGame.acq.addBooks(__studyGame.save,"pomodoro",2); __studyGame.giveAllPages(); Game.persist(); }); await p.goto(BASE);
   await p.waitForSelector('#ui[data-screen="floors"]',{timeout:20000});
-  for(const t of ["books","deck","libs","gifts","moon"]){
-    if(t==="moon"){ await p.evaluate(()=>{ Game.save.moon=null; window.__app.nav.moon(); }); await p.click("#moon-start"); await p.waitForSelector("#moon-q"); }
+  for(const t of ["books","deck","libs","gifts","moon","shards"]){
+    if(t==="shards"){ await p.evaluate(()=>{ window.__app.nav.floors(); Game.save.moonShards=Game.moon.words().slice(0,40).map(Game.moon.keyOf); Game.persist(); window.__app.nav.moon(); }); await p.waitForSelector("#moon-shards"); await p.click("#moon-shards"); await p.waitForSelector(".shard-list"); }
+    else if(t==="moon"){ await p.evaluate(()=>{ Game.save.moon=null; window.__app.nav.moon(); }); await p.click("#moon-start"); await p.waitForSelector("#moon-q"); }
     else await p.evaluate(t=>window.__app.nav.library(t),t);
     await p.waitForTimeout(400); const r=await p.evaluate(measureMenu); total+=r.hits.length;
     console.log(`${r.hits.length?"FAIL":"PASS"} ${w}x${h} ${t}: overlaps ${r.hits.length} (상자 ${r.n})`+(r.hits.length?" — "+r.hits.slice(0,6).join(", "):""));

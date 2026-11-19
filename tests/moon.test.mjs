@@ -33,6 +33,21 @@ ok(!!(await p.$("#nav-bm")),"결과 화면엔 서랍 다시 보임");
 await p.click("#nav-bm"); ok(await p.$eval('.nav-item[data-go="moon"] em',e=>e.textContent).catch(()=>"")==="완료","서랍에 계시 완료 표시");
 await p.click('.nav-item[data-go="floors"]'); await p.waitForSelector('#ui[data-screen="floors"]');
 await toMoon(); ok(!!(await p.$("#moon-result")),"다시 들어가면 바로 결과");
+/* 서고의 편린: 재현시를 건너뛰었으니 계시에서 틀리거나 못 푼 단어(전체-3)가 모두 편린 → 오늘 묶음에 안 나옴 → 골라서 정화 */
+const sh=await p.evaluate(()=>{ const ids=new Set(Game.save.moonShards), t=Game.moon.todaysWords(); return {n:ids.size,total:Game.save.moonLast.total,today:t.length,overlap:t.filter(w=>ids.has(Game.moon.keyOf(w))).length}; });
+ok(sh.n===sh.total-3&&sh.today===Math.min(30,sh.total)&&sh.overlap===0,"편린: 못 맞힌 단어가 쌓이고, 오늘 묶음엔 빠지고 다음 단어로 채움",sh);
+await p.click("#moon-shards"); await p.waitForSelector(".shard-list");
+ok(await p.$$eval(".shard",l=>l.length)===sh.n&&await p.$eval("#shard-purify",e=>e.disabled),"편린 목록: 카드 수 = 편린 수, 고르기 전엔 [정화] 꺼짐");
+const two=await p.$$(".shard"); await two[0].click(); await two[1].click();
+ok(await p.$eval("#shard-n",e=>e.textContent)==="2"&&!(await p.$eval("#shard-purify",e=>e.disabled)),"두 개 고르면 [정화] 켜짐");
+await p.click("#shard-purify"); await p.waitForSelector("#moon-q");
+ok(await p.$eval(".moon-top .kind",e=>e.textContent)==="정화"&&await p.evaluate(()=>Game.moon.state.qs.length)===2,"정화 = 고른 단어만 재현시");
+{ const ci=await p.evaluate(()=>Game.moon.current().correctIndex); await p.click(`.moon-opt[data-i="${ci}"]`); await p.waitForTimeout(250);
+  const c2=await p.evaluate(()=>Game.moon.current().correctIndex); await p.click(`.moon-opt[data-i="${(c2+1)%4}"]`); }
+await p.waitForSelector("#moon-purified",{timeout:5000});
+const pf=await p.evaluate(()=>({n:Game.save.moonShards.length,moon:Game.save.moon}));
+ok(pf.n===sh.n-1&&pf.moon.reveal===sv.reveal&&pf.moon.replay===sv.replay,"정화: 맞힌 1개만 편린에서 빠지고 오늘 점수는 그대로",pf);
+await p.click("#moon-done"); await p.waitForSelector("#moon-result");
 /* 퀴즈 중 나가면 타이머 정리 */
 await p.evaluate(()=>{ const s=Game.save; s.moon=null; Game.persist(); });
 await p.click("#nav-bm"); await p.click('.nav-item[data-go="floors"]'); await toMoon(); await p.click("#moon-start"); await p.waitForSelector("#moon-q");

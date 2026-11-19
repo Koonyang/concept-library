@@ -36,6 +36,7 @@ assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/bui
 - 메뉴는 왼쪽 위 책갈피 서랍(`js/ui/nav.js`, `NAV_ITEMS` 배열에 항목 추가): 접대·도서관·계시. 기본 화면에만 있고 전투·퀴즈 진행·결과에선 숨긴다(큐 양 결정).
 - 도서관(`js/ui/library.js`): 하위 탭 책(소각) · 덱(편성, 필터, 정답·오답 범위) · 사서(고르기·접대 명단·장서복) · 기프트(부위 칸·착용·세트). 장착·덱을 바꿔도 목록 스크롤은 그대로(`keepScroll`). 무대엔 지금 사서 한 명(`stage.showLibrarian`).
 - 달의 계시(`js/ui/moon.js`): intro → quiz(시간 막대, 정답 0.17초·오답 0.65초 표시 중 시계 멈춤) → bridge(재현시/건너뛰기) → result. 떠나면 시계를 정리한다.
+- 서고의 편린(2026-11-19): 그날 끝내 정답이 못 된 단어(재현시에서 틀림·못 품, 재현시를 건너뛰면 계시에서 틀린 것)는 `save.moonShards`(단어 열쇠 목록)에 쌓이고, 정화할 때까지 계시·재현시에 안 나온다(오늘 묶음은 다음 단어로 채워 30개, `MoonCore.todaysWords`). 시작·결과 카드의 [서고의 편린 N] → 단어 카드 목록(시간 제한 없음, 눌러 고름, 전부 고르기) → [정화] = 고른 단어만 보상 없는 재현시(`MoonCore.startPurify(ids)`, 단어당 2.5초) → 맞힌 단어만 편린에서 빠짐(`phase "purified"`). 오늘 점수·보너스(`save.moon`)는 그대로.
 - 층을 고르면 `stage.setFloor(Game.data.floorStage(id))`. 층 겉모습은 `FLOORS[].stage {mood, accent, props}` 한 줄이다(`docs/content.md`). `accent`가 UI의 `--accent`도 된다.
 - 설정(오른쪽 위)은 층·손님 화면에만 있다. 배경음은 기본 꺼짐이다(`save.bgmMuted`).
 

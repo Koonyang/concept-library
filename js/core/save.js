@@ -87,7 +87,7 @@ function defaultSave(){
     decks:[], activeDeckId:"deck-1",
     librarians:{[LIB_DEFAULT_ID]:mkLibrarian(LIB_DEFAULT_ID,"큐 양")}, activeLibrarianId:LIB_DEFAULT_ID, libV:2, party:[LIB_DEFAULT_ID],
     recallStats:{},
-    moon:null, moonChunk:0
+    moon:null, moonChunk:0, moonShards:[]
   };
 }
 function loadSave(){
@@ -123,6 +123,8 @@ function loadSave(){
       s.moon=(mo&&typeof mo==="object"&&/^\d{4}-\d{2}-\d{2}$/.test(mo.date||""))?{date:mo.date,reveal:Math.max(0,mo.reveal|0),replay:Math.max(0,mo.replay|0),used:!!mo.used}:null;
       s.moonChunk=Number.isFinite(r.moonChunk)&&r.moonChunk>=0?Math.floor(r.moonChunk):0;
       if(!(s.moonLast&&typeof s.moonLast==="object")) delete s.moonLast;
+      /* 서고의 편린: 단어 열쇠(문자열) 목록, 중복 없이 */
+      s.moonShards=Array.isArray(r.moonShards)?[...new Set(r.moonShards.filter(x=>typeof x==="string"&&x))]:[];
       return syncLibs(ensureDecks(s));
     }
   }catch(e){}

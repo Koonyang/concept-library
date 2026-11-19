@@ -370,6 +370,27 @@ button { font: inherit; color: inherit; }
 .moon-opt { padding: 12px; border-radius: 11px; border: 1px solid var(--line); background: var(--glass-hi); cursor: pointer; font-size: 14px; font-weight: 600; }
 .moon-opt:hover { border-color: var(--accent); } .moon-opt.ok { border-color: var(--good); background: rgba(159,224,164,.15); } .moon-opt.no { border-color: var(--bad); background: rgba(239,139,128,.15); }
 @media (max-aspect-ratio: 1/1) { .moon-opts { grid-template-columns: 1fr; } #moon-q .prompt { font-size: 24px; } }
+/* 서고의 편린: 단어 카드 목록(시간 제한 없음), 눌러서 고르고 아래 막대에서 [정화] */
+.shard-btn { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)) !important; }
+.shard-btn b { color: var(--accent); margin-left: 4px; }
+.shard-view { position: absolute; left: 0; right: 0; top: calc(max(12px, env(safe-area-inset-top)) + 58px); bottom: calc(max(10px, env(safe-area-inset-bottom)) + 58px);
+  padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); display: flex; flex-direction: column; gap: 8px; }
+.shard-hint { margin: 0; font-size: 12px; color: var(--muted); }
+.shard-list { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 8px; align-content: start; padding: 2px 2px 8px; }
+.shard { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "en pos" "ko ko"; gap: 2px 8px; text-align: left; padding: 10px 12px; border-radius: 11px;
+  border: 1px solid var(--line); background: var(--glass); color: inherit; cursor: pointer; font: inherit; }
+.shard .en { grid-area: en; font-size: 15px; font-weight: 700; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.shard .pos { grid-area: pos; font-size: 10px; color: var(--muted); align-self: center; }
+.shard .ko { grid-area: ko; font-size: 13px; color: var(--muted); }
+.shard.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--glass)); }
+.shard.sel .ko { color: var(--fg); }
+.shard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.shard-bar { position: absolute; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: max(10px, env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 12px; background: var(--glass-hi); border: 1px solid var(--line); }
+.shard-bar button { padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--glass); color: inherit; cursor: pointer; font: inherit; font-size: 13px; }
+.shard-bar .cnt { flex: 1; text-align: right; font-size: 12px; color: var(--muted); } .shard-bar .cnt b { color: var(--accent); }
+.shard-bar .primary { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.shard-bar .primary:disabled { opacity: .4; cursor: default; }
 @media (prefers-reduced-motion: reduce) { #moon-q.bonk { animation: none; } }
 
 /* ---------- 적 주사위 정보: 위 가운데 (상태판 아래, 오답 해설과 같은 자리) ---------- */
