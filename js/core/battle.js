@@ -10,34 +10,32 @@
 const MB={ allyDice:2, allySpeed:[2,6], leaderSpeed:[2,6], followerSpeed:[1,5], followerHp:.5, followerSt:.6, followerDie:-1,
   maxEnemies:5, ENEMY_MAX:3, stepMs:520,
   /* 다대다 전용 체력·흐트러짐 (1:1 COMBAT.playerStartHp/guestHp 등과 별개).
-     기준: 한 막에 문제 1개 → 손님 무리는 대략 "그 손님 문제 수" 만큼의 막에서 끝나야 한다(정답률 70% 기준 막 수/문제 수 ≈ 1).
-     사서(레벨 없음, 예전 Lv12 수준 고정): allyHp × 문제 수 배율 (+ 기프트·장서복 hp), 흐트러짐 allySt.
+     기준(2026-11-19 A안): 숫자는 모두 주사위 단위. 적 하나는 평균 3~4방(사서 한 방 중앙 ≈ 그 적 최대 체력 25~30%, 꽉 찬 적 한 방 사망 ≤5%),
+       판 길이는 대략 문제 수만큼의 막(한 막 문제 1개). 사서 혼자는 손에 공격 카드가 적어 막당 맞히는 방 수가 적어 판이 조금 길다(≈1.5×).
+     사서(레벨 없음): allyHp × 문제 수 배율 × allyParty[사서 수−1] (+ 기프트·장서복 hp), 흐트러짐 allySt × allyParty.
        문제 수 배율 = clamp(문제 수 / qRef, qMin, qMax) — 문제가 많은 손님은 막이 길어 사서도 그만큼 버틴다.
      적 무리 전체 체력 = enemyHpPerQ[weakness] × 문제 수 × party[사서 수−1] × (1 + floorStep×층 순서) → 적마다 맡은 문제 수(e.q) 비율로 나눔 (고정값 없음).
      흐트러짐 = 체력 × leaderSt / followerSt (우두머리는 한 판에 한 번쯤 흐트러지게). */
-  HP:{ allyHp:157, allySt:39, qRef:7, qMin:0.85, qMax:2,
-       enemyHpPerQ:{1:2.07,2:2.07,3:2.28}, party:[1,2.05,3.2], floorStep:0.05,
+  HP:{ allyHp:100, allySt:24, allyParty:[1,1.25,1.55], qRef:7, qMin:0.85, qMax:2,
+       enemyHpPerQ:{1:4,2:4,3:4.4}, party:[1,1.2,1.25], floorStep:0.05,
        leaderSt:1.1, followerSt:0.7, minHp:6, minSt:4 },
   /* 다대다 적 속도 주사위 수: 우두머리 기본 leaderDice[weakness], 사서가 늘면 partyLeader/partyFollower[사서 수−1] 만큼 더 (최대 3).
      사서 1명(주사위 2) vs 적 3명이 한쪽으로 몰리지 않고, 사서 3명이면 적 주사위도 그만큼 늘어 판 길이가 문제 수에 맞게 유지된다 */
-  /* 값은 시뮬레이션(전 손님 × 정답률 30/70/100% × Lv1·5·12, 사서 1·2·3명, 각 200판, PACE 끔)으로 맞춤:
-     정답률 70% 에서 막 수/문제 수 중앙 ≈ 1, 승률 85~90%; 정답률 30% Lv12 3명 승률 ≈ 30% (오답 벌점 WRONG) */
+  /* 값은 시뮬레이션(npm run sim: 전 손님 × 정답률 30/70/100%, 사서 1·2·3명, 기프트 0·4, 각 200판, PACE 끔)으로 맞춤. 결과표는 docs/battle.md */
   DICE:{ leaderDice:{1:1,2:1,3:2}, partyLeader:[0,1,2], partyFollower:[0,1,2],
     /* 적 책장 주사위 크기: 1:1 은 GUEST_SCALE[weakness] (1·1.2·1.45). 다대다는 적이 여럿이라 scale[weakness] 로 덜 키운다 */
     scale:{1:1.15,2:1.15,3:1.32}, bigScale:0.9,
-    /* 사서 수에 따라 적 책장 주사위를 더 키움 (사서 1·2·3명) */
-    partyScale:[1,1.1,1.2] },
+    /* 사서 수에 따라 적 책장 주사위 크기 (사서 1·2·3명). 혼자일 때 작게 → 사서 체력을 주사위 단위로 줄일 수 있다 */
+    partyScale:[0.55,0.9,1.25] },
   /* 판 길이 보정 (문제 수 Q 기준, 한 막 = 문제 1개). 기본 둘 다 끔 — hold / drain 을 따로 켤 수 있다.
      ① 우두머리는 minRatio×Q 막(올림) 전에는 체력 1에서 버틴다 — 문제가 남았는데 무리가 다 녹지 않게.
      ② Q+grace 막째부터 막이 끝날 때마다 양쪽 모두(사서·적) 최대 체력의 drain×(넘긴 막 수) 를 잃는다 — 문제를 다 냈는데 질질 끌지 않게.
         양쪽에 똑같이 걸어 잘 푼 쪽(체력이 남은 쪽)이 이긴다. 적이 먼저 다 쓰러지면 승리 */
   PACE:{ hold:false, drain:false, minRatio:0.8, grace:0, drainPct:0.15 },
-  /* 적 숫자 스케일(사서 수별): 적 체력·흐트러짐과 적이 받는 실제 피해(체력·흐트러짐·적 흐트러짐 회복)에 같은 배율.
-     사서 쪽은 배율 없음(체력 157·흐트러짐 39 기준, 적이 주는 피해 ×1). 주사위 값(카드 표기)은 그대로 →
-     균형은 배율과 무관, 적 숫자만 대략 100~300. ev.steps[].dmg·events 의 hp/st 는 배율이 곱해진 실제 적용 값 */
-  SCALE_ENEMY:{1:20,2:10,3:7},
+  /* 피해량 = 주사위 값 그대로 (2026-11-19). 숨은 배율 없음: 적·사서 모두 이름 있는 보정(상성 TIER·정답/오답 주사위 범위·
+     흐트러짐 중 ×2(치명)·기프트/장서복 dmgPct·staggerPct·정답 흐트러짐 배율·오답 벌점 WRONG)만 곱한다. 체력·흐트러짐도 주사위 단위 */
   /* 오답 막 벌점(다대다 전용, COMBAT.pct 는 그대로): 그 막에 사서가 받는 체력/흐트러짐 피해 × hp / st */
-  WRONG:{ hp:1.7, st:2 } };
+  WRONG:{ hp:2.3, st:2 } };
 /* 적 key별 덮어쓰기: {maxHp, maxStagger, speedDice, speed:[lo,hi], resist, pages:[{name,dice}], big, bigEvery} — 비어 있으면 공식대로 */
 const ENEMY_STATS={};
 const MB_TYPE_EN={참격:"slash",관통:"pierce",타격:"blunt",방어:"guard",회피:"evade"};
@@ -77,16 +75,15 @@ function mbEnemyCtx(guest,nParty,ordered){
   const list=ordered||(guest.enemies&&guest.enemies.length?guest.enemies:[{leader:true,q:(guest.questions||[]).map(q=>q.id)}]);
   return {total:mbEnemyHpTotal(guest,nParty),sumW:list.reduce((t,e)=>t+mbEnemyQ(e),0),nParty:nParty||1};
 }
-function mbEnemyScale(n){ const T=MB.SCALE_ENEMY||{}; return T[Math.max(1,Math.min(3,n||1))]||1; }
-function mbEnemyScaleNow(){ return mbEnemyScale(mb?mb.battle.units.filter(u=>u.side==="ally").length:1); }
-function mbAllyStats(mods,guest){
+function mbAllyStats(mods,guest,nParty){
   const H=MB.HP, qs=guest?Math.max(H.qMin,Math.min(H.qMax,mbQuestionCount(guest)/H.qRef)):1;
-  return {hp:Math.round(H.allyHp*qs)+((mods&&mods.hp)||0), st:H.allySt};
+  const n=Math.max(1,Math.min((H.allyParty||[1]).length,nParty||1)), ap=(H.allyParty||[1])[n-1]||1;
+  return {hp:Math.round(H.allyHp*qs*ap)+((mods&&mods.hp)||0), st:Math.round(H.allySt*ap)};
 }
 function enemyStats(guest,e,idx,ctx){
   const kit=guestCombat(guest), w=guest.weakness||1, lead=!!e.leader||(idx===0&&!(guest.enemies||[]).some(x=>x.leader));
   ctx=ctx||mbEnemyCtx(guest,1);
-  const H=MB.HP, S=mbEnemyScale(ctx.nParty), hp0=Math.max(H.minHp,Math.round(ctx.total*mbEnemyQ(e)/Math.max(1,ctx.sumW))), hp=hp0*S, st=Math.max(H.minSt,Math.round(hp0*(lead?H.leaderSt:H.followerSt)))*S;
+  const H=MB.HP, hp=Math.max(H.minHp,Math.round(ctx.total*mbEnemyQ(e)/Math.max(1,ctx.sumW))), st=Math.max(H.minSt,Math.round(hp*(lead?H.leaderSt:H.followerSt)));
   const rs=(MB.DICE.scale[w]||1)*(MB.DICE.partyScale[(ctx&&ctx.nParty||1)-1]||1)/(GUEST_SCALE[w]||1), sc=d=>Math.abs(rs-1)<1e-9?d:{type:d.type,min:Math.max(1,Math.round(d.min*rs)),max:Math.max(2,Math.round(d.max*rs))};
   kit.pages=kit.pages.map(p=>({name:p.name,dice:p.dice.map(sc)})); if(kit.big){ const bs=MB.DICE.bigScale||1; kit.big={...kit.big,dice:kit.big.dice.map(sc).map(d=>bs===1?d:{type:d.type,min:Math.max(1,Math.round(d.min*bs)),max:Math.max(2,Math.round(d.max*bs))})}; }
   const sh=d=>{ const lo=Math.max(1,d.min+MB.followerDie); return {type:d.type,min:lo,max:Math.max(lo,d.max+MB.followerDie)}; };
@@ -159,7 +156,7 @@ function mbCreate(guestId,o){
   const rng=o.rng||Math.random, units=[], x={};
   party.forEach((libId,i)=>{
     const L=libOf(save,libId), t=libMods(libId), id="a"+(i+1);
-    const AS=mbAllyStats(t,guest), hpMax=AS.hp, stMax=AS.st, emo=libStartEmotion(libId), sl=libStartLight(libId);
+    const AS=mbAllyStats(t,guest,party.length), hpMax=AS.hp, stMax=AS.st, emo=libStartEmotion(libId), sl=libStartLight(libId);
     units.push({id,side:"ally",slot:i,libId,name:L.name,hp:hpMax,maxHp:hpMax,stagger:stMax,maxStagger:stMax,staggered:false,
       light:sl,maxLight:Math.min(COMBAT.maxLightCap,Math.max(sl,COMBAT.baseLight+emo)),emotion:emo,emotionCharge:0,emotionMax:COMBAT.emotionMax,chargesPerEmotion:COMBAT.chargesPerEmotion,status:[],dice:[],expr:"idle"});
     x[id]={cu:mkUnit(hpMax,stMax,FLAT_RESIST),mods:t,charge:0,deckIds:shuffle(libDeckIds(libId)),handIds:[],discardIds:[],
@@ -429,7 +426,7 @@ function mbResolveNext(R){
     const qc=mbQState();
     /* 흐트러짐 배율은 1:1 과 같다: 정답이면 사서→적 흐트러짐 피해만 ×correctStagger(핵심 ×keyCorrectStagger), 적→사서 는 ×1 (resolveScene 기본값) */
     const steps=resolveScene({P:AX.cu,G:EX.cu,pDice,gDice,correct:qc.correct,isKey:qc.isKey,emotion:ally.emotion||0,rng:mb.rng,mods:AX.mods,
-      dmgScale:mbEnemyScaleNow(), pScale:1, pTaken:qc.correct?null:MB.WRONG});
+      pTaken:qc.correct?null:MB.WRONG});
     mbPaceHold(enemy);
     mbSync(ally); mbSync(enemy);
     const clash=!!(pDice&&gDice);
@@ -448,7 +445,7 @@ function mbResolveNext(R){
       let dmg=null; for(const e of s.events){ if(e.kind!=="hit"&&e.kind!=="stag") continue; const uid=e.target==="P"?ally.id:enemy.id; dmg=dmg||{unit:uid,hp:0,stagger:0}; if(dmg.unit===uid){ dmg.hp+=e.hp||0; dmg.stagger+=e.st||0; } }
       s.dmg=dmg; });
     /* 합 연출용 단계 필드: aDie/bDie {type,min,max(이번에 적용된 범위),value,idx,reused}, aResult/bResult, blocked(방어로 줄어든 체력 피해, 배율 반영), recovered(회피 성공 시 회복한 흐트러짐) */
-    { const sc=mbEnemyScaleNow(), mulP=(1+((AX.mods&&AX.mods.dmgPct)||0))*sc, mulG=(!qc.correct&&MB.WRONG&&MB.WRONG.hp)||1;
+    { const mulP=1+((AX.mods&&AX.mods.dmgPct)||0), mulG=(!qc.correct&&MB.WRONG&&MB.WRONG.hp)||1;
       const tierHp=(cu,type)=>TIER[(cu.resist&&cu.resist.hp&&cu.resist.hp[type])||"보통"];
       const dmgOf=(k,type,v)=>{ const def=k==="pd"?EX.cu:AX.cu, rh=tierHp(def,type); return v>0&&rh>0?Math.max(1,Math.floor(v*rh*(k==="pd"?mulP:mulG))):0; };
       const dieOf=(s,k)=>{ const d=s[k]; if(!d) return null; const r=k==="pd"?s.pRange:s.gRange; return {type:d.type,min:r?r[0]:d.roll,max:r?r[1]:d.roll,value:d.roll,idx:k==="pd"?s.pIdx:s.gIdx,reused:!!d.reused}; };

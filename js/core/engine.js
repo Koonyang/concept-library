@@ -46,7 +46,7 @@ function guestDieRange(d,correct,isKey){
 }
 function resolveScene(o){
   const P=o.P,G=o.G,pDice=o.pDice,gDice=o.gDice,correct=!!o.correct,isKey=!!o.isKey,rng=o.rng||Math.random,mods=o.mods||{};
-  /* o.dmgScale: 상대(G)가 받는 피해·G 의 흐트러짐 회복에 곱하는 배율 (다대다 MB.SCALE_ENEMY, 1:1 은 없음=1).
+  /* o.dmgScale: 상대(G)가 받는 피해·G 의 흐트러짐 회복에 곱하는 배율 (지금은 1:1·다대다 모두 안 씀=1. 2026-11-19 숨은 배율 없앰).
      o.pScale: 사서(P)가 받는 피해·P 의 회복 배율 (없으면 dmgScale 과 같음 — 1:1 은 둘 다 1, 다대다는 1).
      o.pTaken {hp,st}: 사서(P)가 받는 피해에만 더 곱하는 배율 (다대다 오답 막 벌점, 1:1 은 없음=1) */
   const sc=o.dmgScale||1, ps=o.pScale!=null?o.pScale:sc, pt=o.pTaken||{};

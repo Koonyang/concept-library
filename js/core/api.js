@@ -183,7 +183,7 @@ window.__studyGame={
     unassign(unitId,dieIdx){ return mbUnassign(unitId,dieIdx); },
     resolve(){ const ev=battleResolve(); return ev; }, resolveOnly:()=>mbResolve(),
     enemyCap:(gid)=>mbEnemyCap(GUEST_BY[gid]), questionCount:(gid)=>mbQuestionCount(GUEST_BY[gid]), enemyHpTotal:(gid,n)=>mbEnemyHpTotal(GUEST_BY[gid],n),
-    allyStats:(mods,gid)=>mbAllyStats(mods,gid?GUEST_BY[gid]:null), enemyScale:n=>mbEnemyScale(n),
+    allyStats:(mods,gid,n)=>mbAllyStats(mods,gid?GUEST_BY[gid]:null,n||(mb?mb.battle.units.filter(u=>u.side==="ally").length:1)),
     resolveBegin:()=>mbResolveBegin(), resolveNext:R=>mbResolveNext(R), resolveEnd:R=>mbResolveEnd(R),
     usable:(uid,cid)=>mbUsable(mbUnit(uid),PAGE_BY[cid]), ENEMY_BODY, enemyBody:(gid,e)=>enemyBody(GUEST_BY[gid],e||{}),
     startScene(){ mbStartScene(); return mb.battle; }, relink:()=>mbRelink(), isClash:(u,i)=>mbIsClash(u,i),

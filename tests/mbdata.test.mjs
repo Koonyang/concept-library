@@ -66,8 +66,8 @@ const stg=await p.evaluate(()=>{ const G=__studyGame, A=G.battleApi, E=G.engine,
     U("a1").dice[0].speed=9; A.assign("a1",0,"turn-page",{unit:"e1",die:null});
     const pre=JSON.parse(JSON.stringify(X.e1.cu)), preA=JSON.parse(JSON.stringify(X.a1.cu));
     const ev=A.resolveOnly(); const mine=ev.find(e=>e.by&&e.by.unit==="a1"&&e.by.die===0), theirs=ev.find(e=>e.kind==="one-sided"&&e.by&&e.by.unit==="e1"&&e.target==="a1");
-    /* 적이 받는 실제 피해는 MB.SCALE_ENEMY[사서 수] 배, 사서가 받는 피해는 배율 없음(오답 막만 MB.WRONG 배) (다대다 전용) */
-    const S=A.enemyScale(B.units.filter(u=>u.side==="ally").length), W=correct?{hp:1,st:1}:A.MB.WRONG;
+    /* 피해 = 주사위 값 × 이름 있는 보정만(숨은 배율 없음, 2026-11-19). 사서가 받는 피해는 오답 막만 MB.WRONG 배 (다대다 전용) */
+    const S=1, W=correct?{hp:1,st:1}:A.MB.WRONG;
     const st=mine.steps[0], exp=E.hitUnit({...pre},st.pd.type,st.pd.roll,{hp:S,st:S*(correct?(isKey?E.COMBAT.keyCorrectStagger:E.COMBAT.correctStagger):1)}).st;
     let expA=null, gotA=null; if(theirs){ const s2=theirs.steps.find(s=>s.dmg&&s.dmg.unit==="a1"); if(s2){ gotA=s2.dmg.stagger; expA=E.hitUnit({...preA},s2.gd.type,s2.gd.roll,{hp:W.hp,st:W.st}).st; } }
     return {got:st.dmg&&st.dmg.stagger,exp,expNoMul:E.hitUnit({...pre},st.pd.type,st.pd.roll,{hp:S,st:S}).st,gotA,expA}; };
@@ -109,8 +109,8 @@ await p.evaluate(()=>localStorage.clear()); await p.goto(BASE); await p.waitForF
 const bal=await p.evaluate(()=>{ const G=__studyGame, A=G.battleApi, C=G.engine.COMBAT, s=G.save, out={bad:[]};
   out.c11={hp:C.playerStartHp,ps:C.playerStagger,psMax:G.engine.playerStaggerMax?G.engine.playerStaggerMax(12):null,noLv:C.hpPerLevel===undefined&&C.playerStaggerPerLevel===undefined&&C.xpByWeakness===undefined,gh:C.guestHp,gs:C.guestStagger};
   out.hasHP=!!(A.MB.HP&&A.MB.PACE&&A.MB.DICE);
-  const H=A.MB.HP; out.S=A.enemyScale(1); out.SE=A.MB.SCALE_ENEMY; out.noOld=A.MB.SCALE===undefined; out.pace={hold:A.MB.PACE.hold,drain:A.MB.PACE.drain};
-  for(const g of G.data.WEAK_POINTS){ A.create(g.id); const B=A.mb.battle, en=B.units.filter(u=>u.side==="enemy"), al=B.units.filter(u=>u.side==="ally"), Q=A.questionCount(g.id), S=A.enemyScale(al.length);
+  const H=A.MB.HP; out.noOld=A.MB.SCALE===undefined&&A.MB.SCALE_ENEMY===undefined&&A.enemyScale===undefined; out.pace={hold:A.MB.PACE.hold,drain:A.MB.PACE.drain};
+  for(const g of G.data.WEAK_POINTS){ A.create(g.id); const B=A.mb.battle, en=B.units.filter(u=>u.side==="enemy"), al=B.units.filter(u=>u.side==="ally"), Q=A.questionCount(g.id), S=1;
     const sum=en.reduce((t,u)=>t+u.maxHp,0), tot=A.enemyHpTotal(g.id,al.length), per=tot/Q/(H.enemyHpPerQ[g.weakness]*H.party[al.length-1]);
     if(Math.abs(sum-tot*S)>(en.length+H.minHp)*S) out.bad.push(g.id+":sum "+sum+"/"+tot*S);
     if(per<0.95||per>1+H.floorStep*3+0.05) out.bad.push(g.id+":perQ "+per);
@@ -120,7 +120,7 @@ const bal=await p.evaluate(()=>{ const G=__studyGame, A=G.battleApi, C=G.engine.
     if(al.some(u=>u.maxHp!==A.allyStats(A.libMods(u.libId),g.id).hp)) out.bad.push(g.id+":allyHp");
     if(A.mb.pace.Q!==Q||A.mb.pace.minScene!==Math.ceil(A.MB.PACE.minRatio*Q)) out.bad.push(g.id+":pace"); }
   const g7=G.data.WEAK_POINTS.find(g=>A.questionCount(g.id)>=6&&A.questionCount(g.id)<=8)||G.data.WEAK_POINTS[0], g14=G.data.WEAK_POINTS.slice().sort((a,b)=>A.questionCount(b.id)-A.questionCount(a.id))[0];
-  s.level=12; out.lv={h7:A.allyStats({},g7.id).hp,s7:A.allyStats({},g7.id).st,base:{hp:H.allyHp,st:H.allySt,perLv:H.allyHpPerLv,stPerLv:H.allyStPerLv},long:A.allyStats({},g14.id).hp,q7:A.questionCount(g7.id),q14:A.questionCount(g14.id)}; A.create(g7.id); out.lv.unitIgnoresLevel=A.mb.battle.units.filter(u=>u.side==="ally").every(u=>u.maxStagger===H.allySt); delete s.level;
+  s.level=12; out.lv={h7:A.allyStats({},g7.id).hp,s7:A.allyStats({},g7.id).st,base:{hp:H.allyHp,st:H.allySt,perLv:H.allyHpPerLv,stPerLv:H.allyStPerLv},long:A.allyStats({},g14.id).hp,q7:A.questionCount(g7.id),q14:A.questionCount(g14.id)}; A.create(g7.id); out.lv.unitIgnoresLevel=A.mb.battle.units.filter(u=>u.side==="ally").every(u=>u.maxStagger===A.allyStats({},g7.id).st); delete s.level;
   out.party=[1,2,3].map(n=>A.enemyHpTotal(g7.id,n));
   const pace0={...A.MB.PACE}; A.MB.PACE.hold=true; A.MB.PACE.drain=true;   /* 기본은 둘 다 꺼짐 — 켰을 때 동작만 확인 */
   /* 보정 ①: minScene 전 우두머리는 1에서 버팀 */
@@ -135,12 +135,35 @@ const bal=await p.evaluate(()=>{ const G=__studyGame, A=G.battleApi, C=G.engine.
     for(const u of m.battle.units.filter(u=>u.side==="enemy")) u.dice=[]; A.resolveOnly();
     out.drain={scene:m.battle.scene,Q:m.pace.Q,last:m.pace.last,pre,ok:(m.pace.last||[]).length===m.battle.units.length&&(m.pace.last||[]).every(d=>d.hp===Math.max(1,Math.ceil(m.battle.units.find(u=>u.id===d.unit).maxHp*A.MB.PACE.drainPct)))}; }
   Object.assign(A.MB.PACE,pace0);
-  /* 피해 배율 SCALE_ENEMY(적만)·오답 벌점 WRONG: 같은 시드로 resolveScene 을 배율 없음/적만, 벌점 없음/있음으로 */
-  { const S=out.S, E=G.engine, mk=()=>({P:E.mkUnit(100000,100000),G:E.mkUnit(100000,100000)}), dice=[{type:"참격",min:3,max:8},{type:"관통",min:2,max:6}];
+  /* 오답 벌점 WRONG: 같은 시드로 resolveScene 을 벌점 없음/있음으로 (숨은 배율 dmgScale 은 다대다에서 안 씀) */
+  { const E=G.engine, mk=()=>({P:E.mkUnit(100000,100000),G:E.mkUnit(100000,100000)}), dice=[{type:"참격",min:3,max:8},{type:"관통",min:2,max:6}];
     const run=(o)=>{ const u=mk(); let a=12345; const rng=()=>{a=(a*16807)%2147483647; return a/2147483647;}; const st=E.resolveScene({P:u.P,G:u.G,pDice:dice,gDice:dice,correct:false,isKey:false,rng,...o});
       return {pHp:100000-u.P.hp,pSt:100000-u.P.st,gHp:100000-u.G.hp,gSt:100000-u.G.st,evHp:st.reduce((t,x)=>t+x.events.reduce((q,e)=>q+(e.hp||0),0),0)}; };
-    const r1=run({}), rS=run({dmgScale:S,pScale:1}), rW=run({pTaken:A.MB.WRONG}), rWS=run({dmgScale:S,pScale:1,pTaken:A.MB.WRONG});
-    out.dmg={r1,rS,rW,rWS,wrong:A.MB.WRONG}; }
+    const r1=run({}), rW=run({pTaken:A.MB.WRONG});
+    out.dmg={r1,rW,wrong:A.MB.WRONG}; }
+  /* 피해 = 주사위 값 그대로: ① 보정 없는 한 방(보통 상성·dmgPct 0·흐트러지지 않은 적, 일방 공격)은 dmg.hp === 굴린 값
+     ② 실제 다대다 판의 모든 체력 피해 = max(1, floor(값 × TIER[상성] × 이름 있는 보정)) — 사서→적: (1+dmgPct), 적→사서: 오답 막이면 WRONG.hp */
+  { const E=G.engine; A.begin("beccaria"); const B=G.battle, U=id=>B.units.find(u=>u.id===id), X=A.internals();
+    A.setRng(()=>0.5); A.answer(true);
+    X.a1.handIds.splice(0,X.a1.handIds.length,"turn-page"); U("a1").light=3; X.a1.mods={...X.a1.mods,dmgPct:0,staggerPct:0}; X.e1.cu.resist=E.FLAT_RESIST;
+    B.units.filter(u=>u.side==="enemy").forEach(e=>e.dice.forEach((d,k)=>A.setEnemyTarget(e.id,k,{unit:"a2",die:null})));
+    U("a1").dice[0].speed=9; A.assign("a1",0,"turn-page",{unit:"e1",die:null});
+    const ev=A.resolveOnly(), mine=ev.find(e=>e.by&&e.by.unit==="a1"&&e.by.die===0), st=mine&&mine.steps[0];
+    out.plain={kind:mine&&mine.kind,roll:st&&st.pd&&st.pd.roll,hp:st&&st.dmg&&st.dmg.hp,unit:st&&st.dmg&&st.dmg.unit,maxHp:U("e1").maxHp}; }
+  { const E=G.engine, T=E.TIER, rngX=(a=>()=>{a=(a*16807)%2147483647; return a/2147483647;})(4242), bad=[]; let n=0, plainN=0, plainEq=0;
+    const score=cid=>{ const P=A.cardOf(cid); return P&&P.dice?P.dice.reduce((t,d)=>t+((d.min+d.max)/2),0):0; };
+    for(const g of G.data.WEAK_POINTS) for(let i=0;i<3;i++){ A.create(g.id,{rng:rngX}); const m=A.mb; let k=0;
+      while(!m.outcome&&k<30){ k++; const correct=rngX()<0.6; A.answer(correct); const Bt=m.battle, en=Bt.units.filter(u=>u.side==="enemy"&&u.hp>0);
+        for(const u of Bt.units.filter(u=>u.side==="ally"&&u.hp>0)) u.dice.forEach((d,j)=>{ const h=A.hand(u.id).filter(c=>A.usable(u.id,c).usable).sort((x,y)=>score(y)-score(x)); const e=en[j%Math.max(1,en.length)]; if(h.length&&e) A.assign(u.id,j,h[0],{unit:e.id,die:e.dice.length?0:null}); });
+        const dmgPct=Object.fromEntries(Bt.units.filter(u=>u.side==="ally").map(u=>[u.id,(m.x[u.id].mods&&m.x[u.id].mods.dmgPct)||0]));
+        for(const e of A.resolveOnly()||[]) for(const s2 of e.steps||[]) for(const x of s2.events){ if(x.kind!=="hit") continue;
+          const toEnemy=x.target==="G", atk=toEnemy?s2.pd:s2.gd, def=toEnemy?s2.gd:s2.pd; if(!atk) continue;
+          const v=def&&def.type==="방어"?atk.roll-def.roll:atk.roll;   /* 방어에 막히면 차이만큼 */
+          const mul=toEnemy?(1+dmgPct[e.ally]):(correct?1:A.MB.WRONG.hp), exp=v>0&&T[x.tagHp]>0?Math.max(1,Math.floor(v*T[x.tagHp]*mul)):0;
+          n++; if(x.hp!==exp) bad.push({g:g.id,toEnemy,v,tag:x.tagHp,mul,hp:x.hp,exp});
+          if(x.tagHp==="보통"&&mul===1){ plainN++; if(x.hp===v) plainEq++; } }
+        if(!m.outcome) A.nextScene(); } }
+    out.rule={n,bad:bad.slice(0,5),nBad:bad.length,plainN,plainEq}; }
   const mul=a=>function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
   /* 문제 순서: 처음 Q 막은 모든 문제를 한 번씩(죽은 적 문제는 산 적이 대신), 그다음 틀린 문제부터 */
   { const g=G.data.WEAK_POINTS.find(x=>x.id==="defamation-truth")||g14; A.create(g.id,{rng:mul(99)}); const m=A.mb, B=m.battle, X=A.internals();
@@ -154,32 +177,37 @@ const bal=await p.evaluate(()=>{ const G=__studyGame, A=G.battleApi, C=G.engine.
   /* 간이 시뮬레이션 (사서 1명 Lv1, 고정 시드, 손님마다 20판) */
   function mulX(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
   const score=cid=>{ const P=A.cardOf(cid); return P&&P.dice?P.dice.reduce((t,d)=>t+((d.min+d.max)/2)*(d.type==="방어"||d.type==="회피"?0.6:1),0):0; };
+  /* 한 방 기록: 사서가 적을 때린 체력 피해 하나 ÷ 그 적 최대 체력, 체력이 가득한 적이 그 한 방에 쓰러졌는지 (A안: 중앙 25~30%, 한 방 사망 ≤5%) */
+  const HIT={r:[],fullN:0,fullK:0}, resolveTrack=(m,H)=>{ const cur=Object.fromEntries(m.battle.units.map(u=>[u.id,u.hp])), mx=Object.fromEntries(m.battle.units.map(u=>[u.id,u.maxHp]));
+    for(const e of A.resolveOnly()||[]) for(const st of e.steps||[]){ const d=st.dmg; if(!d||!(d.hp>0)) continue; const b=cur[d.unit]; cur[d.unit]=Math.max(0,b-d.hp);
+      if(d.unit[0]!=="e"||!H) continue; H.r.push(d.hp/mx[d.unit]); if(b>=mx[d.unit]){ H.fullN++; if(d.hp>=mx[d.unit]) H.fullK++; } } };
   const party0=(s.party||[]).slice(); G.libs.setParty(s,["kyu"]);
-  function run(acc,seed){ const rng=mul(seed), R=[];
+  function run(acc,seed,H){ const rng=mul(seed), R=[];
     for(const g of G.data.WEAK_POINTS) for(let i=0;i<20;i++){ A.create(g.id,{rng}); const m=A.mb; let n=0;
       while(!m.outcome&&n<40){ n++; A.answer(rng()<acc); const B=m.battle, en=B.units.filter(u=>u.side==="enemy"&&u.hp>0);
         for(const u of B.units.filter(u=>u.side==="ally"&&u.hp>0)) u.dice.forEach((d,k)=>{ const h=A.hand(u.id).filter(c=>A.usable(u.id,c).usable).sort((x,y)=>score(y)-score(x)); if(!h.length) return;
           let t=null; for(const e of en) e.dice.forEach((ed,j)=>{ if(!t&&ed.target&&ed.target.unit===u.id&&ed.target.die===k) t={unit:e.id,die:j}; }); for(const e of en) e.dice.forEach((ed,j)=>{ if(!t&&ed.target&&ed.target.unit===u.id) t={unit:e.id,die:j}; });
           if(!t){ const e=en.slice().sort((x,y)=>x.hp-y.hp)[0]; if(!e) return; t={unit:e.id,die:e.dice.length?0:null}; } A.assign(u.id,k,h[0],t); });
-        A.resolveOnly(); if(!m.outcome) A.nextScene(); }
+        resolveTrack(m,H); if(!m.outcome) A.nextScene(); }
       R.push({win:m.outcome==="win",r:n/m.pace.Q}); }
     const rs=R.map(x=>x.r).sort((a,b)=>a-b); return {n:R.length,win:+(R.filter(x=>x.win).length/R.length).toFixed(2),med:+rs[rs.length>>1].toFixed(2),band:+(rs.filter(x=>x>=0.8&&x<=1.2).length/R.length).toFixed(2)}; }
-  out.sim70=run(0.7,7); out.sim30=run(0.3,3); out.simParty=A.mb.battle.units.filter(u=>u.side==="ally").length;
+  out.sim70=run(0.7,7,HIT); out.sim30=run(0.3,3); out.simParty=A.mb.battle.units.filter(u=>u.side==="ally").length;
   /* 사서 3명(레벨 없음), 기프트 보통 수준(사서마다 4부위 착용)·핵심 책장 장착, 정답률 30% — 오답 벌점으로 대부분 진다 */
   s.unlockedKeyIds=["novice","reading-room","midnight","archivist","classical-robe","panopticon-coat","truth-robe","pad8","pad9","pad10"]; G.libs.sync(s); G.libs.equipKey(s,"lib2","archivist"); G.libs.equipKey(s,"lib3","classical-robe");
   const GS={머리:"fading-ribbon",눈:"recall-lens",손:"sand-heart",발:"blind-spot-pin"}, gift0={};
   for(const id of ["kyu","lib2","lib3"]){ const L=G.gifts.libOf(s,id); gift0[id]=JSON.stringify(L.gifts); L.gifts.owned=Object.values(GS); L.gifts.equipped={...GS}; }
   out.giftHp=A.libMods("kyu").hp;
-  G.libs.setParty(s,["kyu","lib2","lib3"]); { const runL=(acc,seed)=>{ const rng=mul(seed), R=[];
+  G.libs.setParty(s,["kyu","lib2","lib3"]); { const runL=(acc,seed,H)=>{ const rng=mul(seed), R=[];
     for(const g of G.data.WEAK_POINTS) for(let i=0;i<12;i++){ A.create(g.id,{rng}); const m=A.mb; let n=0;
       while(!m.outcome&&n<40){ n++; A.answer(rng()<acc); const B=m.battle, en=B.units.filter(u=>u.side==="enemy"&&u.hp>0);
         for(const u of B.units.filter(u=>u.side==="ally"&&u.hp>0)) u.dice.forEach((d,k)=>{ const h=A.hand(u.id).filter(c=>A.usable(u.id,c).usable).sort((x,y)=>score(y)-score(x)); if(!h.length) return;
           let t=null; for(const e of en) e.dice.forEach((ed,j)=>{ if(!t&&ed.target&&ed.target.unit===u.id&&ed.target.die===k) t={unit:e.id,die:j}; }); for(const e of en) e.dice.forEach((ed,j)=>{ if(!t&&ed.target&&ed.target.unit===u.id) t={unit:e.id,die:j}; });
           if(!t){ const e=en.slice().sort((x,y)=>x.hp-y.hp)[0]; if(!e) return; t={unit:e.id,die:e.dice.length?0:null}; } A.assign(u.id,k,h[0],t); });
-        A.resolveOnly(); if(!m.outcome) A.nextScene(); }
+        resolveTrack(m,H); if(!m.outcome) A.nextScene(); }
       R.push(m.outcome==="win"); }
     return {n:R.length,win:+(R.filter(Boolean).length/R.length).toFixed(2)}; };
-    out.sim30x3=runL(0.3,31); out.sim70x3=runL(0.7,71); }
+    out.sim30x3=runL(0.3,31); out.sim70x3=runL(0.7,71,HIT); }
+  { const r=HIT.r.slice().sort((a,b)=>a-b); out.hit={n:r.length,med:+r[r.length>>1].toFixed(3),q1:+r[r.length>>2].toFixed(3),q3:+r[(r.length*3)>>2].toFixed(3),fullN:HIT.fullN,fullK:HIT.fullK,oneShot:+(HIT.fullK/Math.max(1,HIT.fullN)).toFixed(3)}; }
   for(const id in gift0) G.gifts.libOf(s,id).gifts=JSON.parse(gift0[id]);
   if(party0.length) G.libs.setParty(s,party0);
   return out; });
@@ -191,15 +219,20 @@ ok(bal.hold.card&&bal.hold.hp===1&&bal.hold.outcome!=="win"&&bal.hold.held>=1&&b
 ok(bal.drain.scene===bal.drain.Q&&bal.drain.ok,"pace ②: from scene Q, both sides lose drain×n of max HP at scene end",bal.drain);
 ok(bal.pace.hold===false&&bal.pace.drain===false,"PACE hold / drain are separate switches, both off by default",bal.pace);
 const D=bal.dmg, near=(a,b)=>Math.abs(a-b)<=Math.max(2,b*0.08);
-ok(bal.noOld&&bal.S>=10&&bal.SE[1]>=bal.SE[2]&&bal.SE[2]>=bal.SE[3]&&D.r1.gHp>0&&D.r1.pHp>0&&near(D.rS.gHp,D.r1.gHp*bal.S)&&D.rS.pHp===D.r1.pHp&&D.rS.evHp===D.rS.pHp+D.rS.gHp,"MB.SCALE_ENEMY multiplies damage enemies take only; librarians take ×1 (dice values unchanged); event hp = applied hp",{D,SE:bal.SE});
-ok(D.rW.gHp===D.r1.gHp&&D.rW.pHp>D.r1.pHp&&D.rW.pSt>D.r1.pSt&&D.rWS.pHp===D.rW.pHp,"MB.WRONG raises damage taken by librarians only (hp & stagger)",D);
+ok(bal.noOld&&D.r1.gHp>0&&D.r1.pHp>0&&D.r1.evHp===D.r1.pHp+D.r1.gHp,"no hidden damage multiplier (MB.SCALE_ENEMY / enemyScale gone); event hp = applied hp",{noOld:bal.noOld,D});
+ok(D.rW.gHp===D.r1.gHp&&D.rW.pHp>D.r1.pHp&&D.rW.pSt>D.r1.pSt,"MB.WRONG raises damage taken by librarians only (hp & stagger)",D);
+ok(bal.plain.kind==="one-sided"&&bal.plain.unit==="e1"&&bal.plain.roll>0&&bal.plain.hp===bal.plain.roll,"no modifiers (보통 resist, dmgPct 0, enemy not staggered): enemy takes exactly the die value (dmg.hp === roll)",bal.plain);
+ok(bal.rule.n>200&&bal.rule.nBad===0&&bal.rule.plainN>50&&bal.rule.plainEq===bal.rule.plainN,"every hit in real multi battles = floor(die value × TIER × named modifiers only) (dmgPct for librarians, WRONG for wrong scenes)",bal.rule);
 const QO=bal.qorder;
 ok(QO.Q===QO.pool&&QO.uniq===QO.Q,"first Q scenes ask every question exactly once (no repeats)",QO);
 ok(QO.deadQs.length>0&&QO.deadQs.every(q=>QO.first.includes(q))&&QO.deadAskedBy.every(u=>u!==QO.dead),"a downed enemy's questions are still asked, by a living enemy",QO);
 ok(QO.next.length>0&&JSON.stringify(QO.next)===JSON.stringify(QO.wrong.slice(0,QO.next.length))&&QO.noAdjRepeat,"after all questions: wrong ones first (in the order missed), no back-to-back repeat",{next:QO.next,wrong:QO.wrong});
-ok(bal.simParty===1&&bal.sim70.win>=0.7&&bal.sim70.med>=0.8&&bal.sim70.med<=1.35,"sim solo (no gifts) 70%: mostly wins, scenes/questions ≈ 1",bal.sim70);
-ok(bal.sim30.win<=0.5,"sim solo 30%: loses more often than not",bal.sim30);
-ok(bal.giftHp>0&&bal.sim30x3.win<=0.4&&bal.sim70x3.win>=0.75,"sim three librarians with normal gifts: 30% → mostly loses (≤35% target), 70% → wins",{giftHp:bal.giftHp,s30:bal.sim30x3,s70:bal.sim70x3});
+/* 사서 혼자는 덱 절반이 방어·회피라 막당 맞히는 방 수가 적다 → A안(3~4방)을 지키면 막 수/문제 수 ≈ 1.5 (2026-11-19) */
+ok(bal.simParty===1&&bal.sim70.win>=0.7&&bal.sim70.win<=0.92&&bal.sim70.med>=0.8&&bal.sim70.med<=1.75,"sim solo (no gifts) 70%: wins ~75-90%, scenes/questions ≈ 1~1.5",bal.sim70);
+ok(bal.sim30.win<=0.35,"sim solo 30%: win ≤ 35%",bal.sim30);
+ok(bal.hit.n>500&&bal.hit.med>=0.25&&bal.hit.med<=0.30,"A안: one librarian hit ≈ 25~30% of that enemy's max HP (median, 70% solo + party of 3)",bal.hit);
+ok(bal.hit.fullN>100&&bal.hit.oneShot<=0.05,"A안: a full-HP enemy is one-shot by a single hit ≤ 5% of the time",bal.hit);
+ok(bal.giftHp>0&&bal.sim30x3.win<=0.35&&bal.sim70x3.win>=0.75,"sim three librarians with normal gifts: 30% → mostly loses (≤35% target), 70% → wins",{giftHp:bal.giftHp,s30:bal.sim30x3,s70:bal.sim70x3});
 
 /* ---------- 7) 저장 v2: 사서 레벨 제거 — 예전 저장(level/xp/maxHp)을 불러도 문제없고 필드는 사라진다 ---------- */
 await p.evaluate(()=>{ const G=__studyGame, K=G.gifts.SAVE_KEY, cur=JSON.parse(localStorage.getItem(K)||"{}");
@@ -211,7 +244,7 @@ const mig=await p.evaluate(()=>{ const G=__studyGame, s=G.save, K=G.gifts.SAVE_K
   
   try{ localStorage.setItem(K,JSON.stringify(s)); }catch(e){} const st=JSON.parse(localStorage.getItem(K)); o.stored=["level","xp","exp","maxHp"].filter(k=>k in st);
   const fresh=G.gifts.loadSave(); o.freshFields=["level","xp","exp","maxHp"].filter(k=>k in fresh); o.freshV=fresh.saveV;
-  { const A=G.battleApi; A.create("pomodoro"); o.ally=A.mb.battle.units.filter(u=>u.side==="ally").map(u=>[u.maxHp,u.maxStagger]); o.allyExp=[A.allyStats(A.libMods("kyu"),"pomodoro").hp,A.MB.HP.allySt]; }
+  { const A=G.battleApi; A.create("pomodoro"); o.ally=A.mb.battle.units.filter(u=>u.side==="ally").map(u=>[u.maxHp,u.maxStagger]); o.allyExp=[A.allyStats(A.libMods("kyu"),"pomodoro").hp,A.allyStats(A.libMods("kyu"),"pomodoro").st]; }
   return o; });
 ok(mig.fields.length===0&&mig.saveV===2&&mig.stored.length===0&&mig.freshFields.length===0&&mig.freshV===2,"old save with level/xp/maxHp loads; those fields are dropped, saveV=2",mig);
 ok(mig.kept.won===3&&JSON.stringify(mig.kept.conq)==='["pomodoro"]'&&mig.eff===mig.base&&!mig.lobbyUndef,"other progress kept; 1:1 max HP = fixed base + gifts/key page (no level)",mig);
