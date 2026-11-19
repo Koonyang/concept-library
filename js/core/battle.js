@@ -330,17 +330,49 @@ function mbAssign(unitId,dieIdx,cardId,target){
   const refund=prev?(PAGE_BY[prev].cost||0):0;
   if(pageEmotionReq(page)>(u.emotion||0)) return {ok:false,reason:"emotion"};   /* 감정 단계 부족이 먼저 (cardInfo.reason 과 같은 순서) */
   if((page.cost||0)>u.light+refund) return {ok:false,reason:"light"};
-  const tu=target&&mbUnit(target.unit);
-  if(!tu||tu.side!=="enemy"||tu.hp<=0) return {ok:false,reason:"target"};
-  const tdie=target.die==null?null:+target.die;
+  /* target 없이(null) 놓으면 책장만 끼운다(대상은 나중에 mbTarget). 그런 주사위가 남아 있으면 mbReady() 가 false */
+  const tu=target?mbUnit(target.unit):null;
+  if(target&&(!tu||tu.side!=="enemy"||tu.hp<=0)) return {ok:false,reason:"target"};
+  const tdie=!target||target.die==null?null:+target.die;
   if(tdie!=null&&!tu.dice[tdie]) return {ok:false,reason:"target-die"};
   if(prev){ X.handIds.push(prev); u.light+=refund; }
   removeOne(X.handIds,cardId); u.light-=(page.cost||0);
-  d.card=cardId; d.target={unit:tu.id,die:tdie}; X.seq[dieIdx]=++mb.seq;
+  d.card=cardId; d.target=tu?{unit:tu.id,die:tdie}:null; X.seq[dieIdx]=tu?++mb.seq:0;
   mbRelink();
   const res={ok:true,clash:mbIsClash(u.id,dieIdx)};
-  mbEmit("onAssign",{unit:u.id,die:dieIdx,card:cardId,target:{...d.target},prev:prev||null,clash:res.clash});
+  mbEmit("onAssign",{unit:u.id,die:dieIdx,card:cardId,target:d.target?{...d.target}:null,prev:prev||null,clash:res.clash});
   return res;
+}
+/* 책장은 그대로 두고 대상만 정하거나(target) 지운다(null). 책장이 없는 주사위는 안 됨 */
+function mbTarget(unitId,dieIdx,target){
+  const B=mb&&mb.battle; if(!B||B.phase!=="assign") return {ok:false,reason:"phase"};
+  const u=mbUnit(unitId), d=u&&u.dice[dieIdx]; if(!d||u.side!=="ally"||u.hp<=0) return {ok:false,reason:"die"};
+  if(!d.card) return {ok:false,reason:"card"};
+  if(!target){ d.target=null; mb.x[u.id].seq[dieIdx]=0; mbRelink(); mbEmit("onAssign",{unit:u.id,die:dieIdx,card:d.card,target:null,prev:d.card,clash:false}); return {ok:true,clash:false}; }
+  const tu=mbUnit(target.unit); if(!tu||tu.side!=="enemy"||tu.hp<=0) return {ok:false,reason:"target"};
+  const tdie=target.die==null?null:+target.die; if(tdie!=null&&!tu.dice[tdie]) return {ok:false,reason:"target-die"};
+  d.target={unit:tu.id,die:tdie}; mb.x[u.id].seq[dieIdx]=++mb.seq; mbRelink();
+  const res={ok:true,clash:mbIsClash(u.id,dieIdx)};
+  mbEmit("onAssign",{unit:u.id,die:dieIdx,card:d.card,target:{...d.target},prev:d.card,clash:res.clash});
+  return res;
+}
+/* 개막해도 되나: 책장을 끼운 내 주사위는 모두 대상이 있어야 한다 */
+function mbUntargeted(){ const B=mb&&mb.battle; if(!B) return []; const out=[];
+  for(const u of B.units) if(u.side==="ally"&&u.hp>0) u.dice.forEach((d,i)=>{ if(d.card&&!d.target) out.push({unit:u.id,die:i}); }); return out; }
+const mbReady=()=>mbUntargeted().length===0;
+/* 이번 막 진행 순서 미리 보기(바닥 주사위 더미): mbResolveBegin 과 같은 정렬·합 짝으로
+   [{a:{unit,die,side}, b:{unit,die,side}|null, target:유닛id}] (a 가 먼저 발동, 합이면 b 가 짝). 대상 없는 주사위는 빠진다 */
+function mbPlan(){
+  const B=mb&&mb.battle; if(!B) return [];
+  const acts=[];
+  for(const u of B.units){ if(u.hp<=0||mb.x[u.id].cu.stag>0) continue; u.dice.forEach((d,i)=>{ if(d.card&&d.target) acts.push({u,i,d}); }); }
+  acts.sort((a,b)=>b.d.speed-a.d.speed||(a.u.side===b.u.side?0:a.u.side==="ally"?-1:1)||a.u.slot-b.u.slot||a.i-b.i);
+  const done=new Set(), K=(id,i)=>id+":"+i, rows=[];
+  for(const a of acts){ if(done.has(K(a.u.id,a.i))) continue; done.add(K(a.u.id,a.i));
+    const t=a.d.target, tu=mbUnit(t.unit); let b=null;
+    if(tu&&tu.hp>0&&t.die!=null&&!done.has(K(tu.id,t.die))&&mbIsClash(a.u.id,a.i)&&mb.x[tu.id].cu.stag===0){ b={unit:tu.id,die:t.die,side:tu.side}; done.add(K(tu.id,t.die)); }
+    rows.push({a:{unit:a.u.id,die:a.i,side:a.u.side},b,target:t.unit}); }
+  return rows;
 }
 function mbUnassign(unitId,dieIdx){
   const B=mb&&mb.battle; if(!B||B.phase!=="assign") return false;

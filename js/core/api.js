@@ -145,7 +145,7 @@ const Game={
   data:{FLOORS,WEAK_POINTS,GUEST_BY,COMBAT_PAGES,PAGE_BY,KEY_PAGES,KEY_BY,EGO_GIFTS,EGO_BY,KEY_QUESTIONS,BOOK_POOLS,COSMETIC_ITEMS,
     floorStage,DECK_MIN,DECK_MAX,DECK_MAX_COPIES,HAND_MAX,PARTY_MAX,TIER,TIER_ORDER,ATK_TYPES,BOOK_COVER_N,bookCoverIndex,bookCoverSrc},
   battle:{
-    begin:beginBattle, answer:mbAnswer, assign:mbAssign, unassign:mbUnassign, resolve:battleResolve, stepBegin:()=>(mb?mbResolveBegin():null), stepNext:R=>mbResolveNext(R), stepEnd:battleStepEnd, settle:battleSettle, leave:battleLeave,
+    begin:beginBattle, answer:mbAnswer, assign:mbAssign, unassign:mbUnassign, target:mbTarget, plan:mbPlan, ready:mbReady, untargeted:mbUntargeted, resolve:battleResolve, stepBegin:()=>(mb?mbResolveBegin():null), stepNext:R=>mbResolveNext(R), stepEnd:battleStepEnd, settle:battleSettle, leave:battleLeave,
     cardInfo:mbCardInfo, usable:(uid,cid)=>mbUsable(mbUnit(uid),PAGE_BY[cid]||(mb&&mb.cards[cid])), hand:uid=>mb?mb.x[uid].handIds:[],
     question:()=>mb&&mb.cur?mb.cur.q:null, questionInfo:battleQuestionInfo, lightOf:battleLightOf, isClash:mbIsClash, unit:mbUnit, enemyBody:(gid,e)=>enemyBody(GUEST_BY[gid],e||{}),
     nextGuest:nextGuestAfter, hooks:MB_HOOKS,
@@ -181,6 +181,8 @@ window.__studyGame={
     answer(correct){ return mbAnswer(correct); },
     assign(unitId,dieIdx,cardId,target){ return mbAssign(unitId,dieIdx,cardId,target); },
     unassign(unitId,dieIdx){ return mbUnassign(unitId,dieIdx); },
+    target(unitId,dieIdx,target){ return mbTarget(unitId,dieIdx,target); },   /* 책장은 두고 대상만 정함/지움(null) */
+    plan(){ return mbPlan(); }, ready(){ return mbReady(); }, untargeted(){ return mbUntargeted(); },
     resolve(){ const ev=battleResolve(); return ev; }, resolveOnly:()=>mbResolve(),
     enemyCap:(gid)=>mbEnemyCap(GUEST_BY[gid]), questionCount:(gid)=>mbQuestionCount(GUEST_BY[gid]), enemyHpTotal:(gid,n)=>mbEnemyHpTotal(GUEST_BY[gid],n),
     allyStats:(mods,gid,n)=>mbAllyStats(mods,gid?GUEST_BY[gid]:null,n||(mb?mb.battle.units.filter(u=>u.side==="ally").length:1)),
