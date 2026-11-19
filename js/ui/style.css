@@ -348,3 +348,5 @@ button { font: inherit; color: inherit; }
 #enemy-info .ei-head em { margin-left: auto; font-style: normal; font-size: 10px; font-weight: 800; color: var(--accent); }
 #enemy-info .ei-card { font-size: 13.5px; font-weight: 700; } #enemy-info .ei-target { color: var(--muted); } #enemy-info .ei-target b { color: var(--fg); }
 @media (max-aspect-ratio: 1/1) { #enemy-info { top: calc(max(8px, env(safe-area-inset-top)) + 148px); width: calc(100vw - 24px); } }
+#burn-skip { position: absolute; inset: 0; z-index: 8; cursor: pointer; }
+#burn-skip .hint { position: absolute; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); font-size: 11px; color: var(--muted); padding: 3px 10px; border-radius: 999px; background: var(--glass); }

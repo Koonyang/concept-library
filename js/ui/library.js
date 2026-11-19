@@ -47,9 +47,22 @@ function paneBooks(pane, ctx) {
         <span class="num own">${e.count}/${e.cap}</span><span class="num rate">${e.count >= e.cap ? "다 모음" : Math.round(e.rate * 100) + "%"}</span></li>`).join("")}</ul>
       <div class="acts"><button type="button" id="btn-burn1"${n ? "" : " disabled"}>1권 소각</button><button type="button" id="btn-burnall" class="primary"${n > 1 ? "" : " disabled"}>전부 소각 (${n})</button></div></div></div>`;
   pane.querySelector(".book-list").addEventListener("click", e => { const b = e.target.closest(".book-item"); if (!b) return; bookSel = b.dataset.guest; sfx.tap(); keepScroll(pane, () => paneBooks(pane, ctx)); });
-  const burn = times => {
+  let burning = false;
+  const burn = async times => {
+    if (burning) return;
     const r = B.burn(g.id, times); if (!r.ok) return;
-    sfx.book(); if (ctx.stage.cheer) ctx.stage.cheer();
+    burning = true; sfx.book();
+    /* 연출: 책이 떠올라 종이로 흩날리며 사라짐(3D 무대). 화면을 누르면 바로 결과로 */
+    if (ctx.stage.burnBook) {
+      const skip = document.createElement("div"); skip.id = "burn-skip"; skip.innerHTML = `<span class="hint">탭: 건너뛰기</span>`;
+      skip.addEventListener("pointerdown", () => ctx.stage.finishNow && ctx.stage.finishNow());
+      ctx.root.appendChild(skip);
+      const cover = new URL(D.bookCoverSrc(g), document.baseURI).href;
+      try { await ctx.stage.burnBook({ cover, n: r.n }); } catch (e) { console.warn("[library] 소각 연출 오류", e); }
+      skip.remove();
+    } else if (ctx.stage.cheer) ctx.stage.cheer();
+    burning = false;
+    if (!ctx.root.isConnected || ctx.root.dataset.screen !== "library") return;
     const box = document.createElement("div"); box.id = "burn-result";
     box.innerHTML = `<div class="rcard"><p class="eyebrow">「${esc(g.concept)}」 ${r.n}권 소각</p><ul>${r.cards.map(c => `<li class="burn-get${c.isNew ? " new" : ""}">
       <span class="k">${c.k === "page" ? "책장" : "장서복"}</span><b>${esc(c.name)}</b>${c.n > 1 ? `<span class="num">×${c.n}</span>` : ""}${c.isNew ? `<em>NEW</em>` : ""}</li>`).join("")}</ul>
