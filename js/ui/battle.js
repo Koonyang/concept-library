@@ -340,6 +340,8 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
       if (!alive) return;
     }
     G.battle.stepEnd(R); barSnap = null; hideClash();
+    /* 막 끝: 합 치러 나갔던 캐릭터·카메라를 한 번에 제자리로 */
+    if (stage.sceneEnd) { try { await stage.sceneEnd({ fast: fast || skipAll }); } catch (e) { console.warn(e); } if (!alive) return; }
     if (stage.syncUnits) stage.syncUnits(B().units);   /* 건너뛴 교환에서 쓰러진 적·흐트러짐까지 무대에 맞춤 */
     if (G.battle.outcome) {
       const result = G.battle.settle();

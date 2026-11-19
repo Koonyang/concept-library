@@ -8,6 +8,7 @@
      S.cheer()              서 있는 사서가 Cheer 한 번 → Promise
      S.burnBook({cover, n, fast}) 도서관 책 소각: 사서 앞에서 책이 빛나다 낱장으로 흩날리며 사라짐(1.4초, fast 0.4초) → Promise
      S.wrongBonk(ids?)      오답: 살아 있는 사서(ids, 없으면 전부) 머리에 작은 책이 떨어져 콩 → 움찔·짧은 흔들림(0.6초) → Promise
+     S.sceneEnd({fast})     막 끝: 합 치러 나간 유닛을 제자리로 되돌리고 카메라를 원래대로 → Promise (fast·건너뛰기는 바로)
      S.debug                {mood, props, frames, ...} 테스트용 */
 import * as THREE from "three";
 import { MOODS, DEFAULT_MOOD } from "./moods.js";
@@ -31,9 +32,12 @@ const RING = { ally: { color: 0x8fd3c8, r: 0.52, op: 0.85 }, enemy: { color: 0xe
 /* 소품 자리: 무대 가장자리, 가운데(유닛 자리 x∈[-3.4,3.4], z∈[-0.9,0.9])를 피해서 */
 const PROP_SLOTS = [[-5.0, -2.4], [5.0, -2.4], [-6.0, 0.6], [6.0, 0.6], [-3.0, -4.3], [3.0, -4.3]];
 const MAX_PROP_LIGHTS = 3;
-/* 유닛 자리: 사서 왼쪽 x∈[-3.4,-2.0], 적 오른쪽(대칭). 한 편 n명일 때 [x, z] (z 앞=+) */
-const SLOTS = { 1: [[2.6, 0]], 2: [[3.1, -0.7], [2.0, 0.7]], 3: [[2.6, -0.1], [3.8, -1.1], [1.6, 0.9]] };
-const FACE = Math.PI / 2 * 0.62;          /* 서로 마주 보되 카메라 쪽으로 조금 */
+/* 유닛 자리: 사서 왼쪽, 적 오른쪽(대칭). 한 편 n명일 때 [x, z] (z 앞=+).
+   뒷줄이 앞줄에 가리지 않게 옆으로 넉넉히 벌리고 앞뒤 차이는 작게(원근만으로 조금 작아 보임) */
+const SLOTS = { 1: [[2.6, 0]], 2: [[3.3, -0.45], [1.75, 0.45]], 3: [[2.75, 0], [3.95, -0.7], [1.6, 0.7]] };
+const FACE = Math.PI / 2 * 0.62;
+const TALL_SPREAD = 0.86;                  /* 세로 화면에서는 좌우 자리를 이만큼 좁힌다(바깥 유닛이 화면 끝에 잘리지 않게) */
+let slotSpread = 1;          /* 서로 마주 보되 카메라 쪽으로 조금 */
 /* 교환 연출 시간(ms): 합 1.0초, 단계가 늘면 +0.2초, 최대 1.6초. 빨리 감기 0.35초. 맞는 순간은 40% 지점 */
 export const CLASH_MS = 1000, STEP_MS = 200, MAX_MS = 1600, FAST_MS = 350, HIT_AT = 0.4;
 export const SLOW_MS = 150, SLOW_SCALE = 0.25;   /* 맞는 순간 슬로우(실제 ms, 배율) */
@@ -45,7 +49,7 @@ const ATTACK_ANIM = { 참격: "1H_Melee_Attack_Slice_Diagonal", 관통: "1H_Mele
 
 function nullStage() {
   const done = () => Promise.resolve();
-  return { ok: false, setFloor() {}, resize() {}, setUnits: done, showLibrarian: done, cheer: done, play: done, burnBook: done, wrongBonk: done, finishNow() {}, syncUnits() {}, setStaggered() {}, unitPoint: () => null, figure: () => null,
+  return { ok: false, setFloor() {}, resize() {}, setUnits: done, sceneEnd: done, showLibrarian: done, cheer: done, play: done, burnBook: done, wrongBonk: done, finishNow() {}, syncUnits() {}, setStaggered() {}, unitPoint: () => null, figure: () => null,
     ring: () => null, onFrame() {}, dispose() {}, debug: { mood: null, props: [], frames: 0 } };
 }
 
@@ -93,6 +97,8 @@ export async function createStage(canvas) {
   const camShake = { amp: 0 };
   const camBase = { pos: CAM.pos.clone(), look: CAM.look.clone() };   /* 화면 비율에 따라 resize 가 정한다 */
   const focus = { k: 0, target: 0, x: 0, z: 0 }, dim = { k: 0, target: 0 }, time = { scale: 1 };
+  /* 대기 중 카메라 흔들림: 전투(유닛이 있을 때)는 끈다 — 머리 위 주사위가 카메라를 따라 움직이다 막대에 부딪혀 튀지 않게 */
+  let sway = 0.3, unitsReady = false;   /* unitsReady: 유닛 표(figures)가 만들어진 뒤에만 resize 가 자리를 다시 잡는다 */
   let lightBase = { hemi: 1, key: 1, rim: 0 };
 
   function disposeTree(o) { o.traverse(n => { if (n.geometry) n.geometry.dispose(); if (n.material) [].concat(n.material).forEach(m => m.dispose()); }); }
@@ -159,12 +165,13 @@ export async function createStage(canvas) {
     const hHalf = THREE.MathUtils.lerp(hHalfWide, THREE.MathUtils.degToRad(CAM_TALL.hfov / 2), t);
     cam.fov = aspect >= CAM.baseAspect ? CAM.fov : THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(hHalf) / aspect));
     camBase.pos.lerpVectors(CAM.pos, CAM_TALL.pos, t); camBase.look.lerpVectors(CAM.look, CAM_TALL.look, t);
+    slotSpread = THREE.MathUtils.lerp(1, TALL_SPREAD, t); if (unitsReady) placeUnits();
     cam.updateProjectionMatrix(); placeCamera(performance.now());
     if (typeof placeLibrarian === "function") placeLibrarian();
   }
   function placeCamera(now) {
     const fk = focus.k, P = camBase.pos, L = camBase.look;
-    cam.position.set(P.x + Math.sin(now / 4200) * 0.3 * (1 - fk) + focus.x * 0.55 * fk + (Math.random() - 0.5) * camShake.amp,
+    cam.position.set(P.x + Math.sin(now / 4200) * sway * (1 - fk) + focus.x * 0.55 * fk + (Math.random() - 0.5) * camShake.amp,
       P.y - 0.7 * fk + (Math.random() - 0.5) * camShake.amp, P.z - 3.4 * fk);
     cam.lookAt(L.x + (focus.x - L.x) * fk, L.y + 0.15 * fk, focus.z * fk);
     cam.updateMatrixWorld();
@@ -208,6 +215,7 @@ export async function createStage(canvas) {
 
   /* ---------- 유닛 ---------- */
   const figures = new Map();   /* id → {F, home:Vector3, side} */
+  unitsReady = true;
   let unitsRoot = null, unitsSeq = 0;
   /* 있던 유닛을 다 치우고(자원 정리) 빈 묶음을 새로 만든다 */
   function resetUnits() {
@@ -216,7 +224,7 @@ export async function createStage(canvas) {
   }
   async function setUnits(units, guest) {
     const my = ++unitsSeq; await loadCharacters(); if (my !== unitsSeq) return;   /* 그새 다른 setUnits/showLibrarian 이 불렸으면 그쪽이 이김 */
-    resetUnits(); guestNow = guest || null; debug.librarian = null;
+    resetUnits(); guestNow = guest || null; debug.librarian = null; sway = (units || []).length ? 0 : 0.3; focus.target = 0; focus.k = 0;
     for (const side of ["ally", "enemy"]) {
       /* 우두머리를 가운데 줄(첫 자리)에 */
       const list = units.filter(u => u.side === side).sort((a, b) => (b.leader ? 1 : 0) - (a.leader ? 1 : 0));
@@ -224,16 +232,20 @@ export async function createStage(canvas) {
       list.forEach((u, i) => {
         const [ax, z] = slots[i] || [2.6 + i * 0.3, 0], x = side === "ally" ? -ax : ax;
         const look = lookOf(u, guest), F = makeFigure(look);
-        const depth = 0.8 + 0.2 * ((z + 0.9) / 1.8);          /* 뒷줄 최대 20% 작게 */
-        F.obj.scale.setScalar(look.scale * depth);
-        F.obj.position.set(x, 0, z); F.obj.rotation.y = side === "ally" ? FACE : -FACE;
+        F.obj.scale.setScalar(look.scale);                    /* 뒷줄을 따로 줄이지 않는다(원근으로 충분) */
+        F.obj.position.set(x * slotSpread, 0, z); F.obj.rotation.y = side === "ally" ? FACE : -FACE;
         F.act("Idle"); unitsRoot.add(F.obj);
         const R = side === "ally" ? RING.ally : u.leader ? RING.leader : RING.enemy, ringM = sideRing(R);
         F.obj.add(ringM);
-        F.look = look; figures.set(u.id, { F, home: F.obj.position.clone(), side, unit: u, look, dead: u.hp <= 0, ring: ringM, ringR: R.r });
+        F.look = look; figures.set(u.id, { F, home: F.obj.position.clone(), homeRy: F.obj.rotation.y, slot: [x, z], side, unit: u, look, dead: u.hp <= 0, ring: ringM, ringR: R.r });
         if (u.hp <= 0) { F.obj.visible = false; ringM.visible = false; }
       });
     }
+  }
+  /* 화면 비율이 바뀌면 전투 유닛 자리를 다시 잡는다(제자리에 서 있는 유닛만 옮김) */
+  function placeUnits() {
+    for (const f of figures.values()) { if (!f.slot) continue; const atHome = f.F.obj.position.distanceTo(f.home) < 0.05;
+      f.home.set(f.slot[0] * slotSpread, 0, f.slot[1]); if (atHome) f.F.obj.position.copy(f.home); }
   }
   /* 도서관: 사서 한 명만, 정면에서 조금 비스듬히. 장서복(복장)을 바꾼 뒤 다시 부르면 새로 입힌다.
      목록 패널을 피한다: 가로(aspect ≥ 1)는 패널이 오른쪽 64% → 화면 왼쪽 1/3 가운데쯤, 세로는 패널이 아래 54% → 가운데 위쪽 */
@@ -245,13 +257,13 @@ export async function createStage(canvas) {
   }
   async function showLibrarian(libId) {
     const my = ++unitsSeq; await loadCharacters(); if (my !== unitsSeq) return;
-    resetUnits(); guestNow = null; debug.librarian = libId || "kyu";
+    resetUnits(); guestNow = null; debug.librarian = libId || "kyu"; sway = 0.3;
     const u = { id: "lib:" + debug.librarian, side: "ally", libId: debug.librarian, hp: 1 };
     const look = lookOf(u, null), F = makeFigure(look);
     F.obj.scale.setScalar(look.scale); F.obj.position.set(LIB_POSE.tallX, 0, LIB_POSE.z); F.obj.rotation.y = LIB_POSE.ry;
     F.act("Idle"); unitsRoot.add(F.obj);
     const ringM = sideRing(RING.ally); ringM.visible = false; F.obj.add(ringM);   /* 편 고리는 전투에서만 */
-    F.look = look; figures.set(u.id, { F, home: F.obj.position.clone(), side: "ally", unit: u, look, dead: false, ring: ringM, ringR: RING.ally.r });
+    F.look = look; figures.set(u.id, { F, home: F.obj.position.clone(), homeRy: F.obj.rotation.y, side: "ally", unit: u, look, dead: false, ring: ringM, ringR: RING.ally.r });
     placeLibrarian();
   }
   /* 서 있는 사서가 Cheer 한 번 하고 Idle 로. 그새 사서가 치워져도 3초 안에 끝난다 */
@@ -304,9 +316,20 @@ export async function createStage(canvas) {
   const coverUrl = () => { try { const src = window.Game && guestNow && Game.data.bookCoverSrc(guestNow); return src ? new URL("../../" + src, import.meta.url).href : null; } catch (e) { return null; } };
   const homeOf = f => f.home.clone();
 
-  function snapHome(tok) {
-    for (const [id, f] of figures) { if (f.dead) continue; f.F.obj.position.copy(f.home); f.F.act("Idle", { fadeMs: 80 }); }
-    focus.target = 0; dim.target = 0; time.scale = 1;
+  /* 건너뛰기로 끊긴 교환 정리: 자리는 그대로 둔다(막이 끝날 때 sceneEnd 가 되돌림) */
+  function settle(tok) {
+    for (const [id, f] of figures) { if (f.dead) continue; f.F.act("Idle", { fadeMs: 80 }); }
+    dim.target = 0; time.scale = 1;
+  }
+  const away = f => f.F.obj.position.distanceTo(f.home) > 0.05;
+  const faceTo = (f, p) => { const o = f.F.obj.position; f.F.obj.rotation.y = Math.atan2(p.x - o.x, p.z - o.z); };
+  /* 합 치러 나간 유닛이 설 자리: 상대 옆(자기 편 쪽으로 1.25). 다른 유닛이 이미 서 있으면 앞뒤로 비켜 선다 */
+  function meetSpot(anchor, mover) {
+    const ap = anchor.F.obj.position, dir = mover.side === "ally" ? -1 : 1;    /* 사서는 상대 왼쪽, 적은 오른쪽에 선다(편이 섞이지 않게) */
+    const base = new THREE.Vector3(ap.x + dir * 1.25, 0, ap.z);
+    for (const dz of [0, -1.05, 1.05, -1.9, 1.9]) { const c = base.clone().setZ(THREE.MathUtils.clamp(ap.z + dz, -2.0, 2.0));
+      if (![...figures.values()].some(o => o !== mover && o !== anchor && !o.dead && o.F.obj.position.distanceTo(c) < 1.05)) return c; }
+    return base;
   }
 
   async function killUnit(tok, id, isFinal) {
@@ -333,16 +356,22 @@ export async function createStage(canvas) {
     const runMs = dur * 0.3, hitMs = dur * HIT_AT;
     /* 기다림은 교환 시작 시각 기준으로 잰다: 프레임이 늦어 한 구간이 밀려도 다음 구간이 줄어 전체 길이는 그대로 */
     const T0 = performance.now(), left = at => Math.max(0, T0 + at - performance.now());
-    /* 만나는 자리: 둘 사이 가운데 */
-    const pa = homeOf(A), pt = homeOf(T), mid = pa.clone().lerp(pt, 0.5); mid.z = (pa.z + pt.z) / 2;
-    const dir = Math.sign(pt.x - pa.x) || 1, gap = 0.55;
-    const aTo = mid.clone().add(new THREE.Vector3(-dir * gap, 0, 0)), bTo = mid.clone().add(new THREE.Vector3(dir * gap, 0, 0));
-    const movers = [[A, pa, aTo]]; if (ev.kind === "clash" && B) movers.push([B, homeOf(B), bTo]);
-    else if (!B || B === T) { /* 일방 공격: 맞는 쪽은 제자리 */ }
-    movers.forEach(([f]) => f.F.act("Running_A", { fadeMs: 80 }));
-    if (rank >= 2 && !fast) { focus.x = mid.x; focus.z = mid.z; focus.target = 1; dim.target = rank >= 3 ? 0.7 : 0.4; }
-    else if (rank >= 3) dim.target = 0.5;
+    /* 한쪽은 제자리, 새로 합 치러 나오는 쪽만 상대 옆으로 걸어간다. 이미 나와 있는 쪽이 제자리(=기다리는 쪽).
+       둘 다 집에 있으면 공격받는 쪽(B/T)이 기다린다. 자리는 막이 끝날 때까지 그대로(sceneEnd 가 되돌림) */
+    const D = (ev.kind === "clash" && B) ? B : T;
+    const [anchor, mover] = away(A) && !away(D) ? [A, D] : [D, A];
+    const from = mover.F.obj.position.clone(), to = meetSpot(anchor, mover);
+    const movers = from.distanceTo(to) > 0.05 ? [[mover, from, to]] : [];
+    /* 앞 합에 나와 있던 유닛 중 이번 합에 안 끼는 쪽은 새로 나오는 유닛과 동시에 제자리로(나와 있는 건 늘 2명 안팎) */
+    for (const f of figures.values()) if (!f.dead && f !== A && f !== B && f !== T && away(f)) { movers.push([f, f.F.obj.position.clone(), f.home.clone(), true]); }
+    const mid = anchor.F.obj.position.clone().lerp(to, 0.5);
+    movers.forEach(([f, , dst]) => { f.F.act("Running_A", { fadeMs: 80 }); faceTo(f, dst); });
+    /* 카메라는 이번 합 자리로 옮겨 간다(센 책장일수록 더 가까이). 막 안에서는 다음 합 자리로 이어서 옮긴다 */
+    focus.x = mid.x; focus.z = mid.z; focus.target = rank >= 2 && !fast ? 0.75 : 0.3;
+    if (rank >= 2 && !fast) dim.target = rank >= 3 ? 0.7 : 0.4; else if (rank >= 3) dim.target = 0.5;
     await tween(tok, left(runMs), k => { const e = ease(k); movers.forEach(([f, from, to]) => f.F.obj.position.lerpVectors(from, to, e)); });
+    movers.forEach(([f, , , home]) => { f.F.act("Idle", { fadeMs: 60 }); if (home) f.F.obj.rotation.y = f.homeRy; });
+    faceTo(A, (A === anchor ? mover : anchor).F.obj.position); if (D !== A) faceTo(D, A.F.obj.position);
     /* 공격 동작 */
     const st0 = steps[0] || {};
     A.F.act(attackClip(A, dieType(st0, "a")), { once: true, speed: fast ? 2.2 : 1.3, fadeMs: 60 });
@@ -372,21 +401,18 @@ export async function createStage(canvas) {
     }
     /* 진 쪽 밀려남 */
     const loser = ev.win === "ally" ? (A.side === "enemy" ? A : B) : ev.win === "enemy" ? (A.side === "ally" ? A : B) : (ev.kind !== "clash" ? T : null);
-    if (loser && !loser.dead) { const from = loser.F.obj.position.clone(), to = from.clone().add(new THREE.Vector3(Math.sign(loser.home.x) * 0.5, 0, 0));
+    if (loser && !loser.dead) { const from = loser.F.obj.position.clone(), to = from.clone().add(new THREE.Vector3(Math.sign(loser.home.x) * 0.3, 0, 0));
       await tween(tok, left(hitMs + hitSpan * Math.max(0, steps.length - 1) + dur * 0.12), k => loser.F.obj.position.lerpVectors(from, to, ease(k))); }
-    focus.target = 0; dim.target = 0;
+    dim.target = 0;
     /* 쓰러짐 → 조각 → 책 */
     const dead = (ev.result && ev.result.dead) || [];
     for (const id of dead) await killUnit(tok, id, o.final && id === dead[dead.length - 1]);
     /* 흐트러짐 표시 */
     for (const id of (ev.result && ev.result.staggered) || []) setStaggered(id, true);
-    /* 제자리로 */
-    const back = [...figures.values()].filter(f => !f.dead && !f.F.obj.position.equals(f.home));
-    back.forEach(f => f.F.act("Running_A", { fadeMs: 80 }));
-    const froms = back.map(f => f.F.obj.position.clone());
-    const backAt = hitMs + hitSpan * Math.max(0, steps.length - 1) + dur * 0.32;     /* 쓰러짐이 없으면 시작 기준 시각으로 */
-    await tween(tok, dead.length ? dur * 0.2 : left(backAt), k => back.forEach((f, i) => f.F.obj.position.lerpVectors(froms[i], f.home, ease(k))));
-    back.forEach(f => f.F.act("Idle", { fadeMs: 120 }));
+    /* 제자리로 돌아가지 않는다: 남은 시간만 채우고 다음 합으로(막이 끝나면 sceneEnd) */
+    const endAt = hitMs + hitSpan * Math.max(0, steps.length - 1) + dur * 0.32;
+    if (!dead.length) await sleep(tok, left(endAt));
+    for (const f of [A, B, T]) if (f && !f.dead && f.F.current !== "Idle" && !/Death/.test(f.F.current || "")) f.F.act("Idle", { fadeMs: 120 });
     if (o.final) { for (const f of figures.values()) if (!f.dead && f.side === "ally") f.F.act("Cheer"); }
   }
 
@@ -417,11 +443,24 @@ export async function createStage(canvas) {
       if (tok.abort) { /* 건너뛰기: 남은 반응을 바로 정리 */
         for (const id of (ev.result && ev.result.dead) || []) { const f = figures.get(id); if (f && !f.dead) { f.dead = true; f.F.obj.visible = false; f.ring.visible = false; if (f.side === "enemy") debug.bookDrops++; } }
         if (o.onHit && !tok.hitsSent) {}
-        snapHome(tok);
+        settle(tok);
       }
       if (current === tok) current = null;
       debug.lastPlayMs = performance.now() - t0;
     }
+  }
+  /* 막 끝: 나간 유닛을 제자리로(걸어서 0.35초, fast 는 바로), 방향·카메라도 원래대로 */
+  let sceneTok = null;
+  async function sceneEnd(o = {}) {
+    if (sceneTok) { sceneTok.abort = true; for (const w of [...sceneTok.waits]) w(); }
+    const tok = sceneTok = { abort: false, waits: new Set() };
+    focus.target = 0; dim.target = 0; time.scale = 1;
+    const back = [...figures.values()].filter(f => !f.dead && (away(f) || Math.abs(f.F.obj.rotation.y - f.homeRy) > 0.01));
+    const froms = back.map(f => f.F.obj.position.clone());
+    back.forEach(f => { if (away(f)) { f.F.act("Running_A", { fadeMs: 80 }); faceTo(f, f.home); } });
+    try { await tween(tok, o.fast ? 0 : 350, k => back.forEach((f, i) => f.F.obj.position.lerpVectors(froms[i], f.home, ease(k)))); }
+    finally { back.forEach(f => { f.F.obj.position.copy(f.home); f.F.obj.rotation.y = f.homeRy; if (!f.dead && f.F.current !== "Cheer") f.F.act("Idle", { fadeMs: 120 }); });
+      if (sceneTok === tok) sceneTok = null; }
   }
   function finishNow() { for (const tok of [current, burnTok, bonkTok]) { if (!tok) continue; tok.abort = true; for (const w of [...tok.waits]) w(); } }
 
@@ -488,7 +527,7 @@ export async function createStage(canvas) {
     ok: true, three: THREE, scene, camera: cam, renderer, debug, camShake, tickers,
     setFloor, resize,
     setUnits, showLibrarian, cheer, unitPoint, ring: ringInfo, figure: id => (figures.get(id) || {}).F || null, figures,
-    play, finishNow, burnBook, wrongBonk, setStaggered, syncUnits, fx,
+    play, finishNow, sceneEnd, burnBook, wrongBonk, setStaggered, syncUnits, fx,
     onFrame(f) { tickers.add(f); return () => tickers.delete(f); },
     dispose() { cancelAnimationFrame(raf); ro.disconnect(); document.removeEventListener("visibilitychange", wake); if (world) disposeTree(world); renderer.dispose(); },
   };
