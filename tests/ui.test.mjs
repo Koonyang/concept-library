@@ -76,11 +76,11 @@ const cs=await p.waitForFunction(()=>{ const e=document.querySelector("#clash-pa
   const sides=[...e.querySelectorAll(".cp-side")], L=e.querySelector(".cp-side.l"), R=e.querySelector(".cp-side.r"), u=id=>Game.battle.state.units.find(x=>x.id===id);
   const pt=id=>id&&__stage.unitPoint(id), lr=L.getBoundingClientRect(), rr=R.getBoundingClientRect();
   return { n:sides.length, lSide:u(L.dataset.unit)?.side, text:e.textContent, diceHidden:document.getElementById("dice-layer").hidden,
-    lRight:lr.right, lPt:pt(L.dataset.unit), rLeft:rr.left, rPt:pt(R.dataset.unit), rNone:R.classList.contains("none")||L.classList.contains("none") }; },null,{timeout:15000,polling:50}).then(h=>h.jsonValue()).catch(()=>null);
+    lLeft:lr.left, lRight:lr.right, lPt:pt(L.dataset.unit), rLeft:rr.left, rRight:rr.right, rPt:pt(R.dataset.unit), rNone:R.classList.contains("none")||L.classList.contains("none") }; },null,{timeout:15000,polling:50}).then(h=>h.jsonValue()).catch(()=>null);
 ok(cs&&cs.n===2&&cs.lSide==="ally","합 표시: 판 2장(내 쪽 왼쪽)",cs);
 ok(cs&&/(승|패|무승부|막음|회피|대응 없음)/.test(cs.text),"합 표시: 결과 글자",cs&&cs.text.slice(0,200));
 ok(cs&&cs.diceHidden===true,"합 중 속도 주사위 숨김",cs&&cs.diceHidden);
-ok(cs&&cs.lPt&&cs.lRight<=cs.lPt.x+4&&(cs.rNone||cs.rPt&&cs.rLeft>=cs.rPt.x-4),"판이 캐릭터 옆(가로)",cs);
+ok(cs&&cs.lPt&&(cs.lLeft+cs.lRight)/2<cs.lPt.x&&(cs.rNone||cs.rPt&&(cs.rLeft+cs.rRight)/2>cs.rPt.x),"판이 캐릭터 옆(가로): 내 판 가운데는 캐릭터 왼쪽, 상대 판은 오른쪽",cs);
 const seen=await p.waitForFunction(n=>!n||window.__cpTexts.some(t=>t.includes(n))?true:null,myCard,{timeout:15000}).then(()=>true).catch(()=>false);
 ok(seen,"내 책장 이름이 합 표시에 나옴",{myCard});
 await p.waitForFunction(()=>Game.battle.state.phase==="question"||window.__end,null,{timeout:30000});

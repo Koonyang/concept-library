@@ -40,7 +40,7 @@ async function scene(gid, setup, phase, fullHand){
     await p.evaluate(()=>{ const B=Game.battle.state, a=B.units.find(u=>u.side==="ally"), e=B.units.find(u=>u.side==="enemy"); const c=Game.battle.hand(a.id).find(c=>Game.battle.usable(a.id,c).usable); if(c) Game.battle.assign(a.id,0,c,{unit:e.id,die:e.dice.length?0:null}); });
     await p.click(`.speed-die[data-side="ally"]`); await p.click(`.speed-die[data-side="enemy"]`); }   /* 적 주사위 정보창도 연 상태로 */
   if(phase==="resolve"){ await p.evaluate(()=>{ const B=Game.battle.state; for(const u of B.units.filter(u=>u.side==="ally")) u.dice.forEach((d,i)=>{ const e=B.units.find(x=>x.side==="enemy"&&x.hp>0); const c=Game.battle.hand(u.id).find(c=>Game.battle.usable(u.id,c).usable); if(c&&!d.card) Game.battle.assign(u.id,i,c,{unit:e.id,die:e.dice.length?0:null}); }); });
-    await p.click("#btn-open"); await p.waitForSelector("#clash-panel.on .cp-die.shown",{timeout:15000}); await p.waitForTimeout(120); return p.evaluate(measure); }
+    await p.click("#btn-open"); await p.waitForSelector("#clash-panel.on .cp-die.shown",{timeout:30000}); await p.waitForTimeout(120); return p.evaluate(measure); }
   await p.waitForTimeout(500); return p.evaluate(measure);
 }
 let total=0;
