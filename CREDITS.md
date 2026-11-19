@@ -51,4 +51,5 @@ No Library of Ruina / Project Moon assets are included.
 Attribution is not required by CC0, but it is gratefully given. Pretendard and Space Grotesk are included under the OFL 1.1 (fonts are not sold by themselves; no Reserved Font Name is modified).
 - 효과음 (assets/audio/sfx/*.mp3): ElevenLabs Sound Effects로 생성(https://elevenlabs.io). 종이·나무 등 도서관 소리(정답은 핑거스냅). 프롬프트는 `tools/sfx/prompts.json`, 다시 만들기 `npm run sfx`.
 - BGM (assets/audio/bgm.mp3): 사용자 제공 음원, 태그 없음 (re-encoded 128kbps, loop crossfade).
+- 전투 BGM (assets/audio/bgm-reception.mp3): 큐 양 제공 음원 "turning the heavy page" (끝 무음을 잘라 반복, 128kbps).
 - 손님 책 표지 (assets/books/book-1.webp … book-8.webp): 큐 양 제공 (owner-provided covers).
