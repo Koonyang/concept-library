@@ -45,6 +45,9 @@ python3 -m http.server 8000   # 저장소 루트에서. 그다음 http://localho
    `git log origin/main`에서 가장 최근 `[library-…]`를 확인하고, 다른 작업자와 같은 글자를 쓰지 않는다.
 3. 커밋 메시지는 한국어, 사용자 입장에서 바뀐 점을 적고 끝에 `[library-…]`. 문서만 바꿀 때는 표시를 올리지 않는다.
 4. `git push origin main` → GitHub Pages가 1~2분 뒤 반영. `js/core/*.js`는 캐시 버스터가 없으니 확인할 때 강력 새로고침.
+5. **검수함 갱신**(큐 양이 대화를 자주 지워서 링크가 사라지므로 꼭 한다): 검수함 https://claude.ai/artifact/9sgvnqxxCFKEZ6g48XKBHs (사이드바 고정)의 db에
+   `ArtifactData`로 `status/live`={build, at:"MM/DD"}를 고치고, `updates/<build 뒤 글자들>`={at:ISO 시각, date:"MM/DD", build, live:true, title, items:[바뀐 점], check:[큐 양이 확인해 볼 것]}를 추가한다(사용자 말로, 짧게).
+   배포 전 작업 브랜치 내용은 `live:false`, `build:"작업 브랜치"`로 올리고, 배포하면 그 문서를 지우거나 고친다. 페이지 자체는 다시 올리지 않는다.
 
 ## 문서
 - `docs/HANDOFF.md` — 전체 개요, 파일 지도, 게임 흐름, 현재 상태, 남은 일 (먼저 읽기)
