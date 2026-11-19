@@ -19,7 +19,7 @@ const measure=`(()=>{ const R=e=>{ const r=e.getBoundingClientRect(); return {x:
   const boxes=[];
   document.querySelectorAll(".unit-bar").forEach(e=>vis(e)&&boxes.push({k:"bar:"+e.dataset.unit,g:"bars",...R(e)}));
   document.querySelectorAll(".die-row").forEach(e=>vis(e)&&boxes.push({k:"dice:"+e.dataset.unit,g:"dice:"+e.dataset.unit,...R(e)}));
-  for(const id of ["hand","btn-open","status","question","learn","enemy-info"]){ const e=document.getElementById(id); if(e&&vis(e)) boxes.push({k:id,g:id,...R(e)}); }
+  for(const id of ["hand","btn-open","status","question","learn","enemy-info","clash-panel"]){ const e=document.getElementById(id); if(e&&vis(e)) boxes.push({k:id,g:id,...R(e)}); }
   /* 화살표: 곡선 위 점 몇 개를 작은 상자로(이어지는 주사위와는 비교 안 함) */
   document.querySelectorAll("#target-arrows path").forEach((p,i)=>{ const L=p.getTotalLength(); for(const t of [0.25,0.5,0.75]){ const q=p.getPointAtLength(L*t); boxes.push({k:"arrow"+i+"@"+t,g:"arrow",x:q.x-2,y:q.y-2,w:4,h:4}); } });
   const hits=[]; for(let i=0;i<boxes.length;i++) for(let j=i+1;j<boxes.length;j++){ const a=boxes[i], b=boxes[j]; if(a.g===b.g) continue; if(a.g==="arrow"&&b.g.startsWith("dice")||b.g==="arrow"&&a.g.startsWith("dice")) continue; if(a.g==="arrow"&&b.g==="arrow") continue;
@@ -32,18 +32,20 @@ async function scene(gid, setup, phase, fullHand){
   await p.evaluate(setup); await p.evaluate(async()=>{ window.__battle.unmount(); Game.battle.leave(); window.__battle=await window.__mount(); });
   await p.waitForSelector("#question.on");
   const nU=await p.evaluate(()=>Game.battle.state.units.length); if(setup===party3&&nU!==6) { fails++; console.log("FAIL 3:3 이 아님",nU); }
-  if(phase!=="question"){ const ci=await p.evaluate(()=>Game.battle.question().correctIndex); await p.evaluate(ci=>{ const b=document.querySelector(`.q-opt[data-i="${ci}"]`); if(b) b.click(); else Game.battle.answer(true); },ci);
+  if(phase!=="question"){ /* assign·resolve 공통 준비 */ const ci=await p.evaluate(()=>Game.battle.question().correctIndex); await p.evaluate(ci=>{ const b=document.querySelector(`.q-opt[data-i="${ci}"]`); if(b) b.click(); else Game.battle.answer(true); },ci);
     if(fullHand) await p.evaluate(()=>{ const X=__studyGame.battleApi.internals(), a=Game.battle.state.units.find(u=>u.side==="ally"); X[a.id].handIds=["turn-page","margin-guard","silence","breathe","focus-line","page-echo","cover-slam","stamp-seal"]; });
     /* 첫 사서 주사위 하나에 카드를 놓아 화살표도 생기게 */
     await p.evaluate(()=>{ const B=Game.battle.state, a=B.units.find(u=>u.side==="ally"), e=B.units.find(u=>u.side==="enemy"); const c=Game.battle.hand(a.id).find(c=>Game.battle.usable(a.id,c).usable); if(c) Game.battle.assign(a.id,0,c,{unit:e.id,die:e.dice.length?0:null}); });
     await p.click(`.speed-die[data-side="ally"]`); await p.click(`.speed-die[data-side="enemy"]`); }   /* 적 주사위 정보창도 연 상태로 */
+  if(phase==="resolve"){ await p.evaluate(()=>{ const B=Game.battle.state; for(const u of B.units.filter(u=>u.side==="ally")) u.dice.forEach((d,i)=>{ const e=B.units.find(x=>x.side==="enemy"&&x.hp>0); const c=Game.battle.hand(u.id).find(c=>Game.battle.usable(u.id,c).usable); if(c&&!d.card) Game.battle.assign(u.id,i,c,{unit:e.id,die:e.dice.length?0:null}); }); });
+    await p.click("#btn-open"); await p.waitForSelector("#clash-panel.on",{timeout:15000}); await p.waitForTimeout(450); return p.evaluate(measure); }
   await p.waitForTimeout(500); return p.evaluate(measure);
 }
 let total=0;
-for(const [w,h] of [[844,390],[390,844]]) for(const [pn,setup] of [["1:3",solo],["3:3",party3]]) for(const [ph,full] of [["question",false],["assign",false],["assign-hand8",true]]){
+for(const [w,h] of [[844,390],[390,844]]) for(const [pn,setup] of [["1:3",solo],["3:3",party3]]) for(const [ph,full] of [["question",false],["assign",false],["assign-hand8",true],["resolve",false]]){
   if(pn==="1:3"&&ph==="assign-hand8") continue;
   await p.setViewportSize({width:w,height:h});
-  const r=await scene("beccaria",setup,ph.startsWith("assign")?"assign":"question",full);
+  const r=await scene("beccaria",setup,ph==="resolve"?"resolve":ph.startsWith("assign")?"assign":"question",full);
   total+=r.hits.length; console.log(`${r.hits.length?"FAIL":"PASS"} ${w}x${h} ${pn} ${ph}: overlaps ${r.hits.length} (상자 ${r.n})`+(r.hits.length?" — "+r.hits.slice(0,6).join(", "):""));
   if(r.hits.length) await p.screenshot({path:join(ROOT,`shots/overlap/${w}-${pn.replace(":","v")}-${ph}.png`)});
 }

@@ -139,7 +139,7 @@ export async function createStage(canvas) {
       debug.props.push(name);
     }
     /* 떠다니는 먼지 */
-    const N = 90, pos = new Float32Array(N * 3); for (let i = 0; i < N; i++) { pos[i * 3] = (R() - 0.5) * 13; pos[i * 3 + 1] = R() * 5; pos[i * 3 + 2] = (R() - 0.5) * 6 - 1; }
+    const N = 90, pos = new Float32Array(N * 3); for (let i = 0; i < N; i++) { pos[i * 3] = (R() - 0.5) * 13; pos[i * 3 + 1] = R() * 5; pos[i * 3 + 2] = R() * 5 - 4.5; }   /* 카메라 쪽(z>0.5)엔 두지 않는다: 가까운 입자는 큰 네모로 보임 */
     const dg = new THREE.BufferGeometry(); dg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     dust = new THREE.Points(dg, new THREE.PointsMaterial({ color: T.dust, size: 0.04, transparent: true, opacity: 0.7 })); world.add(dust);
     debug.mood = moodKey; debug.spark = T.spark;
@@ -187,7 +187,7 @@ export async function createStage(canvas) {
     const lit = 1 - dim.k * 0.85;
     hemi.intensity = lightBase.hemi * lit; key.intensity = lightBase.key * (1 - dim.k * 0.6); rim.intensity = lightBase.rim * lit;
     for (const { L, base, i } of flicker) L.intensity = (base + Math.sin(now / 170 + i * 2) * 0.12 + Math.sin(now / 53 + i) * 0.05) * lit;
-    if (dust) { dust.rotation.y = now / 40000; dust.position.y = Math.sin(now / 3000) * 0.1; }
+    if (dust) { dust.rotation.y = Math.sin(now / 20000) * 0.15;   /* 크게 돌면 뒤쪽 입자가 카메라 앞으로 온다 */ dust.position.y = Math.sin(now / 3000) * 0.1; }
     camShake.amp *= 0.86;
     placeCamera(now);
     renderer.render(scene, cam); debug.frames++;

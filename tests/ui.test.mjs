@@ -67,6 +67,20 @@ await answer(true); await assignAll(); await p.click("#btn-open");
 const recovered=await p.waitForFunction(()=>window.__end||(Game.battle.state.phase==="question"&&document.querySelector("#question.on")),null,{timeout:20000}).then(()=>true).catch(()=>false);
 ok(recovered,"연출 예외가 나도 다음 막으로 진행");
 errs.splice(0,errs.length,...errs.filter(e=>!/연출 실패 시험/.test(e)));
+/* 합 중: 양쪽 책장 이름 · 주사위 종류·나온 값 · 승패 · 피해를 보여 줌 */
+await go("beccaria"); await answer(true); await assignAll();
+const myCard=await p.evaluate(()=>{ const a=Game.battle.state.units.find(u=>u.side==="ally"); const d=a.dice.find(d=>d.card); return d&&Game.battle.cardInfo(d.card,a.id).name; });
+await p.click("#btn-open");
+const cp=await p.waitForFunction(()=>{ const e=document.querySelector("#clash-panel.on"); return e&&/\d/.test(e.querySelector(".cp-steps")?.textContent||"")&&e.textContent; },null,{timeout:15000}).then(h=>h.jsonValue()).catch(()=>"");
+ok(!!cp&&/VS|일방/.test(cp)&&/(승|패|무승부|막음|회피|일방)/.test(cp),"합 표시: 양쪽·결과",String(cp).slice(0,200));
+const seen=await p.waitForFunction(n=>{ const t=document.querySelector("#clash-panel")?.textContent||""; return !n||t.includes(n)?true:null; },myCard,{timeout:15000}).then(()=>true).catch(()=>false);
+ok(seen,"내 책장 이름이 합 표시에 나옴",{myCard});
+await p.waitForFunction(()=>Game.battle.state.phase==="question"||window.__end,null,{timeout:30000});
+ok(!(await p.$("#clash-panel.on")),"막이 끝나면 합 표시 닫힘");
+/* 주사위 없는 적(흐트러짐)의 몸을 누르는 자리는 투명해야 함(회색 사각형 버그) */
+await go("beccaria");
+const etBg=await p.evaluate(()=>{ const b=document.createElement("button"); b.className="enemy-target"; document.getElementById("dice-layer").appendChild(b); const c=getComputedStyle(b); const r={bg:c.backgroundColor,img:c.backgroundImage,border:c.borderTopWidth}; b.remove(); return r; });
+ok((etBg.bg==="rgba(0, 0, 0, 0)"||etBg.bg==="transparent")&&etBg.img==="none"&&etBg.border==="0px","적 몸 누르는 자리: 배경·테두리 없음",etBg);
 /* 책장을 안 고른 상태에서 적 주사위를 누르면 그 적이 쓸 책장 정보 */
 await go("beccaria"); await answer(true);
 const ed=await p.evaluate(()=>{ const e=Game.battle.state.units.find(u=>u.side==="enemy"&&u.dice.length), d=e.dice[0], c=Game.battle.cardInfo(d.card,e.id);

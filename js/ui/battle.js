@@ -21,12 +21,13 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     <div id="status"><span class="scene num"></span><span class="guest"></span><span class="msg"></span></div>
     <div id="learn" role="note"></div>
     <div id="enemy-info" role="note" aria-live="polite"></div>
+    <div id="clash-panel" aria-live="polite"></div>
     <div id="question" aria-live="polite"></div>
     <div id="hand" hidden><div class="info"></div><div class="cards"></div></div>
     <button id="btn-open" type="button" hidden>개막</button>
     <div id="skip-layer"><span class="hint">탭: 빨리 · 길게: 건너뛰기</span></div>`;
   const $ = s => root.querySelector(s);
-  const el = { bars: $("#hud-bars"), arrows: $("#target-arrows"), dice: $("#dice-layer"), status: $("#status"), learn: $("#learn"), info: $("#enemy-info"), q: $("#question"), hand: $("#hand"), open: $("#btn-open"), skip: $("#skip-layer") };
+  const el = { bars: $("#hud-bars"), arrows: $("#target-arrows"), dice: $("#dice-layer"), status: $("#status"), learn: $("#learn"), info: $("#enemy-info"), clash: $("#clash-panel"), q: $("#question"), hand: $("#hand"), open: $("#btn-open"), skip: $("#skip-layer") };
   let sel = null, selCard = null, busy = false, alive = true, raf = 0, barSnap = null, msgT = 0;
 
   await stage.setUnits(B().units, guest);
@@ -167,6 +168,35 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   });
   el.learn.addEventListener("click", () => el.learn.classList.toggle("open"));
 
+  /* ---------- 합 표시: 양쪽 책장 · 단계마다 주사위 종류·나온 값 · 승패 · 피해 (내 쪽은 늘 왼쪽) ---------- */
+  const RES = { win: "승", lose: "패", draw: "무승부", block: "막음", evade: "회피", none: "" };
+  let clashT = 0;
+  function showClash(ev, isFast) {
+    const st = B(), uA = st.units.find(u => u.id === ev.a.unit), allyFirst = uA && uA.side === "ally";
+    const L = allyFirst ? "a" : "b", Rk = allyFirst ? "b" : "a";
+    const side = k => { const x = ev[k]; if (!x) return null; const u = st.units.find(q => q.id === x.unit), c = G.battle.cardInfo(x.card, x.unit) || {}; return { u, name: c.name || "?", big: c.big }; };
+    const left = side(L), right = side(Rk), tgt = st.units.find(u => u.id === ev.target);
+    /* 대응 주사위가 없는 쪽(일방 공격을 받는 쪽): 맞는 유닛 이름 + "대응 없음" */
+    const head = (o, cls) => o ? `<div class="cp-side ${cls}"><span class="who">${esc(o.u ? o.u.name : "")}</span><b>${esc(o.name)}</b>${o.big ? `<em>큰 일격</em>` : ""}</div>` : `<div class="cp-side ${cls} none"><span class="who">${esc(tgt ? tgt.name : "")}</span><b>대응 없음</b></div>`;
+    const die = (d, r) => d ? `<span class="t-${d.type}">${d.type} <span class="num rng">${d.min}~${d.max}</span> ▸ <b class="num val">?</b></span>${r ? `<i class="res r-${r}" hidden>${RES[r] || ""}</i>` : ""}` : `<span class="muted">—</span>`;
+    const rows = (ev.steps || []).map((s, i) => {
+      const dl = s[L + "Die"], dr = s[Rk + "Die"], rl = s[L + "Result"], rr = s[Rk + "Result"];
+      const parts = [];
+      if (s.dmg) { const du = st.units.find(u => u.id === s.dmg.unit); parts.push(`${esc(du ? du.name : "")} 체력 -${s.dmg.hp}${s.dmg.stagger ? ` · 흐트러짐 -${s.dmg.stagger}` : ""}`); }
+      if (s.blocked) parts.push(`${s.blocked} 막음`); if (s.recovered) parts.push(`흐트러짐 +${s.recovered} 회복`);
+      if (!parts.length) parts.push(rl === "draw" ? "무승부 · 피해 없음" : "피해 없음");
+      return `<li class="cp-step" data-i="${i}" data-l="${dl ? dl.value : ""}" data-r="${dr ? dr.value : ""}"><div class="cp-dice"><span class="l">${die(dl, rl)}</span><span class="vs num">${i + 1}</span><span class="r">${die(dr, rr)}</span></div><p class="cp-out" hidden>${parts.join(" · ")}</p></li>`; }).join("");
+    el.clash.innerHTML = `<div class="cp-head">${head(left, "l")}<span class="cp-vs">${ev.kind === "clash" ? "VS" : "일방"}</span>${head(right, "r")}</div><ol class="cp-steps">${rows}</ol>`;
+    el.clash.classList.add("on");
+    clearTimeout(clashT); clashT = setTimeout(() => revealClash(), isFast ? 140 : 420);   /* 맞는 순간(약 40%)에 숫자 공개 */
+  }
+  function revealClash(i) {
+    for (const li of el.clash.querySelectorAll(".cp-step")) { if (i != null && +li.dataset.i > i) continue;
+      const vl = li.querySelector(".l .val"), vr = li.querySelector(".r .val"); if (vl) vl.textContent = li.dataset.l; if (vr) vr.textContent = li.dataset.r;
+      li.querySelectorAll("[hidden]").forEach(x => x.hidden = false); li.classList.add("shown"); }
+  }
+  function hideClash() { clearTimeout(clashT); el.clash.classList.remove("on"); el.clash.innerHTML = ""; }
+
   /* ---------- 적 주사위 정보(책장을 안 고른 상태에서 누르면): 이번 막에 쓸 책장·주사위·속도·대상 ---------- */
   function showEnemyInfo(uid, die) {
     const st = B(), u = st.units.find(x => x.id === uid), d = u && u.dice[die]; if (!d) return;
@@ -234,18 +264,18 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
       if (ev.kind === "skip") continue;
       if (skipAll) { barSnap = null; continue; }
       barSnap = before; renderBars(barSnap);
-      sfx.clash();
-      try { await stage.play(ev, { fast: fast || skipAll, final: G.battle.outcome === "win", onHit: i => {
+      sfx.clash(); showClash(ev, fast);
+      try { await stage.play(ev, { fast: fast || skipAll, final: G.battle.outcome === "win", onHit: i => { revealClash(i);
         const s = ev.steps[i]; if (!s || !s.dmg) return; const side = (B().units.find(u => u.id === s.dmg.unit) || {}).side;
         sfx.hit(); if (s.dmg.hp) floatNum(s.dmg.unit, "-" + s.dmg.hp, "hp" + (side === "ally" ? " ally" : "")); if (s.dmg.stagger) floatNum(s.dmg.unit, "-" + s.dmg.stagger, "st");
         barSnap = null; renderBars(); } });
       } catch (e) { console.warn("[battle] 연출 오류 — 건너뛰고 계속", e); }
-      barSnap = null; renderBars();
+      revealClash(); barSnap = null; renderBars();
       if ((ev.result && ev.result.staggered || []).length) sfx.stagger();
       if ((ev.result && ev.result.dead || []).some(id => id[0] === "e")) sfx.book();
       if (!alive) return;
     }
-    G.battle.stepEnd(R); barSnap = null;
+    G.battle.stepEnd(R); barSnap = null; hideClash();
     if (stage.syncUnits) stage.syncUnits(B().units);   /* 건너뛴 교환에서 쓰러진 적·흐트러짐까지 무대에 맞춤 */
     if (G.battle.outcome) {
       const result = G.battle.settle();
