@@ -45,7 +45,7 @@ assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/bui
 | `await createStage(canvas)` | WebGL 실패면 `ok:false`인 빈 무대(모든 호출이 아무것도 안 함, `play`는 바로 끝남) |
 | `setFloor({mood, accent, props})` | 팔각 단, 책장 9개(책 색 = 분위기 + accent), 소품은 가장자리 슬롯 6곳 |
 | `await setUnits(units, guest)` | `Game.battle.state.units` 그대로. 사서는 왼쪽, 적은 오른쪽(우두머리 가운데·조금 크게), 발밑 편 색 고리 |
-| `await play(ev, {fast, onHit, final})` | 교환 하나 연출(ev 모양은 `docs/battle.md` 4절). 합 1.0초(+단계당 0.2초, 최대 1.6초), fast 0.35초. 맞는 순간(40%)부터 단계마다 `onHit(i)`. 쓰러진 적은 조각으로 흩어지고 책(손님 표지)이 떨어진다 |
+| `await play(ev, {fast, onStep, onHit, final})` | 교환 하나 연출(ev 모양은 `docs/battle.md` 4절). 합 1.0초(+단계당 0.2초, 최대 1.6초), fast 0.35초. 맞는 순간(40%)부터 단계마다 `onStep(i)`(늘), 이어서 피해가 있으면 `onHit(i)`. 맞는 순간 0.15초 슬로우(0.25배, `SLOW_MS`·`SLOW_SCALE`, fast면 없음). 쓰러진 적은 조각으로 흩어지고 책(손님 표지)이 떨어진다 |
 | `finishNow()` | 진행 중 연출을 바로 끝냄(길게 누르기) |
 | `await burnBook({cover, n, fast})` | 도서관 책 소각: 사서 앞 공중에 그 손님 책(표지 `cover`)이 떠올라 빛나다가 낱장이 흩날리고 불씨와 함께 오그라들어 사라짐, 끝에 사서 cheer. 1.4초(fast 0.4초), `finishNow()`로 바로 끝. 종이 14장+권당 3장(최대 36). 빈 무대는 바로 끝 |
 | `await wrongBonk(ids?)` | 오답: 살아 있는 사서(유닛 id 목록, 없으면 전부) 머리 위에서 코드로 만든 작은 책(진한 표지)이 떨어져 "콩" 맞고 옆으로 튕겨 사라짐. 맞는 순간(32%) 사서 Hit_A 움찔 + 짧은 카메라 흔들림, 끝나면 Idle. 0.6초 뒤 resolve, 입력을 막지 않음. 겹쳐 부르면 앞의 것은 바로 치움, `finishNow()`로 바로 끝, 빈 무대는 바로 끝 |
@@ -59,8 +59,9 @@ assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/bui
 - 자리(가로): 막대는 위 왼쪽(사서)·위 오른쪽(적), 상태판·오답 해설은 위 가운데, 속도 주사위는 머리 위(막대·상태판 아래로, 다른 유닛 주사위와 안 겹치게 밀어냄), 손패는 아래 가운데, [개막]은 아래 오른쪽, 문제 패널은 아래.
 - 세로: 막대 위 두 줄, 상태판·해설 그 아래, 무대 가운데, 손패·[개막]·문제는 아래.
 - 조작: 문제를 풀고 → 내 주사위 → 카드 → 적 주사위(주사위 없는 적은 몸)를 누른다. 노릴 적이 하나면 카드만 눌러도 놓인다. 놓인 주사위를 다시 누르면 뺀다.
+- 합 판(`#clash-panel`): 양쪽 책장 판 `.cp-side.l`(내 쪽)·`.cp-side.r`이 각 캐릭터 옆(가로: 내 판은 캐릭터 왼쪽, 상대 판은 오른쪽 / 세로: 머리 위, 화면 반씩)을 따라다닌다(`placeClash`, 막대·상태판 아래로). 단계마다 숫자 공개(`.cp-die.shown`) + 튀어 오름(`.pop`), 이긴 판 `.hit`·피해 받은 판 `.hurt` 0.18초. 대응 없는 쪽은 `.cp-side.none`. 합 연출 중 `#dice-layer`는 숨김.
 - [개막] → `Game.battle.stepBegin/stepNext/stepEnd`로 교환마다 `stage.play`. 진행 중에는 입력이 잠기고, 화면을 탭하면 빨리 감기, 450ms 넘게 누르면 남은 교환을 연출 없이 처리한다.
-- DOM id·클래스(테스트와 겹침 검사가 씀): `.unit-bar[data-unit]`, `.die-row`, `.speed-die[data-unit][data-die][data-side]`, `.enemy-target`, `#target-arrows`, `#hand .card[data-card]`, `#btn-open`, `#status`, `#learn`, `#question .q-opt[data-i]` / `#q-short` `#q-submit`, `#skip-layer`.
+- DOM id·클래스(테스트와 겹침 검사가 씀): `.unit-bar[data-unit]`, `.die-row`, `.speed-die[data-unit][data-die][data-side]`, `.enemy-target`, `#target-arrows`, `#hand .card[data-card]`, `#btn-open`, `#status`, `#learn`, `#question .q-opt[data-i]` / `#q-short` `#q-submit`, `#skip-layer`, `#clash-panel .cp-side[data-unit]`.
 
 ## 6. 테스트
 - `node tests/run.mjs`: core, libs, mbdata, sim, assets, stage, ui, app, overlap-check. 전부 통과해야 배포한다.

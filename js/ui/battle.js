@@ -172,7 +172,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   /* ---------- 합 표시: 양쪽 책장 판이 각 캐릭터 옆(세로는 머리 위)을 따라다님. 내 쪽은 늘 왼쪽 ----------
      단계마다(stage onStep) 숫자 공개 + 튀어 오름, 이긴 판 .hit · 피해 받은 판 .hurt 번쩍임 */
   const RES = { win: "승", lose: "패", draw: "무승부", block: "막음", evade: "회피", none: "" };
-  let clashEv = null, clashFast = false, clashL = "a", clashR = "b", clashShown = -1;
+  let clashEv = null, clashFast = false, clashL = "a", clashR = "b", clashShown = -1, clashDirty = true;
   const flashT = new Set();
   function showClash(ev, isFast) {
     const st = B(), uA = st.units.find(u => u.id === ev.a.unit), allyFirst = uA && uA.side === "ally";
@@ -189,14 +189,14 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     };
     el.clash.innerHTML = panel(L, "l") + panel(Rk, "r");
     el.clash.classList.add("on"); el.dice.hidden = true;
-    for (const n of el.clash.querySelectorAll(".cp-side")) delete n.dataset.x;
-    placeClash();
+    clashDirty = true; placeClash();
   }
   /* 단계 i 까지 공개. i 없으면 남은 줄을 조용히 모두 공개 */
   function revealClash(i) {
     if (!clashEv) return;
     const steps = clashEv.steps || [], last = i == null ? steps.length - 1 : Math.min(i, steps.length - 1), loud = i != null && !clashFast && !fast && !skipAll;
     for (let k = clashShown + 1; k <= last; k++) revealStep(k, loud && k === last);
+    clashDirty = true;
     clashShown = Math.max(clashShown, last);
   }
   function revealStep(k, loud) {
@@ -227,26 +227,36 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     const t = setTimeout(() => { p.classList.remove(cls); flashT.delete(t); }, 180); flashT.add(t);
   }
   function hideClash() { flashT.forEach(clearTimeout); flashT.clear(); clashEv = null; el.clash.classList.remove("on"); el.clash.innerHTML = ""; el.dice.hidden = false; }
+  /* 판이 내려와야 하는 위쪽 경계: 막대·상태판(barsFloor) + 연출 중 안내 글자 */
+  function topFloor(x, w) {
+    let f = barsFloor(x, x + w) + 6; const hint = el.skip.querySelector(".hint"), hr = hint && hint.getBoundingClientRect();
+    if (hr && hr.width && hr.top < innerHeight * 0.5 && x < hr.right && x + w > hr.left) f = Math.max(f, hr.bottom + 6);
+    return f;
+  }
   /* 판 자리: 가로 = 내 판은 캐릭터 왼쪽, 상대 판은 오른쪽 / 세로 = 머리 위, 왼쪽 반·오른쪽 반 안에서 */
   function placeClash() {
     if (!clashEv) return;
     const W = innerWidth, H = innerHeight, land = W >= H, want = [];
     for (const p of el.clash.querySelectorAll(".cp-side")) {
       const left = p.classList.contains("l"), id = p.dataset.unit, pt = id && B().units.some(u => u.id === id) ? pointOf(id) : { x: left ? W * 0.3 : W * 0.7, y: H * 0.45 };
-      if (!land) p.style.width = Math.floor(W / 2 - 12) + "px"; else p.style.width = "";
-      const w = p.offsetWidth, h = p.offsetHeight; let x, y;
-      if (land) { x = left ? pt.x - 18 - w : pt.x + 18; y = pt.y - 10; }
+      /* 크기는 내용·화면 방향이 바뀔 때만 잰다(매 프레임 레이아웃을 강제하지 않게) */
+      const key = land ? "L" : "P" + W;
+      if (p.dataset.k !== key || clashDirty) { p.style.width = land ? "" : Math.floor(W / 2 - 12) + "px"; p.dataset.k = key; p.dataset.w = p.offsetWidth; p.dataset.h = p.offsetHeight; }
+      const w = +p.dataset.w, h = +p.dataset.h; let x, y;
+      if (land) { x = left ? pt.x - 36 - w : pt.x + 36; y = pt.y - 10; }
       else { const lo = left ? 8 : W / 2 + 4, hi = left ? W / 2 - 4 - w : W - 8 - w; x = Math.min(Math.max(pt.x - w / 2, lo), Math.max(lo, hi)); y = pt.y - 8 - h; }
       x = Math.min(Math.max(x, 6), W - w - 6);
-      const floor = barsFloor(x, x + w) + 6; if (y < floor) y = floor; if (y + h > H - 6) y = Math.max(floor, H - 6 - h);
+      const floor = topFloor(x, w); if (y < floor) y = floor; if (y + h > H - 6) y = Math.max(floor, H - 6 - h);
       want.push({ p, x, y, w, h });
     }
+    clashDirty = false;
     if (want.length === 2) { const [a, b] = want; if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) { const lo = a.y <= b.y ? b : a, hi = lo === a ? b : a; lo.y = hi.y + hi.h + 6; } }
     /* 따라가기: 지난 시간 기준(약 60ms 반감) — 프레임이 느린 기기에서도 뒤처지지 않게 */
     const now = performance.now(), k = 1 - Math.pow(0.5, Math.min(200, now - (placeClash.t || now)) / 60); placeClash.t = now;
     for (const r of want) {
       const ox = r.p.dataset.x == null ? r.x : +r.p.dataset.x, oy = r.p.dataset.y == null ? r.y : +r.p.dataset.y;
       let nx = ox + (r.x - ox) * k, ny = oy + (r.y - oy) * k; if (Math.abs(r.x - nx) < 1) nx = r.x; if (Math.abs(r.y - ny) < 1) ny = r.y;
+      ny = Math.max(ny, topFloor(nx, r.w));   /* 옮겨 가는 중간에도 막대·안내 글자 아래로 */
       r.p.dataset.x = nx; r.p.dataset.y = ny; r.p.style.transform = `translate(${Math.round(nx)}px, ${Math.round(ny)}px)`;
     }
   }

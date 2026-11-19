@@ -20,6 +20,7 @@ const measure=`(()=>{ const R=e=>{ const r=e.getBoundingClientRect(); return {x:
   document.querySelectorAll(".unit-bar").forEach(e=>vis(e)&&boxes.push({k:"bar:"+e.dataset.unit,g:"bars",...R(e)}));
   document.querySelectorAll(".die-row").forEach(e=>vis(e)&&boxes.push({k:"dice:"+e.dataset.unit,g:"dice:"+e.dataset.unit,...R(e)}));
   document.querySelectorAll("#clash-panel .cp-side").forEach(e=>vis(e)&&boxes.push({k:"clash:"+(e.classList.contains("l")?"l":"r"),g:"clash:"+(e.classList.contains("l")?"l":"r"),...R(e)}));
+  { const h=document.querySelector("#skip-layer.on .hint"); if(h&&vis(h)) boxes.push({k:"skip-hint",g:"skip-hint",...R(h)}); }
   for(const id of ["hand","btn-open","status","question","learn","enemy-info"]){ const e=document.getElementById(id); if(e&&vis(e)) boxes.push({k:id,g:id,...R(e)}); }
   /* 화살표: 곡선 위 점 몇 개를 작은 상자로(이어지는 주사위와는 비교 안 함) */
   document.querySelectorAll("#target-arrows path").forEach((p,i)=>{ const L=p.getTotalLength(); for(const t of [0.25,0.5,0.75]){ const q=p.getPointAtLength(L*t); boxes.push({k:"arrow"+i+"@"+t,g:"arrow",x:q.x-2,y:q.y-2,w:4,h:4}); } });
