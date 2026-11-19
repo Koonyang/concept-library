@@ -96,15 +96,16 @@ assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/bui
 
 ## 9. 복장 추가법 (장서복 `look`, 3D 무대)
 복장 하나 = `js/core/data.js`의 `KEY_PAGES[i]`에 `look` 한 줄. 무대 코드는 고치지 않는다. 사서가 그 장서복을 입으면 전투(`setUnits`)와 도서관(`showLibrarian`)에서 바로 보인다. `look`이 없으면 사서 기본 모습(kyu=Mage, lib2=Knight, lib3=Rogue).
+**장서복은 옷만 바꾼다(2026-11-19)**: 사서의 머리·얼굴·다리는 늘 자기 모델 그대로. `look.model`은 더 쓰지 않는다(얼굴이 바뀌어서, `check:content`가 오류로 잡음).
 ```js
-look: { model:"Knight",                        // 몸: Knight | Barbarian | Mage | Rogue | Rogue_Hooded (없으면 사서 기본)
-        cloth:"#3a5a8a",                       // 망토·모자·투구·두건 색(텍스처에 곱해지니 1.5배 밝혀 적용)
-        body:"#5a8c88",                        // 몸통·팔 색(선택, 같은 방식)
-        show:["Round_Shield"], hide:["Knight_Helmet"],   // 모델 부품 켜고 끄기(아래 표). 기본 무기 규칙보다 우선
+look: { top:"Knight",                          // 상의(몸통·팔)를 빌려 올 모델: Knight 갑옷 | Mage 로브 | Rogue 가죽옷 | Barbarian 경장 (없으면 자기 상의)
+        hide:["hat","cape"],                   // 원래 모자·투구("hat")·망토("cape") 벗기, "book"(왼손 책), 부품 이름
+        show:["Knight_Helmet","Round_Shield"],  // 모자·투구·망토·무기·방패 이름. 내 모델에 없으면 그 부품이 있는 모델에서 빌려 같은 뼈에 붙임
+        cloth:"#3a5a8a", body:"#5a8c88",       // 모자·망토 색, 몸통·팔 색(텍스처에 곱해지니 1.5배 밝혀 적용)
         props:[{name:"lantern", bone:"back", scale:0.5, pos:[0,0.1,-0.34], rot:[0,0,0]}] }  // 공용 소품을 뼈에 붙이기
 ```
-- **디자인 규칙(2026-11-19)**: 벌마다 몸·머리·망토·손 조합이 달라야 한다(색만 다른 벌 금지). 지금 6벌: 열람실=가죽옷·맨머리·망토 없음, 심야=두건, 소장관=갑옷·투구 벗음·망토, 고전주의 재판관=로브·모자·망토 없음·지팡이, 파놉티콘=갑옷·투구·망토 없음, 진실과 공익=로브·맨머리·망토 없음.
-- 색 한계: `cloth`/`body`는 텍스처에 곱해지므로 밝은 색(크림·흰색)은 원래 텍스처 색에 가깝게 보인다. 밝은 옷이 필요하면 실루엣으로 구분하거나, 텍스처를 빼고 단색으로 칠하는 기능을 따로 만들어야 한다.
+- 빌려 오는 법(`js/stage/characters.js`): 상의는 `<모델>_Body/_ArmLeft/_ArmRight` 스킨 메시를 사서 뼈대에 다시 묶고(모든 모델 뼈 이름이 같다) 자기 상의는 숨긴다. 모자·망토·무기는 원래 붙어 있던 뼈(head·chest·handslot)와 같은 이름의 뼈에 같은 자리로 붙인다. 두건(Rogue_Hooded)은 머리와 한 덩어리라 빌릴 수 없다.
+- **입 없음(2026-11-19)**: 모든 사람 모델 머리(`*_Head`, `Rogue_Head_Hooded`)는 불러올 때 코 아래 입 부분을 둘레 얼굴 면에 맞춰 평평하게 누른다(`flattenMouth`, 원본 지오메트리 한 번, 수치는 `MOUTH`). 모델을 다시 받아도 그대로 적용된다.
 - 기본 무기: Knight `1H_Sword`, Mage `1H_Wand`(+사서 책 `Spellbook_open`), Barbarian `2H_Axe`, Rogue·Rogue_Hooded `Knife`. 나머지 무기·방패는 숨김.
 - `hide:["book"]`은 사서가 왼손에 드는 책을 뺀다. 왼손에 방패·보조 무기를 `show`하거나 `hand.l` 소품을 붙이면 책은 저절로 빠진다.
 - `props[]`: `name`(PROP_KIT), `bone`(아래 4개), 선택 `scale`(기본: head 0.35, back 0.5, 손 0.4), `pos`(키 1.9 기준 단위, 뼈 좌표계), `rot`(라디안). 모르는 소품·뼈는 경고 한 줄 뒤 건너뛴다. 모델을 못 받으면(자리표시 도형) 몸통 근처에 붙는다.

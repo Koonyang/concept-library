@@ -21,11 +21,65 @@ export function loadCharacters() {
   if (loading) return loading;
   const L = new GLTFLoader();
   loading = Promise.all([...MODELS.map(m => L.loadAsync(BASE + m + ".glb")), L.loadAsync(BASE + "anims.glb")])
-    .then(gs => { models = {}; MODELS.forEach((m, i) => { models[m] = gs[i].scene; }); clips = gs[gs.length - 1].animations; })
+    .then(gs => { models = {}; MODELS.forEach((m, i) => { models[m] = gs[i].scene; flattenMouth(models[m]); }); clips = gs[gs.length - 1].animations; })
     .catch(e => { console.warn("[stage] 캐릭터 모델을 못 받음 — 자리표시로", e && e.message); models = null; clips = null; });
   return loading;
 }
 export const charactersReady = () => !!models;
+
+/* 입 없애기(2026-11-19 큐 양): 로우폴리 얼굴의 입술 굴곡이 못생겨 보여서, 머리 메시에서 코 아래 가운데 상자 안 꼭짓점을
+   둘레 얼굴 면에 맞춘 2차 곡면(z = a + b·x² + c·y + d·y² + e·x²y) 위로 눌러 평평하게 한다. 원본 지오메트리를 한 번만 고친다(복제는 공유).
+   좌표는 머리 메시 자체 좌표(정면 +z, 대략 -1~1). 코 = 가운데(|x|<0.12, -0.75<y<0.05)에서 가장 앞으로 나온 부분 */
+const MOUTH = { noseX: 0.12, noseY: [-0.75, 0.05], noseFront: 0.4, noseBand: 0.06, gap: 0.03, height: 0.32, half: 0.36, zmin: 0.35, ringX: 0.22, ringY: 0.15 };
+function flattenMouth(root) {
+  root.traverse(n => {
+    if (!n.isMesh || !/_Head(_Hooded)?$/.test(n.name) || n.userData.mouthless) return;
+    const pos = n.geometry.attributes.position, N = pos.count, X = i => pos.getX(i), Y = i => pos.getY(i), Z = i => pos.getZ(i);
+    let zmax = -Infinity; const cen = [];
+    for (let i = 0; i < N; i++) if (Math.abs(X(i)) < MOUTH.noseX && Y(i) > MOUTH.noseY[0] && Y(i) < MOUTH.noseY[1] && Z(i) > MOUTH.noseFront) { cen.push(i); zmax = Math.max(zmax, Z(i)); }
+    if (!cen.length) return;
+    let noseBottom = Infinity; for (const i of cen) if (Z(i) > zmax - MOUTH.noseBand) noseBottom = Math.min(noseBottom, Y(i));
+    const top = noseBottom - MOUTH.gap, bottom = top - MOUTH.height;
+    const inBox = i => Math.abs(X(i)) < MOUTH.half && Y(i) < top && Y(i) > bottom && Z(i) > MOUTH.zmin;
+    const inRing = i => !inBox(i) && Math.abs(X(i)) < MOUTH.half + MOUTH.ringX && Y(i) < top + MOUTH.ringY && Y(i) > bottom - MOUTH.ringY && Z(i) > MOUTH.zmin;
+    const f = (x, y) => [1, x * x, y, y * y, x * x * y];
+    /* 최소제곱: (AᵀA)c = Aᵀz 를 가우스 소거로 */
+    const M = Array.from({ length: 5 }, () => new Array(6).fill(0));
+    let ring = 0; for (let i = 0; i < N; i++) { if (!inRing(i)) continue; ring++; const r = f(X(i), Y(i)), z = Z(i); for (let a = 0; a < 5; a++) { for (let b = 0; b < 5; b++) M[a][b] += r[a] * r[b]; M[a][5] += r[a] * z; } }
+    if (ring < 8) return;
+    for (let c = 0; c < 5; c++) { let p = c; for (let r = c + 1; r < 5; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+      if (Math.abs(M[c][c]) < 1e-9) return; for (let r = 0; r < 5; r++) if (r !== c) { const k = M[r][c] / M[c][c]; for (let q = c; q < 6; q++) M[r][q] -= k * M[c][q]; } }
+    const coef = M.map((row, i) => row[5] / row[i]);
+    for (let i = 0; i < N; i++) if (inBox(i)) { const r = f(X(i), Y(i)); pos.setZ(i, r.reduce((s, v, k) => s + v * coef[k], 0)); }
+    pos.needsUpdate = true; if (n.geometry.attributes.normal) n.geometry.computeVertexNormals(); n.geometry.computeBoundingSphere();
+    n.userData.mouthless = true;
+  });
+}
+
+/* 장서복이 다른 모델에서 빌려 입히는 부품.
+   - 상의(top): "<모델>_Body/_ArmLeft/_ArmRight" 스킨 메시를 이 캐릭터 뼈대에 다시 묶는다(뼈 이름이 모두 같음). 머리·다리는 그대로
+   - 단단한 부품(모자·투구·망토·무기·방패): 이름으로 아무 모델에서 찾아, 원래 붙어 있던 뼈와 같은 이름의 뼈에 같은 자리로 붙인다 */
+const TOP_PARTS = ["Body", "ArmLeft", "ArmRight"];
+function findPart(name) { if (!models) return null; for (const m of MODELS) { const n = models[m].getObjectByName(name); if (n) return n; } return null; }
+function borrowRigid(obj, name) {
+  const src = findPart(name); if (!src || !src.parent) return null;
+  const bone = obj.getObjectByName(src.parent.name); if (!bone) return null;
+  const c = src.clone(); c.name = name; c.visible = true; bone.add(c); return c;
+}
+function borrowTop(obj, top, base) {
+  const src = models[top]; if (!src || top === base) return [];
+  const bones = new Map(); obj.traverse(n => { if (n.isBone) bones.set(n.name, n); });
+  const out = [];
+  for (const part of TOP_PARTS) {
+    const s = src.getObjectByName(`${top}_${part}`), mine = obj.getObjectByName(`${base}_${part}`);
+    if (!s || !s.isSkinnedMesh || !mine) continue;
+    const sk = new THREE.Skeleton(s.skeleton.bones.map(b => bones.get(b.name)), s.skeleton.boneInverses.map(m => m.clone()));
+    if (sk.bones.some(b => !b)) continue;
+    const m = new THREE.SkinnedMesh(s.geometry, s.material); m.name = `${top}_${part}`; m.bind(sk, s.bindMatrix.clone());
+    mine.parent.add(m); mine.visible = false; out.push(m);
+  }
+  return out;
+}
 
 function codeBook(color) {
   const g = new THREE.Group();
@@ -67,6 +121,12 @@ function realFigure(look) {
   const holder = new THREE.Group(); obj.scale.setScalar(k); holder.add(obj);
   /* 장서복 복장(look.outfit): show/hide 가 기본 무기 규칙보다 우선. "book" 은 사서의 책(모델 책·코드 책) */
   const O = look.outfit || null, show = new Set(O ? O.show : []), hide = new Set(O ? O.hide : []);
+  /* 빌려 입기: 상의, 그리고 이 모델에 없는 단단한 부품(show 에 적은 모자·망토·무기). "hat"·"cape" 는 원래 모자·투구·망토 모두 */
+  if (O) {
+    if (O.top) borrowTop(obj, O.top, look.model);
+    for (const name of show) if (name !== "book" && !obj.getObjectByName(name)) borrowRigid(obj, name);
+    obj.traverse(n => { if (!n.isMesh || show.has(n.name)) return; if ((hide.has("hat") && /_(Hat|Helmet)$/.test(n.name)) || (hide.has("cape") && /_Cape$/.test(n.name))) hide.add(n.name); });
+  }
   /* 왼손에 방패·보조 무기·소품을 들면 사서 책(모델 책 포함)은 뺀다 */
   const leftBusy = [...show].some(x => /Shield|Offhand|Spellbook|Mug/.test(x)) || !!(O && O.props.some(q => q.bone === "hand.l"));
   const keep = new Set(WEAPONS[look.model] || []), bookName = look.librarian && !hide.has("book") && !leftBusy ? LIB_BOOK[look.model] : null;

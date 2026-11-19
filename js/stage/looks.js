@@ -39,9 +39,10 @@ export function lookOf(unit, guest, keyPage) {
     const base = { model: LIB_MODEL[id] || "Mage", palette: PALETTES[LIB_PALETTE[id]] || PALETTES.teal, accessory: null, scale: 1.0, librarian: true };
     const kp = keyPage === undefined ? keyPageOf(id) : keyPage, L = kp && kp.look;
     if (!L || typeof L !== "object") return base;
-    if (L.model && OUTFIT_MODELS.includes(L.model)) base.model = L.model;
-    else if (L.model) console.warn("[stage] 모르는 복장 모델:", L.model);
-    base.outfit = { cloth: L.cloth || null, body: L.body || null, show: [].concat(L.show || []), hide: [].concat(L.hide || []),
+    /* 장서복은 옷만 바꾼다: 사서의 몸(얼굴·머리) 모델은 그대로, 상의(top)만 다른 모델에서 빌림 */
+    if (L.model) console.warn("[stage] 장서복 look.model 은 더 쓰지 않음(얼굴이 바뀜) — top 을 쓰세요:", L.model);
+    if (L.top && !OUTFIT_MODELS.includes(L.top)) console.warn("[stage] 모르는 상의 모델:", L.top);
+    base.outfit = { top: OUTFIT_MODELS.includes(L.top) && L.top !== "Rogue_Hooded" ? L.top : null, cloth: L.cloth || null, body: L.body || null, show: [].concat(L.show || []), hide: [].concat(L.hide || []),
       props: [].concat(L.props || []).filter(q => q && q.name) };
     return base;
   }

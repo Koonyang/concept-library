@@ -149,11 +149,11 @@ const lk=await p.evaluate(async([LOOK,KF,PR])=>{ const o={}, KF_=eval(KF), PR_=e
   await S.setUnits(Game.battle.state.units,g); o.plain=PR_(KF_(S));
   K[0].look=eval("("+LOOK+")");
   await S.setUnits(Game.battle.state.units,g); o.red=PR_(KF_(S));
-  /* 몸 바꾸기 + 부품 켜고 끄기 + 등 소품 */
-  K[0].look={model:"Knight",show:["Round_Shield"],hide:["Knight_Helmet"],props:[{name:"lantern",bone:"back",scale:0.5},{name:"candles",bone:"head"},{name:"없는소품",bone:"hand.l"}]};
-  await S.setUnits(Game.battle.state.units,g); { const F=KF_(S), n=k=>F.obj.getObjectByName(k), ch=n("chest");
-    o.knight={body:!!n("Knight_Body"), shield:n("Round_Shield")&&n("Round_Shield").visible, helmet:n("Knight_Helmet")&&n("Knight_Helmet").visible,
-      sword:n("1H_Sword")&&n("1H_Sword").visible, lanternOnChest:!!(ch&&ch.getObjectByName("prop:lantern")), candlesOnHead:!!(n("head")&&n("head").getObjectByName("prop:candles"))};
+  /* 옷만 바꾸기(2026-11-19): 얼굴(머리 모델)은 그대로, 상의는 Knight 에서 빌림 + 다른 모델 방패 빌림 + 모자 벗기 + 등 소품 */
+  K[0].look={top:"Knight",show:["Round_Shield"],hide:["hat"],props:[{name:"lantern",bone:"back",scale:0.5},{name:"candles",bone:"head"},{name:"없는소품",bone:"hand.l"}]};
+  await S.setUnits(Game.battle.state.units,g); { const F=KF_(S), n=k=>F.obj.getObjectByName(k), ch=n("chest"), vis=k=>!!(n(k)&&n(k).visible);
+    o.knight={body:vis("Knight_Body")&&!vis("Mage_Body"), face:vis("Mage_Head"), mouthless:!!(n("Mage_Head")&&n("Mage_Head").userData.mouthless), shield:vis("Round_Shield"), helmet:vis("Knight_Helmet")||vis("Mage_Hat"),
+      sword:vis("1H_Wand"), lanternOnChest:!!(ch&&ch.getObjectByName("prop:lantern")), candlesOnHead:!!(n("head")&&n("head").getObjectByName("prop:candles"))};
     /* 소품이 화면에서 자연스러운 크기: 등 소품 높이가 키(1.9)의 15%~50% */
     F.obj.updateMatrixWorld(true); const L=F.obj.getObjectByName("prop:lantern"); if(L){ const b=new S.three.Box3().setFromObject(L); o.knight.lanternH=+(b.max.y-b.min.y).toFixed(3); } }
   /* 도서관: 사서 한 명만 가운데 */
@@ -176,7 +176,7 @@ ok(lk.kyuKey==="novice"&&lk.isFirst&&!lk.hadLook,"kyu 기본 장서복 = novice 
 ok(lk.plain&&lk.plain.hat===true&&lk.plain.wand===true&&lk.plain.book===true&&lk.plain.props.length===0,"look 없으면 기존 그대로(모자·지팡이·책, 소품 없음)",lk.plain);
 ok(lk.red&&lk.red.hat===false&&lk.red.orbInHand&&lk.red.wand===true,"look.hide 로 모자 숨김, 오른손 뼈에 prop:orb",lk.red);
 { const c=lk.red&&lk.red.cape, n=c?parseInt(c.slice(1),16):0, R=n>>16, G=n>>8&255, B=n&255; ok(R>180&&G<90&&B<90,"look.cloth → 망토 색 빨강 계열",{cape:c,plain:lk.plain&&lk.plain.cape}); }
-ok(lk.knight.body&&lk.knight.shield===true&&lk.knight.helmet===false&&lk.knight.sword===true&&lk.knight.lanternOnChest&&lk.knight.candlesOnHead,"look.model·show·hide·뼈(back→chest, head) 반영, 모르는 소품은 건너뜀",lk.knight);
+ok(lk.knight.body&&lk.knight.face&&lk.knight.mouthless&&lk.knight.shield===true&&lk.knight.helmet===false&&lk.knight.sword===true&&lk.knight.lanternOnChest&&lk.knight.candlesOnHead,"장서복: 얼굴 그대로(입은 평평)·상의 빌림(top)·다른 모델 방패(show)·모자 벗기(hide hat)·뼈(back→chest, head), 모르는 소품은 건너뜀",lk.knight);
 ok(lk.knight.lanternH>=0.18&&lk.knight.lanternH<=0.95,"뼈에 붙인 소품 크기가 자연스러움(모델 보정 고려, 키 1.9의 10~50%)",lk.knight);
 ok(lk.lib.n===1&&lk.lib.px>=0.15&&lk.lib.px<=0.30&&lk.lib.hat===false&&lk.lib.orbInHand&&lk.lib.current==="Idle"&&Math.abs(lk.lib.ry)>0.05&&Math.abs(lk.lib.ry)<0.8,"showLibrarian(844×390): 사서 한 명, 머리가 폭 15~30%(왼쪽 1/3), 정면 약간 비스듬히, Idle, 복장 반영",lk.lib);
 ok(lk.lib2.hat===true&&!lk.lib2.orbInHand,"장서복(look) 바뀐 뒤 다시 부르면 반영",lk.lib2);

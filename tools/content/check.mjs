@@ -23,7 +23,6 @@ const ACCESSORY = ["lantern", "chain", "hourglass", "quill", "mirror", "watch", 
 const PROP_KIT = ["scales", "candles", "hourglass", "globe", "clock", "bookpile", "scroll", "lantern", "chain", "quill", "mirror", "watch", "banner", "gear", "cage", "orb"];
 const DIE = ["참격", "관통", "타격", "방어", "회피"];
 const PERK = ["none", "light", "emotion", "recover", "hp10", "stagger10"];
-const MODELS = ["Knight", "Barbarian", "Mage", "Rogue", "Rogue_Hooded"];
 const BONES = ["head", "back", "hand.l", "hand.r"];
 const BODIES = ["human", "machine", "puppet"];
 
@@ -116,7 +115,8 @@ for (const g of guests) {
     if (!PERK.includes(k.perk)) bad(K, `perk "${k.perk}"`);
     if (!k.look) warn(K, "look 없음 → 사서 기본 모습");
     else {
-      if (k.look.model && !MODELS.includes(k.look.model)) bad(K, `look.model "${k.look.model}"`);
+      if (k.look.model) bad(K, `look.model 은 더 쓰지 않음(사서 얼굴이 바뀜) — top 을 쓰세요`);
+      if (k.look.top && !["Knight", "Barbarian", "Mage", "Rogue"].includes(k.look.top)) bad(K, `look.top "${k.look.top}" (Knight|Barbarian|Mage|Rogue)`);
       (k.look.props || []).forEach(p => { if (!PROP_KIT.includes(p.name)) bad(K, `look 소품 "${p.name}"`); if (!BONES.includes(p.bone)) bad(K, `look 뼈 "${p.bone}"`); });
     }
   }
