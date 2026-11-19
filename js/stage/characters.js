@@ -27,33 +27,61 @@ export function loadCharacters() {
 }
 export const charactersReady = () => !!models;
 
-/* 입 없애기(2026-11-19 큐 양): 로우폴리 얼굴의 입술 굴곡이 못생겨 보여서, 머리 메시에서 코 아래 가운데 상자 안 꼭짓점을
-   둘레 얼굴 면에 맞춘 2차 곡면(z = a + b·x² + c·y + d·y² + e·x²y) 위로 눌러 평평하게 한다. 원본 지오메트리를 한 번만 고친다(복제는 공유).
-   좌표는 머리 메시 자체 좌표(정면 +z, 대략 -1~1). 코 = 가운데(|x|<0.12, -0.75<y<0.05)에서 가장 앞으로 나온 부분 */
-const MOUTH = { noseX: 0.12, noseY: [-0.75, 0.05], noseFront: 0.4, noseBand: 0.06, gap: 0.03, height: 0.32, half: 0.36, zmin: 0.35, ringX: 0.22, ringY: 0.15 };
+/* 입 없애기(2026-11-19 큐 양): 로우폴리 얼굴의 입술이 못생겨 보여서 처음부터 입이 없던 얼굴처럼 메운다. 원본 지오메트리를 한 번만 고친다(복제는 공유).
+   좌표는 머리 메시 자체 좌표(정면 +z, 대략 -1~1). 코 = 가운데(|x|<0.12, -0.75<y<0.05)에서 가장 앞으로 나온 부분, 입 = 코 밑 상자.
+   상자 안 꼭짓점을 구멍으로 보고, 둘레는 그대로 둔 채 x·y·z 를 얇은 판(∆²=0)으로 풀어 볼·턱 곡면을 이어 붙인다
+   (예전 2차 곡면 맞추기는 입 자리가 안으로 파여 보였다). 위아래 입술이 겹쳐 생긴 얇은 면도 고르게 펴진다.
+   입술·입안 색이 남지 않게 메운 곳의 UV 는 둘레에서 가장 흔한 색(피부/수염)으로, 이음매 줄이 안 보이게 법선은 하나로 */
+const MOUTH = { noseX: 0.12, noseY: [-0.75, 0.05], noseFront: 0.4, noseBand: 0.06, gap: 0.03, height: 0.32, half: 0.36, zmin: 0.35 };
 function flattenMouth(root) {
   root.traverse(n => {
     if (!n.isMesh || !/_Head(_Hooded)?$/.test(n.name) || n.userData.mouthless) return;
-    const pos = n.geometry.attributes.position, N = pos.count, X = i => pos.getX(i), Y = i => pos.getY(i), Z = i => pos.getZ(i);
-    let zmax = -Infinity; const cen = [];
-    for (let i = 0; i < N; i++) if (Math.abs(X(i)) < MOUTH.noseX && Y(i) > MOUTH.noseY[0] && Y(i) < MOUTH.noseY[1] && Z(i) > MOUTH.noseFront) { cen.push(i); zmax = Math.max(zmax, Z(i)); }
-    if (!cen.length) return;
-    let noseBottom = Infinity; for (const i of cen) if (Z(i) > zmax - MOUTH.noseBand) noseBottom = Math.min(noseBottom, Y(i));
-    const top = noseBottom - MOUTH.gap, bottom = top - MOUTH.height;
-    const inBox = i => Math.abs(X(i)) < MOUTH.half && Y(i) < top && Y(i) > bottom && Z(i) > MOUTH.zmin;
-    const inRing = i => !inBox(i) && Math.abs(X(i)) < MOUTH.half + MOUTH.ringX && Y(i) < top + MOUTH.ringY && Y(i) > bottom - MOUTH.ringY && Z(i) > MOUTH.zmin;
-    const f = (x, y) => [1, x * x, y, y * y, x * x * y];
-    /* 최소제곱: (AᵀA)c = Aᵀz 를 가우스 소거로 */
-    const M = Array.from({ length: 5 }, () => new Array(6).fill(0));
-    let ring = 0; for (let i = 0; i < N; i++) { if (!inRing(i)) continue; ring++; const r = f(X(i), Y(i)), z = Z(i); for (let a = 0; a < 5; a++) { for (let b = 0; b < 5; b++) M[a][b] += r[a] * r[b]; M[a][5] += r[a] * z; } }
-    if (ring < 8) return;
-    for (let c = 0; c < 5; c++) { let p = c; for (let r = c + 1; r < 5; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
-      if (Math.abs(M[c][c]) < 1e-9) return; for (let r = 0; r < 5; r++) if (r !== c) { const k = M[r][c] / M[c][c]; for (let q = c; q < 6; q++) M[r][q] -= k * M[c][q]; } }
-    const coef = M.map((row, i) => row[5] / row[i]);
-    for (let i = 0; i < N; i++) if (inBox(i)) { const r = f(X(i), Y(i)); pos.setZ(i, r.reduce((s, v, k) => s + v * coef[k], 0)); }
-    pos.needsUpdate = true; if (n.geometry.attributes.normal) n.geometry.computeVertexNormals(); n.geometry.computeBoundingSphere();
-    n.userData.mouthless = true;
+    if (fillMouth(n.geometry)) n.userData.mouthless = true;
   });
+}
+function fillMouth(g) {
+  const pos = g.attributes.position, N = pos.count, X = i => pos.getX(i), Y = i => pos.getY(i), Z = i => pos.getZ(i);
+  let zmax = -Infinity; const cen = [];
+  for (let i = 0; i < N; i++) if (Math.abs(X(i)) < MOUTH.noseX && Y(i) > MOUTH.noseY[0] && Y(i) < MOUTH.noseY[1] && Z(i) > MOUTH.noseFront) { cen.push(i); zmax = Math.max(zmax, Z(i)); }
+  if (!cen.length) return false;
+  let noseBottom = Infinity; for (const i of cen) if (Z(i) > zmax - MOUTH.noseBand) noseBottom = Math.min(noseBottom, Y(i));
+  const top = noseBottom - MOUTH.gap, bottom = top - MOUTH.height;
+  const inBox = i => Math.abs(X(i)) < MOUTH.half && Y(i) < top && Y(i) > bottom && Z(i) > MOUTH.zmin;
+  /* 같은 자리 꼭짓점(UV 때문에 갈라진 것)을 하나로 */
+  const key = i => Math.round(X(i)*1e4)+","+Math.round(Y(i)*1e4)+","+Math.round(Z(i)*1e4);
+  const vid = new Int32Array(N), rep = [], members = []; const km = new Map();
+  for (let i = 0; i < N; i++) { const k = key(i); let v = km.get(k); if (v === undefined) { v = rep.length; km.set(k, v); rep.push(i); members.push([]); } vid[i] = v; members[v].push(i); }
+  const V = rep.length, nb = Array.from({length:V}, () => new Set());
+  const idx = g.index ? g.index.array : null, T = idx ? idx.length : N;
+  for (let t = 0; t < T; t += 3) { const a = vid[idx?idx[t]:t], b = vid[idx?idx[t+1]:t+1], c = vid[idx?idx[t+2]:t+2]; nb[a].add(b).add(c); nb[b].add(a).add(c); nb[c].add(a).add(b); }
+  const free = []; const fi = new Int32Array(V).fill(-1);
+  for (let v = 0; v < V; v++) if (inBox(rep[v])) { fi[v] = free.length; free.push(v); }
+  const n = free.length; if (!n) return false;
+  /* 구멍 메우기: 바깥은 고정, 안쪽 꼭짓점 x·y·z 를 각각 ∆²=0(얇은 판)으로 푼다 */
+  const lapRows = (() => { const nbl = v => [...nb[v]].filter(u => u !== v);
+    const lap = v => { const m = new Map(), us = nbl(v), w = 1 / us.length; for (const u of us) m.set(u, (m.get(u) || 0) + w); m.set(v, (m.get(v) || 0) - 1); return m; };
+    return free.map(v => { const us = nbl(v), w = 1 / us.length, row = new Map();
+      const acc = (m, k) => { for (const [u, q] of m) row.set(u, (row.get(u) || 0) + k * q); };
+      for (const u of us) acc(lap(u), w); acc(lap(v), -1); return row; }); })();
+  const out = [];
+  for (const get of [X, Y, Z]) {
+    const A = Array.from({ length: n }, () => new Float64Array(n + 1));
+    lapRows.forEach((row, r) => { for (const [u, q] of row) { if (fi[u] >= 0) A[r][fi[u]] += q; else A[r][n] -= q * get(rep[u]); } });
+    for (let c = 0; c < n; c++) { let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r; [A[c], A[p]] = [A[p], A[c]];
+      if (Math.abs(A[c][c]) < 1e-12) return false; for (let r = 0; r < n; r++) if (r !== c) { const k = A[r][c] / A[c][c]; if (k) for (let q = c; q <= n; q++) A[r][q] -= k * A[c][q]; } }
+    out.push(A.map((row, r) => row[n] / row[r]));
+  }
+  free.forEach((v, r) => { for (const i of members[v]) pos.setXYZ(i, out[0][r], out[1][r], out[2][r]); });
+  /* 색: 가장자리(구멍 바로 바깥) 꼭짓점에서 가장 흔한 UV(피부/수염 색) 하나로 칠한다 */
+  const uv = g.attributes.uv; if (uv) { const cnt = new Map();
+    for (const v of free) for (const u of nb[v]) if (fi[u] < 0) for (const i of members[u]) { const k = uv.getX(i).toFixed(4)+","+uv.getY(i).toFixed(4); cnt.set(k, (cnt.get(k)||0)+1); }
+    let best = null, bc = -1; for (const [k,c] of cnt) if (c > bc) { bc = c; best = k; }
+    if (best) { const [bu,bv] = best.split(",").map(Number); for (const v of free) for (const i of members[v]) uv.setXY(i, bu, bv); uv.needsUpdate = true; } }
+  pos.needsUpdate = true; g.computeVertexNormals();
+  /* 메운 곳과 그 둘레는 갈라진 꼭짓점도 한 법선(이음매 줄이 안 보이게) */
+  const nrm = g.attributes.normal, near = new Set(free); for (const v of free) for (const u of nb[v]) near.add(u);
+  for (const v of near) { let x = 0, y = 0, zz = 0; for (const i of members[v]) { x += nrm.getX(i); y += nrm.getY(i); zz += nrm.getZ(i); } const l = Math.hypot(x, y, zz) || 1; for (const i of members[v]) nrm.setXYZ(i, x / l, y / l, zz / l); }
+  nrm.needsUpdate = true; g.computeBoundingSphere(); return true;
 }
 
 /* 장서복이 다른 모델에서 빌려 입히는 부품.
