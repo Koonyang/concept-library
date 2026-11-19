@@ -193,11 +193,11 @@ await p.route(/\.glb$/, r=>r.fulfill({status:404,body:""}));
   ok(ph.a.placeholder&&ph.b.placeholder&&ph.n===1&&ph.b.props.length>=1,"glb 404: 자리표시에서도 복장·showLibrarian·cheer 오류 없음",ph);
   { const e=errs.slice(before).filter(m=>!/Failed to load resource|404/.test(m)); ok(e.length===0,"glb 404 복장: 오류 없음(404 로드 실패 로그 빼고)",e); } errs.splice(before); }
 await p.unroute(/\.glb$/);
-/* 손 뼈(F.hand): 점이 지워진 이름(handslotl)도 찾음 → 책 없는 모델 사서(lib2 Knight·lib3 Rogue)는 왼손에 코드 책 */
+/* 손 뼈(F.hand): 점이 지워진 이름(handslotl)도 찾음 → 책 없는 모델 사서(lib2 Knight·lib3 Rogue)는 왼손에 코드 책 */ (고전주의 재판관 복장은 지팡이를 들고 책을 빼므로 여기서는 열람실 복장)
 await goStage();
 const hd=await p.evaluate(async()=>{ const G=__studyGame, s=G.save;
   s.unlockedKeyIds=["novice","reading-room","midnight","archivist","classical-robe","panopticon-coat","truth-robe","pad8","pad9","pad10"]; G.libs.sync(s);
-  G.libs.equipKey(s,"lib2","archivist"); G.libs.equipKey(s,"lib3","classical-robe"); G.libs.setParty(s,["kyu","lib2","lib3"]); Game.battle.leave(); Game.battle.begin("beccaria");
+  G.libs.equipKey(s,"lib2","archivist"); G.libs.equipKey(s,"lib3","reading-room"); G.libs.setParty(s,["kyu","lib2","lib3"]); Game.battle.leave(); Game.battle.begin("beccaria");
   const S=await __stageMod.createStage(document.getElementById("stage")); await S.setUnits(Game.battle.state.units,Game.data.GUEST_BY.beccaria);
   const r=Game.battle.state.units.filter(u=>u.side==="ally").map(u=>{ const F=S.figure(u.id), L=F.hand("l"), R=F.hand("r");
     return {lib:u.libId, l:!!L, r:!!R, lKids:L?L.children.filter(c=>c.visible&&!c.isBone).map(c=>c.name||c.type):[]}; });
