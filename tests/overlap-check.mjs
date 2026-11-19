@@ -19,7 +19,7 @@ const measure=`(()=>{ const R=e=>{ const r=e.getBoundingClientRect(); return {x:
   const boxes=[];
   document.querySelectorAll(".unit-bar").forEach(e=>vis(e)&&boxes.push({k:"bar:"+e.dataset.unit,g:"bars",...R(e)}));
   document.querySelectorAll(".die-row").forEach(e=>vis(e)&&boxes.push({k:"dice:"+e.dataset.unit,g:"dice:"+e.dataset.unit,...R(e)}));
-  for(const id of ["hand","btn-open","status","question","learn"]){ const e=document.getElementById(id); if(e&&vis(e)) boxes.push({k:id,g:id,...R(e)}); }
+  for(const id of ["hand","btn-open","status","question","learn","enemy-info"]){ const e=document.getElementById(id); if(e&&vis(e)) boxes.push({k:id,g:id,...R(e)}); }
   /* 화살표: 곡선 위 점 몇 개를 작은 상자로(이어지는 주사위와는 비교 안 함) */
   document.querySelectorAll("#target-arrows path").forEach((p,i)=>{ const L=p.getTotalLength(); for(const t of [0.25,0.5,0.75]){ const q=p.getPointAtLength(L*t); boxes.push({k:"arrow"+i+"@"+t,g:"arrow",x:q.x-2,y:q.y-2,w:4,h:4}); } });
   const hits=[]; for(let i=0;i<boxes.length;i++) for(let j=i+1;j<boxes.length;j++){ const a=boxes[i], b=boxes[j]; if(a.g===b.g) continue; if(a.g==="arrow"&&b.g.startsWith("dice")||b.g==="arrow"&&a.g.startsWith("dice")) continue; if(a.g==="arrow"&&b.g==="arrow") continue;
@@ -36,7 +36,7 @@ async function scene(gid, setup, phase, fullHand){
     if(fullHand) await p.evaluate(()=>{ const X=__studyGame.battleApi.internals(), a=Game.battle.state.units.find(u=>u.side==="ally"); X[a.id].handIds=["turn-page","margin-guard","silence","breathe","focus-line","page-echo","cover-slam","stamp-seal"]; });
     /* 첫 사서 주사위 하나에 카드를 놓아 화살표도 생기게 */
     await p.evaluate(()=>{ const B=Game.battle.state, a=B.units.find(u=>u.side==="ally"), e=B.units.find(u=>u.side==="enemy"); const c=Game.battle.hand(a.id).find(c=>Game.battle.usable(a.id,c).usable); if(c) Game.battle.assign(a.id,0,c,{unit:e.id,die:e.dice.length?0:null}); });
-    await p.click(`.speed-die[data-side="ally"]`); }
+    await p.click(`.speed-die[data-side="ally"]`); await p.click(`.speed-die[data-side="enemy"]`); }   /* 적 주사위 정보창도 연 상태로 */
   await p.waitForTimeout(500); return p.evaluate(measure);
 }
 let total=0;

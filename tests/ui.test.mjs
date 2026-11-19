@@ -67,6 +67,16 @@ await answer(true); await assignAll(); await p.click("#btn-open");
 const recovered=await p.waitForFunction(()=>window.__end||(Game.battle.state.phase==="question"&&document.querySelector("#question.on")),null,{timeout:20000}).then(()=>true).catch(()=>false);
 ok(recovered,"연출 예외가 나도 다음 막으로 진행");
 errs.splice(0,errs.length,...errs.filter(e=>!/연출 실패 시험/.test(e)));
+/* 책장을 안 고른 상태에서 적 주사위를 누르면 그 적이 쓸 책장 정보 */
+await go("beccaria"); await answer(true);
+const ed=await p.evaluate(()=>{ const e=Game.battle.state.units.find(u=>u.side==="enemy"&&u.dice.length), d=e.dice[0], c=Game.battle.cardInfo(d.card,e.id);
+  const t=d.target&&Game.battle.state.units.find(u=>u.id===d.target.unit); return {unit:e.id,name:c.name,min:c.dice[0].min,max:c.dice[0].max,speed:d.speed,target:t&&t.name}; });
+await p.click(`.speed-die[data-unit="${ed.unit}"][data-die="0"]`);
+const info=await p.waitForSelector("#enemy-info.on",{timeout:3000}).then(h=>h.textContent()).catch(()=>"");
+ok(info.includes(ed.name)&&info.includes(`${ed.min}~${ed.max}`)&&info.includes(String(ed.speed))&&(!ed.target||info.includes(ed.target)),"적 주사위 → 책장 이름·범위·속도·대상",{info:info.slice(0,160),ed});
+ok(await p.evaluate(()=>Game.battle.state.units.filter(u=>u.side==="ally").flatMap(u=>u.dice).every(d=>!d.card)),"정보만 보고 배정은 안 함");
+await p.mouse.click(422,330); await p.waitForTimeout(200);
+ok(!(await p.$("#enemy-info.on")),"다른 데 누르면 닫힘");
 /* 가로·세로 스크린샷 (배정 단계) */
 for(const [w,h] of [[844,390],[390,844]]){ await p.setViewportSize({width:w,height:h}); await go("beccaria"); await answer(true);
   await p.click(`.speed-die[data-side="ally"]`); await p.waitForTimeout(400); await p.screenshot({path:join(ROOT,`shots/ui-battle-${w}.png`)}); }

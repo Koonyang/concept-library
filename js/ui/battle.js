@@ -20,12 +20,13 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     <div id="dice-layer"></div>
     <div id="status"><span class="scene num"></span><span class="guest"></span><span class="msg"></span></div>
     <div id="learn" role="note"></div>
+    <div id="enemy-info" role="note" aria-live="polite"></div>
     <div id="question" aria-live="polite"></div>
     <div id="hand" hidden><div class="info"></div><div class="cards"></div></div>
     <button id="btn-open" type="button" hidden>개막</button>
     <div id="skip-layer"><span class="hint">탭: 빨리 · 길게: 건너뛰기</span></div>`;
   const $ = s => root.querySelector(s);
-  const el = { bars: $("#hud-bars"), arrows: $("#target-arrows"), dice: $("#dice-layer"), status: $("#status"), learn: $("#learn"), q: $("#question"), hand: $("#hand"), open: $("#btn-open"), skip: $("#skip-layer") };
+  const el = { bars: $("#hud-bars"), arrows: $("#target-arrows"), dice: $("#dice-layer"), status: $("#status"), learn: $("#learn"), info: $("#enemy-info"), q: $("#question"), hand: $("#hand"), open: $("#btn-open"), skip: $("#skip-layer") };
   let sel = null, selCard = null, busy = false, alive = true, raf = 0, barSnap = null, msgT = 0;
 
   await stage.setUnits(B().units, guest);
@@ -70,8 +71,9 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     if (n.dataset.x != null && Math.abs(ox - x) <= 1 && Math.abs(oy - y) <= 1) return; n.dataset.x = x; n.dataset.y = y; n.style.left = x + "px"; n.style.top = y + "px"; }
   /* 막대 묶음 아래쪽 경계(주사위·화살표가 막대와 겹치지 않게) */
   function barsFloor(xL, xR) {
-    let y = 0; const tops = [...el.bars.querySelectorAll(".side"), el.status, el.learn.classList.contains("on") ? el.learn : null];
-    for (const s of tops) { if (!s) continue; const r = s.getBoundingClientRect(); if (r.width && r.top < innerHeight * 0.5 && xR > r.left && xL < r.right) y = Math.max(y, r.bottom); }
+    let y = 0; const tops = [...el.bars.querySelectorAll(".side"), el.status, el.learn.classList.contains("on") ? el.learn : null, el.info.classList.contains("on") ? el.info : null];
+    for (const s of tops) { if (!s) continue; const r = s.getBoundingClientRect(), m = s === el.info ? 80 : 0;   /* 정보창은 양옆 80px 까지: 화살표가 모서리를 스치지 않게 */
+      if (r.width && r.top < innerHeight * 0.5 && xR > r.left - m && xL < r.right + m) y = Math.max(y, r.bottom); }
     return y;
   }
   /* 머리 위에 두되: 화면 안으로, 위쪽 막대·상태판 아래로, 다른 유닛의 주사위 줄과 안 겹치게 */
@@ -165,6 +167,21 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   });
   el.learn.addEventListener("click", () => el.learn.classList.toggle("open"));
 
+  /* ---------- 적 주사위 정보(책장을 안 고른 상태에서 누르면): 이번 막에 쓸 책장·주사위·속도·대상 ---------- */
+  function showEnemyInfo(uid, die) {
+    const st = B(), u = st.units.find(x => x.id === uid), d = u && u.dice[die]; if (!d) return;
+    const c = G.battle.cardInfo(d.card, uid) || {}, t = d.target && st.units.find(x => x.id === d.target.unit);
+    const td = t && d.target.die != null && t.dice[d.target.die];
+    const dice = (c.dice || []).map(x => { const ko = x.ko || TYPE_KO[x.type] || x.type; return `<span class="t-${ko}">${ko} <b class="num">${x.min}~${x.max}</b></span>`; }).join(" · ");
+    el.learn.classList.remove("on");
+    el.info.innerHTML = `<div class="ei-head"><b>${esc(u.name)}</b><span class="num">속도 ${d.speed}</span>${c.big ? `<em>큰 일격</em>` : ""}</div>
+      <p class="ei-card">${esc(c.name || "?")}</p><p class="ei-dice">${dice}</p>
+      <p class="ei-target">${t ? `노림 → <b>${esc(t.name)}</b>${td ? ` 의 속도 ${td.speed} 주사위` : ""}${G.battle.isClash(uid, die) ? " · <b>합</b>" : ""}` : "노리는 대상 없음"}</p>`;
+    el.info.dataset.unit = uid; el.info.dataset.die = die; el.info.classList.add("on"); sfx.tap();
+  }
+  const hideInfo = () => el.info.classList.remove("on");
+  root.addEventListener("pointerdown", e => { if (el.info.classList.contains("on") && !e.target.closest(".speed-die[data-side=\"enemy\"], #enemy-info")) hideInfo(); }, true);
+
   /* ---------- 배정 ---------- */
   function firstEmptyDie() { for (const u of liveAllies()) { const i = u.dice.findIndex(d => !d.card); if (i >= 0) return { unit: u.id, die: i }; } return null; }
   el.dice.addEventListener("click", e => {
@@ -176,7 +193,8 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
       else { sel = { unit: uid, die }; selCard = null; sfx.tap(); }
       render(); return;
     }
-    if (!sel || !selCard) { setMsg("내 주사위와 책장을 먼저 골라 줘", "", 1800); return; }
+    if (!selCard) { if (die != null) showEnemyInfo(uid, die); else setMsg("책장을 먼저 골라 줘", "", 1800); return; }
+    if (!sel) { setMsg("내 주사위를 먼저 골라 줘", "", 1800); return; }
     const r = G.battle.assign(sel.unit, sel.die, selCard, { unit: uid, die });
     if (!r.ok) { setMsg(r.reason === "light" ? "빛이 모자라" : r.reason === "emotion" ? "감정 단계가 모자라" : "놓을 수 없어", "bad", 1800); return; }
     sfx.tap(); selCard = null; sel = firstEmptyDie() || sel; render();
@@ -208,7 +226,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   async function runOpen() {
     if (busy || B().phase !== "assign") return;
     const R = G.battle.stepBegin(); if (!R) return;
-    busy = true; fast = false; skipAll = false; sel = null; selCard = null; el.learn.classList.remove("on");
+    busy = true; fast = false; skipAll = false; sel = null; selCard = null; el.learn.classList.remove("on"); hideInfo();
     barSnap = snapUnits(); render();
     for (;;) {
       const before = snapUnits();
