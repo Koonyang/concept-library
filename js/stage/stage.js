@@ -36,6 +36,7 @@ const SLOTS = { 1: [[2.6, 0]], 2: [[3.1, -0.7], [2.0, 0.7]], 3: [[2.6, -0.1], [3
 const FACE = Math.PI / 2 * 0.62;          /* 서로 마주 보되 카메라 쪽으로 조금 */
 /* 교환 연출 시간(ms): 합 1.0초, 단계가 늘면 +0.2초, 최대 1.6초. 빨리 감기 0.35초. 맞는 순간은 40% 지점 */
 export const CLASH_MS = 1000, STEP_MS = 200, MAX_MS = 1600, FAST_MS = 350, HIT_AT = 0.4;
+export const SLOW_MS = 150, SLOW_SCALE = 0.25;   /* 맞는 순간 슬로우(실제 ms, 배율) */
 /* 도서관 책 소각 연출 시간(ms) */
 export const BURN_MS = 1400, BURN_FAST_MS = 400;
 /* 오답 연출 시간(ms): 책이 떨어져 맞고 튕겨 사라질 때까지 */
@@ -81,7 +82,7 @@ export async function createStage(canvas) {
   const rim = new THREE.DirectionalLight(0xffffff, 0); rim.position.set(4, 3, -5); scene.add(rim);
   let world = null, flicker = [], dust = null;
   const tickers = new Set();          /* (dt, now) => void — 캐릭터·연출이 매 프레임 쓰는 것 */
-  const debug = { mood: null, props: [], frames: 0, lastTier: null, bookDrops: 0, lastPlayMs: 0, pixelRatio };
+  const debug = { mood: null, props: [], frames: 0, lastTier: null, bookDrops: 0, lastPlayMs: 0, pixelRatio, slow: { n: 0, minScale: 1 } };
   /* 연출용 빛 묶음: 늘 장면에 있고 꺼져 있다가 fx.light 로 빌려 쓴다 */
   const fxLights = Array.from({ length: FX_LIGHTS }, () => { const L = new THREE.PointLight(0xffffff, 0, 6, 2); L.userData.free = true; scene.add(L); return L; });
   function borrowLight(color, distance, pos) {
@@ -356,7 +357,11 @@ export async function createStage(canvas) {
       burst(fx, hp, spark, rank >= 1 ? 28 : 14, rank >= 1 ? 2 : 1.5); flash(fx, hp, spark, rank >= 3 ? 2.6 : 1.6);
       if (rank >= 3) ring(fx, hp, spark, 4);
       camShake.amp = Math.max(camShake.amp, fast ? 0.06 : (rank >= 2 ? 0.2 : 0.12));
-      time.scale = 0; setTimeout(() => { time.scale = (rank >= 3 && !fast) ? 0.4 : 1; setTimeout(() => { time.scale = 1; }, 300); }, 70);   /* 히트스톱 70ms (+SSR 감속) */
+      if (!fast) {   /* 찰나의 슬로우: 실제 SLOW_MS 동안 SLOW_SCALE 배, 그다음 SSR 은 0.4배 300ms 더 */
+        time.scale = SLOW_SCALE; debug.slow.n++; debug.slow.minScale = Math.min(debug.slow.minScale, SLOW_SCALE);
+        setTimeout(() => { time.scale = rank >= 3 ? 0.4 : 1; setTimeout(() => { time.scale = 1; }, 300); }, SLOW_MS);
+      }
+      if (o.onStep) { try { o.onStep(i); } catch (e) { console.warn(e); } }
       /* 반응 */
       const who = id => figures.get(id);
       if (st.dmg && who(st.dmg.unit) && !(ev.result && ev.result.dead || []).includes(st.dmg.unit)) who(st.dmg.unit).F.act(i % 2 ? "Hit_B" : "Hit_A", { once: true, speed: fast ? 2 : 1.2, fadeMs: 50 });
@@ -405,7 +410,7 @@ export async function createStage(canvas) {
         const hitDone = sleep(tok, (tok.fast ? FAST_MS : CLASH_MS) * HIT_AT);
         await custom({ stage: S, ev, a: (figures.get(ev.a.unit) || {}).F, b: ev.b ? (figures.get(ev.b.unit) || {}).F : null, target: (figures.get(ev.target) || {}).F,
           fast: tok.fast, wait: ms => sleep(tok, ms), burst: (p, c, n) => burst(fx, p, c, n), flash: (p, c) => flash(fx, p, c), shake: a => { camShake.amp = a; }, hitAt: hitDone });
-        (ev.steps || []).forEach((st, i) => { if (st.dmg && o.onHit) o.onHit(i); });
+        (ev.steps || []).forEach((st, i) => { if (o.onStep) o.onStep(i); if (st.dmg && o.onHit) o.onHit(i); });
         for (const id of (ev.result && ev.result.dead) || []) await killUnit(tok, id, o.final);
       } else await playDefault(tok, ev, o);
     } finally {

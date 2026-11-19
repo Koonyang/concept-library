@@ -76,9 +76,12 @@ const t5=await p.evaluate(async()=>{
     for(const u of B.units.filter(u=>u.side==="ally")) u.dice.forEach((d,i)=>{ const c=Game.battle.hand(u.id).find(c=>Game.battle.usable(u.id,c).usable); if(c) Game.battle.assign(u.id,i,c,{unit:en[0].id,die:0}); });
     const R=Game.battle.stepBegin(), evs=[]; let ev; while((ev=Game.battle.stepNext(R))) evs.push(ev); Game.battle.stepEnd(R); return evs; };
   const evs=scene().filter(e=>e.kind!=="skip");
-  const e0=evs[0]; let hits=0, t=performance.now();
-  await S.play(e0,{onHit:()=>hits++}); o.ms=performance.now()-t; o.hits=hits; o.dmgSteps=e0.steps.filter(s=>s.dmg).length;
-  t=performance.now(); await S.play(evs[1]||e0,{fast:true}); o.fastMs=performance.now()-t;
+  const e0=evs[0]; let hits=0, t=performance.now(); const order=[];
+  S.debug.slow={n:0,minScale:1};
+  await S.play(e0,{onHit:i=>{hits++;order.push("h"+i);},onStep:i=>order.push("s"+i)}); o.ms=performance.now()-t; o.hits=hits; o.dmgSteps=e0.steps.filter(s=>s.dmg).length;
+  o.nSteps=e0.steps.length; o.steps=order.filter(x=>x[0]==="s").map(x=>+x.slice(1)); o.order=order; o.slow={...S.debug.slow};
+  S.debug.slow={n:0,minScale:1};
+  t=performance.now(); await S.play(evs[1]||e0,{fast:true}); o.fastMs=performance.now()-t; o.fastSlow=S.debug.slow.n;
   t=performance.now(); const pr=S.play(e0); setTimeout(()=>S.finishNow(),100); await pr; o.skipMs=performance.now()-t;
   /* 적 하나를 체력 1로 → 쓰러짐·책 낙하, 이어지는 skip 교환엔 책이 더 안 떨어짐 */
   const X=__studyGame.battleApi.internals(), en=Game.battle.state.units.filter(u=>u.side==="enemy"&&u.hp>0);
@@ -92,6 +95,9 @@ const t5=await p.evaluate(async()=>{
   let called=0; __stageMod.registerFx("apex",async ctx=>{ called++; await ctx.wait(50); }); await S.play(ssr); o.called=called;
   await S.play({kind:"skip"}); o.ok=true; return o; });
 ok(t5.ms<=1600*1.2&&t5.hits===t5.dmgSteps,"일반 교환: 1.6초 안, 맞는 단계마다 onHit",t5);
+ok(t5.steps.length===t5.nSteps&&t5.steps.every((v,i)=>v===i)&&t5.order.every((x,k)=>x[0]!=="h"||t5.order.indexOf("s"+x.slice(1))<k),"일반 교환: 단계마다 onStep(onHit보다 먼저)",t5.order);
+ok(t5.slow.n===t5.nSteps&&t5.slow.minScale===0.25,"맞는 순간 슬로우 0.25",t5.slow);
+ok(t5.fastSlow===0,"빨리 감기면 슬로우 없음",t5.fastSlow);
 ok(t5.fastMs<=700,"빨리 감기: 0.7초 안(목표 0.35초, 동시 실행 부하 여유)",t5);
 ok(t5.skipMs<=450,"finishNow: 100ms 뒤 부르면 곧 끝남(0.45초 안)",t5);
 ok(t5.deadEnemies>=1&&t5.books===t5.deadEnemies,"쓰러진 적마다 책 한 권(skip 교환에선 더 안 떨어짐)",t5);
