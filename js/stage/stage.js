@@ -6,13 +6,14 @@
      S.play(ev, opts)       교환 연출 → Promise (Task 5)
      S.showLibrarian(libId) 유닛 없이 그 사서 한 명만 가운데에 세움(장착 장서복 복장 반영) → Promise
      S.cheer()              서 있는 사서가 Cheer 한 번 → Promise
+     S.burnBook({cover, n, fast}) 도서관 책 소각: 사서 앞에서 책이 빛나다 낱장으로 흩날리며 사라짐(1.4초, fast 0.4초) → Promise
      S.debug                {mood, props, frames, ...} 테스트용 */
 import * as THREE from "three";
 import { MOODS, DEFAULT_MOOD } from "./moods.js";
 import { buildProp } from "./props.js";
 import { loadCharacters, makeFigure } from "./characters.js";
 import { lookOf, MAGIC_MODELS } from "./looks.js";
-import { CUSTOM_FX, registerFx, TIERS, tierRank, burst, flash, ring, fragments, dropBook } from "./fx.js";
+import { CUSTOM_FX, registerFx, TIERS, tierRank, burst, flash, ring, fragments, dropBook, burnBook as burnBookFx } from "./fx.js";
 export { registerFx };
 
 const PIXEL_RATIO_MAX = 1.5;
@@ -34,11 +35,13 @@ const SLOTS = { 1: [[2.6, 0]], 2: [[3.1, -0.7], [2.0, 0.7]], 3: [[2.6, -0.1], [3
 const FACE = Math.PI / 2 * 0.62;          /* 서로 마주 보되 카메라 쪽으로 조금 */
 /* 교환 연출 시간(ms): 합 1.0초, 단계가 늘면 +0.2초, 최대 1.6초. 빨리 감기 0.35초. 맞는 순간은 40% 지점 */
 export const CLASH_MS = 1000, STEP_MS = 200, MAX_MS = 1600, FAST_MS = 350, HIT_AT = 0.4;
+/* 도서관 책 소각 연출 시간(ms) */
+export const BURN_MS = 1400, BURN_FAST_MS = 400;
 const ATTACK_ANIM = { 참격: "1H_Melee_Attack_Slice_Diagonal", 관통: "1H_Melee_Attack_Stab", 타격: "2H_Melee_Attack_Chop" };
 
 function nullStage() {
   const done = () => Promise.resolve();
-  return { ok: false, setFloor() {}, resize() {}, setUnits: done, showLibrarian: done, cheer: done, play: done, finishNow() {}, syncUnits() {}, setStaggered() {}, unitPoint: () => null, figure: () => null,
+  return { ok: false, setFloor() {}, resize() {}, setUnits: done, showLibrarian: done, cheer: done, play: done, burnBook: done, finishNow() {}, syncUnits() {}, setStaggered() {}, unitPoint: () => null, figure: () => null,
     ring: () => null, onFrame() {}, dispose() {}, debug: { mood: null, props: [], frames: 0 } };
 }
 
@@ -272,7 +275,9 @@ export async function createStage(canvas) {
   /* ---------- 이펙트 묶음 ---------- */
   const fxRoot = new THREE.Group(); scene.add(fxRoot);
   const live = new Set();
-  const fx = { light: borrowLight, add(obj, ms, step, cleanup) { fxRoot.add(obj); const e = { obj, ms, step, cleanup, el: 0 }; live.add(e); step(0, 0, 0); return e; } };
+  const fx = { light: borrowLight, add(obj, ms, step, cleanup) { fxRoot.add(obj); const e = { obj, ms, step, cleanup, el: 0 }; live.add(e); step(0, 0, 0); return e; },
+    /* 수명 전에 바로 치움(시간을 스스로 재는 연출용, ms=Infinity 로 붙인 것) */
+    kill(e) { if (!live.delete(e)) return; fxRoot.remove(e.obj); e.cleanup && e.cleanup(); } };
   tickers.add(dt => { for (const e of live) { e.el += dt * 1000; const k = Math.min(1, e.el / e.ms); e.step(k, dt, e.el);
     if (k >= 1) { live.delete(e); fxRoot.remove(e.obj); e.cleanup && e.cleanup(); } } });
 
@@ -410,7 +415,27 @@ export async function createStage(canvas) {
       debug.lastPlayMs = performance.now() - t0;
     }
   }
-  function finishNow() { const tok = current; if (!tok) return; tok.abort = true; for (const w of [...tok.waits]) w(); }
+  function finishNow() { for (const tok of [current, burnTok]) { if (!tok) continue; tok.abort = true; for (const w of [...tok.waits]) w(); } }
+
+  /* ---------- 도서관 책 소각 ---------- */
+  /* 사서 앞 공중, 상반신 높이. 가로는 사서(x=-2.6) 조금 오른쪽 앞, 세로는 가운데 */
+  function burnPoint() {
+    const w = canvas.clientWidth || canvas.width, h = canvas.clientHeight || canvas.height, wide = w / h >= 1;
+    const f = debug.librarian && figures.get("lib:" + debug.librarian);
+    const p = f ? f.F.obj.position : new THREE.Vector3(wide ? LIB_POSE.wideX : LIB_POSE.tallX, 0, LIB_POSE.z);
+    const ht = f ? f.F.height * f.F.obj.scale.y : 1.9;
+    return new THREE.Vector3(p.x + (wide ? 0.85 : 0.55), p.y + ht * 0.62, p.z + 0.9);
+  }
+  let burnTok = null;
+  async function burnBook(o = {}) {
+    if (burnTok) finishNow();
+    const tok = burnTok = { abort: false, fast: !!o.fast, waits: new Set() };
+    const B = burnBookFx(fx, burnPoint(), o.cover || null, new THREE.Color(debug.spark || 0xffb46a).getHex(), o.n || 1);
+    debug.burn = B.info; debug.burns = (debug.burns || 0) + 1;
+    try { await tween(tok, tok.fast ? BURN_FAST_MS : BURN_MS, k => B.set(k)); }
+    finally { B.end(); if (burnTok === tok) burnTok = null; B.info.papers = 0; }
+    cheer();
+  }
   const v3 = new THREE.Vector3();
   function unitPoint(id) {
     const f = figures.get(id); if (!f) return null;
@@ -429,7 +454,7 @@ export async function createStage(canvas) {
     ok: true, three: THREE, scene, camera: cam, renderer, debug, camShake, tickers,
     setFloor, resize,
     setUnits, showLibrarian, cheer, unitPoint, ring: ringInfo, figure: id => (figures.get(id) || {}).F || null, figures,
-    play, finishNow, setStaggered, syncUnits, fx,
+    play, finishNow, burnBook, setStaggered, syncUnits, fx,
     onFrame(f) { tickers.add(f); return () => tickers.delete(f); },
     dispose() { cancelAnimationFrame(raf); ro.disconnect(); document.removeEventListener("visibilitychange", wake); if (world) disposeTree(world); renderer.dispose(); },
   };

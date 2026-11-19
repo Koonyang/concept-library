@@ -222,6 +222,35 @@ const withLook=outfits.filter(o=>o.has);
 ok(withLook.length>=6,"장서복 6벌 이상에 복장(look)",outfits.map(o=>o.id+":"+o.has));
 ok(withLook.every(o=>o.props>=o.want),"복장 소품이 다 붙음",outfits);
 ok(warns.length===0,"복장 데이터에 모르는 소품·부품·뼈 없음",warns);
+/* ---------- 도서관 책 소각(burnBook): 사서 앞에서 낱장이 흩날리며 사라짐 ---------- */
+for(const [w,h] of [[844,390],[390,844]]){
+  await p.setViewportSize({width:w,height:h}); await goStage();
+  const bn=await p.evaluate(async([shotW])=>{ const o={}, S=await __stageMod.createStage(document.getElementById("stage")); S.setFloor(Game.data.floorStage("crime"));
+    const cover="../"+Game.data.bookCoverSrc(Game.data.GUEST_BY.beccaria); await S.showLibrarian("kyu"); await new Promise(r=>setTimeout(r,200));
+    let t=performance.now(), peak=0; const pr=S.burnBook({cover,n:3}); const iv=setInterval(()=>{ peak=Math.max(peak,(S.debug.burn&&S.debug.burn.papers)||0); },40);
+    await new Promise(r=>setTimeout(r,750)); o.midPapers=S.debug.burn.papers; { const v=S.debug.burn.group.position.clone().project(S.camera); o.pos={x:+((v.x+1)/2).toFixed(3),y:+((1-v.y)/2).toFixed(3)}; }
+    await pr; clearInterval(iv); o.ms=performance.now()-t; o.peak=peak; o.after=S.debug.burn.papers;
+    if(shotW) return o;
+    t=performance.now(); await S.burnBook({cover,n:1,fast:true}); o.fastMs=performance.now()-t;
+    t=performance.now(); const p2=S.burnBook({cover,n:40}); o.maxTotal=S.debug.burn.total; let tf=0; setTimeout(()=>{ tf=performance.now(); S.finishNow(); },100); await p2; o.skipMs=performance.now()-tf; o.skipTotal=performance.now()-t;
+    const count=()=>({g:S.renderer.info.memory.geometries,t:S.renderer.info.memory.textures,k:S.tickers.size,fx:S.fx&&S.scene.children.reduce((a,c)=>a+c.children.length,0)});
+    await new Promise(r=>setTimeout(r,100)); o.a=count();
+    for(let i=0;i<5;i++){ await S.burnBook({cover,n:i+1,fast:i%2===1}); await new Promise(r=>setTimeout(r,60)); } o.b=count();
+    o.lib=S.figure([...S.figures.keys()][0]).current; return o; },[w<h]);
+  ok(bn.ms>=1000&&bn.ms<=2200,`${w}×${h} burnBook: 1.0~2.2초에 끝남`,bn);
+  ok(bn.peak>8&&bn.after===0,`${w}×${h} burnBook: 진행 중 종이 조각 8장 넘게, 끝나면 0`,bn);
+  ok(bn.pos&&bn.pos.x>=0&&bn.pos.x<=(w>h?0.45:1)&&bn.pos.y>=0.05&&bn.pos.y<=0.7,`${w}×${h} burnBook: 사서 앞(가로는 왼쪽 패널 밖)에 보임`,bn.pos);
+  if(w>h){
+    ok(bn.fastMs<=700,"burnBook fast: 0.7초 안",bn);
+    ok(bn.skipMs<=300&&bn.maxTotal<=36,"burnBook: finishNow(100ms 뒤) 부르면 0.3초 안에 끝남, 종이 수 상한",bn);
+    ok(bn.b.k<=bn.a.k&&bn.b.g<=bn.a.g&&bn.b.t<=bn.a.t&&bn.b.fx<=bn.a.fx,"burnBook 5번 반복해도 지오메트리·텍스처·ticker 안 늘어남",bn);
+    ok(bn.lib==="Cheer"||bn.lib==="Idle","burnBook 뒤 사서 cheer",bn.lib);
+  }
+}
+await p.setViewportSize({width:844,height:390});
+await goStage("?nogl");
+const bng=await p.evaluate(async()=>{ const S=await __stageMod.createStage(document.getElementById("stage")); const t=performance.now(); await S.burnBook({cover:null,n:2}); return {ok:S.ok,ms:performance.now()-t}; });
+ok(bng.ok===false&&bng.ms<50,"WebGL 없으면 burnBook 즉시 끝",bng);
 /* @@NEXT@@ */
 ok(errs.filter(e=>!/Error creating WebGL context/.test(e)).length===0,"오류 없음 (nogl 페이지의 WebGL 생성 실패 로그는 의도)",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);
