@@ -367,15 +367,16 @@ const COMBAT_PAGES = [
     flavor:"제310조, 진실성과 공익성의 입증은 피고인이 진다. 엄격한 증명이 아니라 자유로운 증명으로."}
 ];
 
-/* look: 3D 복장(선택, docs/ui.md 9절). 사서 몸은 그대로 두고 망토·모자 색과 소품으로 구분. novice 는 기본 모습 */
+/* look: 3D 복장(선택, docs/ui.md 9절). 몸(model: Knight 갑옷 · Mage 로브 · Rogue 가죽옷 · Rogue_Hooded 두건 · Barbarian 경장),
+   머리(모자·투구 hide), 망토(hide), 방패·소품, 색을 섞어 벌마다 다르게. novice 는 사서 기본 모습 */
 const KEY_PAGES = [
   {id:"novice",name:"초보 사서의 장서복",text:"기본 착장. 특별한 효과는 없다.",perk:"none",coat:0},
-  {id:"reading-room",name:"열람실의 장서복",text:"열람의 기율을 입는다. 접대 시작 빛 +1.",perk:"light",coat:1,look:{cloth:"#3fb0a6",body:"#5a8c88",props:[{name:"lantern",bone:"back",scale:0.45,pos:[0.28,0.42,-0.22]}]}},
-  {id:"midnight",name:"심야 사서",text:"밤을 허비하지 않는 자세. 감정 단계 1로 시작.",perk:"emotion",coat:2,look:{cloth:"#6b5ce0",body:"#4a4a8a",props:[{name:"orb",bone:"head",scale:0.24}]}},
-  {id:"archivist",name:"소장관의 망토",text:"서고를 지키는 자의 옷. 매 턴 빛 회복 +1.",perk:"recover",coat:3,look:{cloth:"#d0463a",body:"#8a3a3a",props:[{name:"quill",bone:"head",scale:0.45,pos:[0.14,0.75,-0.05],rot:[0,0,-0.5]}]}},
-  {id:"classical-robe",name:"고전주의 재판관의 법복",text:"합리의 저울을 입는다. 최대 체력 +10.",perk:"hp10",coat:4,look:{cloth:"#f0e6cc",body:"#d8cdb2",props:[{name:"scales",bone:"back",scale:0.45,pos:[0.3,0.4,-0.2]}]}},
-  {id:"panopticon-coat",name:"파놉티콘 감시관의 외투",text:"모든 곳을 보는 눈. 흐트러짐 피해 +10%.",perk:"stagger10",coat:5,look:{cloth:"#a86e3c",body:"#7a5a3e",props:[{name:"lantern",bone:"hand.l",scale:0.5}]}},
-  {id:"truth-robe",name:"진실과 공익의 법복",text:"진실을 비추는 등불을 든다. 접대 시작 빛 +1.",perk:"light",coat:6,look:{cloth:"#9a52c8",body:"#6a3a8a",props:[{name:"lantern",bone:"hand.l",scale:0.5},{name:"scroll",bone:"back",scale:0.4,pos:[0.3,0.4,-0.2]}]}}
+  {id:"reading-room",name:"열람실의 장서복",text:"열람의 기율을 입는다. 접대 시작 빛 +1.",perk:"light",coat:1,look:{model:"Rogue",cloth:"#3fb0a6",body:"#5a8c88",hide:["Rogue_Cape"],props:[{name:"lantern",bone:"back",scale:0.45,pos:[0.28,0.42,-0.22]}]}},
+  {id:"midnight",name:"심야 사서",text:"밤을 허비하지 않는 자세. 감정 단계 1로 시작.",perk:"emotion",coat:2,look:{model:"Rogue_Hooded",cloth:"#6b5ce0",body:"#4a4a8a",props:[{name:"orb",bone:"hand.l",scale:0.3}]}},
+  {id:"archivist",name:"소장관의 망토",text:"서고를 지키는 자의 옷. 매 턴 빛 회복 +1.",perk:"recover",coat:3,look:{model:"Knight",cloth:"#d0463a",body:"#8a3a3a",hide:["Knight_Helmet"],props:[{name:"quill",bone:"head",scale:0.45,pos:[0.14,0.75,-0.05],rot:[0,0,-0.5]}]}},
+  {id:"classical-robe",name:"고전주의 재판관의 법복",text:"합리의 저울을 입는다. 최대 체력 +10.",perk:"hp10",coat:4,look:{model:"Mage",cloth:"#f0e6cc",body:"#d8cdb2",hide:["Mage_Cape","1H_Wand","book"],show:["2H_Staff"],props:[{name:"scales",bone:"back",scale:0.45,pos:[0.3,0.4,-0.2]}]}},
+  {id:"panopticon-coat",name:"파놉티콘 감시관의 외투",text:"모든 곳을 보는 눈. 흐트러짐 피해 +10%.",perk:"stagger10",coat:5,look:{model:"Knight",cloth:"#a86e3c",body:"#7a5a3e",hide:["Knight_Cape"],props:[{name:"lantern",bone:"hand.l",scale:0.5}]}},
+  {id:"truth-robe",name:"진실과 공익의 법복",text:"진실을 비추는 등불을 든다. 접대 시작 빛 +1.",perk:"light",coat:6,look:{model:"Mage",cloth:"#9a52c8",body:"#6a3a8a",hide:["Mage_Hat","Mage_Cape"],props:[{name:"lantern",bone:"hand.l",scale:0.5},{name:"scroll",bone:"back",scale:0.4,pos:[0.3,0.4,-0.2]}]}}
 ];
 
 /* 책 소각 풀 — 모든 비기본 책장/핵심 책장은 최소 한 손님의 책에서 나온다 (acqAudit가 검사) */
