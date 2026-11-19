@@ -4,6 +4,7 @@ import { createStage } from "../stage/stage.js";
 import { mountBattle } from "./battle.js";
 import { renderFloors, renderGuests, renderResult } from "./screens.js";
 import { sfx } from "./sfx.js";
+import { bgm } from "./bgm.js";
 import { mountNav } from "./nav.js";
 import { renderLibrary } from "./library.js";
 import { renderMoon } from "./moon.js";
@@ -14,11 +15,10 @@ let battle = null, floorId = null, shownFloor = null, sub = null;   /* sub: 계�
 
 /* ---------- 소리 ---------- */
 const BGM = { lobby: "assets/audio/bgm.mp3", battle: "assets/audio/bgm-reception.mp3" };
-const audio = new Audio(); audio.loop = true; audio.volume = 0.45;
 let bgmWant = "lobby";
 const bgmOn = () => G.save.bgmMuted === false;            /* 기본 꺼짐 */
-function playBgm(kind) { bgmWant = kind || bgmWant; if (!bgmOn()) { audio.pause(); return; }
-  const src = BGM[bgmWant]; if (!audio.src.endsWith(src)) audio.src = src; audio.play().catch(() => {}); }
+/* 곡을 바꿀 때 페이드 아웃 → 페이드 인(bgm.js) */
+function playBgm(kind) { bgmWant = kind || bgmWant; if (!bgmOn()) { bgm.stop(); return; } bgm.play(BGM[bgmWant]); }
 sfx.setMuted(!!G.save.sfxMuted);
 
 /* ---------- 가로 고정 (큐 양 결정: 기본 켜짐) ----------
