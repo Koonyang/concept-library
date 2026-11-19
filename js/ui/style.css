@@ -313,3 +313,28 @@ button { font: inherit; color: inherit; }
 
 .lib-tab { white-space: nowrap; }
 @media (max-aspect-ratio: 1/1) { .lib-tabs { left: auto; right: max(12px, env(safe-area-inset-right)); transform: none; top: calc(max(14px, env(safe-area-inset-top)) + 56px); } }
+
+/* ================= 달의 계시 ================= */
+.moon-card { position: absolute; left: 50%; transform: translateX(-50%); bottom: max(16px, env(safe-area-inset-bottom)); width: min(460px, calc(100vw - 32px)); box-sizing: border-box;
+  display: grid; gap: 8px; padding: 16px 18px; border-radius: 16px; background: var(--glass-hi); border: 1px solid var(--line); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.moon-card p { margin: 0; font-size: 13px; } .moon-card .muted { color: var(--muted); font-size: 12px; }
+.moon-card .big { font-size: 34px; font-weight: 700; color: var(--accent); line-height: 1; } .moon-card .big small { font-size: 14px; color: var(--muted); margin-left: 4px; }
+.moon-card button, .moon-card .acts button { padding: 9px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--glass); cursor: pointer; font-weight: 700; }
+.moon-card .primary { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, transparent); justify-self: end; }
+.moon-card .acts { display: flex; gap: 8px; justify-content: flex-end; }
+#moon-result .scores { display: flex; gap: 22px; } #moon-result .scores div { display: grid; } #moon-result .scores span { font-size: 11px; color: var(--muted); }
+#moon-result .scores b { font-size: 28px; color: var(--accent); } #moon-result .scores small { font-size: 13px; color: var(--muted); }
+.moon-quiz { position: absolute; inset: 0; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); box-sizing: border-box; }
+.moon-top { display: flex; gap: 12px; align-items: center; font-size: 12px; color: var(--muted); padding: 6px 12px; border-radius: 999px; background: var(--glass); border: 1px solid var(--line); justify-self: center; width: min(560px, 100%); box-sizing: border-box; }
+.moon-top .kind { color: var(--accent); font-weight: 700; } .moon-top b { color: var(--fg); }
+.moon-timer { flex: 1; height: 5px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden; min-width: 60px; }
+.moon-timer i { display: block; height: 100%; background: var(--accent); transform-origin: left; } .moon-timer.low i { background: var(--bad); }
+#moon-sec { min-width: 30px; text-align: right; }
+.moon-quiz #moon-q { position: static; transform: none; align-self: center; justify-self: center; text-align: center; width: min(520px, 100%); }
+#moon-q .pos { font-size: 11px; color: var(--muted); } #moon-q .prompt { font-size: 26px; font-weight: 800; letter-spacing: -.01em; }
+#moon-q.bonk { animation: bonk .35s; } @keyframes bonk { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.moon-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: min(640px, 100%); justify-self: center; }
+.moon-opt { padding: 12px; border-radius: 11px; border: 1px solid var(--line); background: var(--glass-hi); cursor: pointer; font-size: 14px; font-weight: 600; }
+.moon-opt:hover { border-color: var(--accent); } .moon-opt.ok { border-color: var(--good); background: rgba(159,224,164,.15); } .moon-opt.no { border-color: var(--bad); background: rgba(239,139,128,.15); }
+@media (max-aspect-ratio: 1/1) { .moon-opts { grid-template-columns: 1fr; } #moon-q .prompt { font-size: 24px; } }
+@media (prefers-reduced-motion: reduce) { #moon-q.bonk { animation: none; } }
