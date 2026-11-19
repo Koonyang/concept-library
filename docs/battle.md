@@ -12,10 +12,11 @@
 | 적 최대 3명 | 기본 `MB.ENEMY_MAX`=3. `guest.enemyMax`(1~5) 또는 `guest.manyEnemies===true`(→`MB.maxEnemies` 5)만 예외. 넘치면 우두머리는 남기고 나머지를 앞에서부터. 빠진 적의 문제는 남은 적에게 | `mbEnemyCap`, `mbCreate` |
 | 기믹 추가 유닛(예정) | 분신·소환은 `gimmick.extraUnits`, 각 유닛 `parentId`(본체 id)로 연결. 상태판은 본체 줄에만 표기 | `mbParentId`, `mbGimmickExtras`, `mbIsExtraUnit`, `mbExtrasOf` |
 | 문제 순서 | 처음엔 모든 문제를 한 번씩(살아 있는 적의 문제 먼저, 죽은 적의 문제는 산 적이 대신 냄) → 그다음 틀린 문제부터(틀린 순서) → 나머지 순환. 바로 앞 막과 같은 문제 반복 없음 | `mbNextQid`, `mbQOwner`, `mbPickQuestion`, `mb.qs` |
-| 오답 막 벌점 | 다대다 전용. 오답 막에 사서가 받는 피해 체력 ×`MB.WRONG.hp`(1.7), 흐트러짐 ×`MB.WRONG.st`(2). `COMBAT.pct` 는 건드리지 않음 | `MB.WRONG`, `resolveScene`(pTaken) |
+| 오답 막 벌점 | 다대다 전용. 오답 막에 사서가 받는 피해 체력 ×`MB.WRONG.hp`(2.3), 흐트러짐 ×`MB.WRONG.st`(2). `COMBAT.pct` 는 건드리지 않음 | `MB.WRONG`, `resolveScene`(pTaken) |
 | 레벨 없음 | 사서 레벨·경험치 제거. 성장은 책장·핵심 책장(장서복)·기프트만. 1:1 사서 HP 100·흐트러짐 26 고정(+기프트·장서복) | `COMBAT.playerStartHp`, `COMBAT.playerStagger`, `playerStaggerMax`, `effectiveMaxHp` |
 | PACE 꺼짐 | 판 길이 보정 hold(우두머리 버팀)·drain(양쪽 체력 감소)는 따로 켜는 스위치, 둘 다 기본 `false`. 밸런스는 HP만으로 | `MB.PACE`, `mbPaceHold`, `mbPaceDrain` |
-| 적만 숫자 스케일 | 적 체력·흐트러짐과 적이 받는 피해(적 흐트러짐 회복 포함)에 `MB.SCALE_ENEMY[사서 수]` = {1:20, 2:10, 3:7}. 사서 쪽은 배율 없음(적이 주는 피해 ×1). 주사위 값은 카드 표기 그대로 → 균형은 배율과 무관, 적 숫자만 대략 100~300 | `MB.SCALE_ENEMY`, `mbEnemyScale`, `mbEnemyScaleNow` |
+| 피해 = 주사위 값 | (2026-11-19) 숨은 배율 없음. 체력 피해 = `max(1, floor(값 × TIER[상성] × 이름 있는 보정))`. 보정은 상성 TIER(흐트러진 동안 치명 ×2), 사서→적 기프트·장서복 `dmgPct`, 적→사서 오답 막 `MB.WRONG`, 방어에 막히면 차이만. 정답/오답은 주사위 범위(`COMBAT.pct`)로, 흐트러짐은 정답 배율·`staggerPct`. 체력·흐트러짐도 주사위 단위(예전 `MB.SCALE_ENEMY` 1명 20·2명 10·3명 7 없앰) | `resolveScene`, `hitUnit`, `mbResolveNext` |
+| A안: 적 하나 3~4방 | 사서가 적을 때린 한 방(체력 피해) 중앙값 ≈ 그 적 최대 체력의 25~30%, 체력이 가득한 적이 한 방에 쓰러지는 비율 ≤5%. 숫자 크기는 사서 쪽 너프로 맞춤(사서 157/39 → 100/24, 사서 수 배율 `allyParty`) | `MB.HP`, `tools/sim/balance.mjs`(한 방 중앙·한 방 사망 열) |
 
 ## 2. 엔진 구조
 
@@ -24,7 +25,7 @@
 - `resolveScene({P,G,pDice,gDice,correct,isKey,rng,mods,emotion, dmgScale?,pScale?,pTaken?,stMul?,pRangeFn?,gRangeFn?})` → `steps[]`.
   두 쪽 주사위를 포인터로 맞붙인다. 공격 대 공격은 큰 쪽이 그 값만큼 때림, 방어는 차이만큼 줄여 받거나(지면) 상대 흐트러짐(이기면), 회피는 이기면 흐트러짐 회복하고 **주사위가 남아** 다음 상대와 다시 합(`keeps`, 다음 단계 `reused`).
   각 step: `{pd:{type,roll,reused,keeps}|null, gd:{…}|null, outcome:"P"|"G"|"tie"|"none", events:[{kind:"hit"|"stag"|"recover",target:"P"|"G",hp,st,newStag,…}], newStag:[], pRange, gRange, pIdx, gIdx, snap}`.
-  `dmgScale`/`pScale`/`pTaken` 은 다대다만 넘긴다(1:1 은 모두 1).
+  `pTaken` 은 다대다 오답 막만 넘긴다. `dmgScale`/`pScale` 은 옵션으로만 남아 있고 지금은 아무도 안 넘긴다(=1).
 - 피해 계산: `hitUnit`(저항 `TIER`·`resTier`), `stagOnly`, `recoverSt`. 손님 키트: `guestCombat`(`ARCH_COMBAT` + `GUEST_COMBAT` + `GUEST_SCALE`).
 
 ### 다대다 (기본 모드, `?multi=0` 이면 1:1)
@@ -32,8 +33,8 @@
 
 | 단계 | 함수 |
 |---|---|
-| 설정값 | `MB` (`HP`, `DICE`, `PACE`, `SCALE_ENEMY`, `WRONG`, `ENEMY_MAX`, 속도 등), 기믹 훅 `MB_HOOKS` |
-| 체력 | `mbQuestionCount`, `mbEnemyHpTotal`, `mbEnemyQ`, `mbEnemyCtx`, `mbAllyStats`, `enemyStats`, `mbEnemyScale` |
+| 설정값 | `MB` (`HP`, `DICE`, `PACE`, `WRONG`, `ENEMY_MAX`, 속도 등), 기믹 훅 `MB_HOOKS` |
+| 체력 | `mbQuestionCount`, `mbEnemyHpTotal`, `mbEnemyQ`, `mbEnemyCtx`, `mbAllyStats`, `enemyStats` |
 | 만들기 | `mbCreate`(사서·적 유닛, 적 수 상한 `mbEnemyCap`, 몸 `enemyBody`/`ENEMY_BODY`), `mbQuestionPool` |
 | 막 시작 | `mbStartScene`(주사위 굴림 `mbRollDice`, 적 목표 `mbRelink`, 문제 `mbPickQuestion`/`mbNextQid`/`mbPrepQ`) |
 | 문제 | `mbAnswer`(정답이면 감정 `mbCharge`), 화면 쪽 `mbAnswerUI`, `mbShowQuestion` |
@@ -43,10 +44,11 @@
 | 화면 연결 | `beginMultiReception`, `mbRefresh`, `mbStageOpts`, `mbPaintStats`, `mbStatRow`, `mbShowStepEvents` |
 
 ### 다대다 체력 공식 (`MB.HP`, 지금 값)
-- 사서: `hp = round(allyHp × clamp(문제 수 / qRef, qMin, qMax)) + 기프트·장서복 hp`, `st = allySt`. allyHp 157, allySt 39, qRef 7, qMin 0.85, qMax 2. 배율 없음.
-- 적 무리 전체(배율 전) = `enemyHpPerQ[weakness] × 문제 수 × party[사서 수−1] × (1 + floorStep × 층 순서)`. enemyHpPerQ {1:2.07, 2:2.07, 3:2.28}, party [1, 2.05, 3.2], floorStep 0.05.
-- 적 하나: `hp = max(minHp, round(전체 × 그 적의 문제 수 / 전체 문제 수)) × SCALE_ENEMY[사서 수]`, 흐트러짐 = `max(minSt, round(배율 전 hp × leaderSt 1.1 | followerSt 0.7)) × 같은 배율`.
-- 적 주사위: 손님 키트 값을 `MB.DICE.scale[weakness] × partyScale[사서 수−1] / GUEST_SCALE[weakness]` 로 다시 맞춤(scale {1:1.15, 2:1.15, 3:1.32}, partyScale [1, 1.1, 1.2], 큰 공격 ×bigScale 0.9). 주사위 수: 우두머리 `leaderDice[w] + partyLeader`, 부하 `1 + partyFollower`.
+모든 숫자는 주사위 단위(숨은 배율 없음, 2026-11-19).
+- 사서: `hp = round(allyHp × clamp(문제 수 / qRef, qMin, qMax) × allyParty[사서 수−1]) + 기프트·장서복 hp`, `st = round(allySt × allyParty[사서 수−1])`. allyHp 100, allySt 24, allyParty [1, 1.25, 1.55], qRef 7, qMin 0.85, qMax 2. (전: 157 / 39, 사서 수 배율 없음)
+- 적 무리 전체 = `enemyHpPerQ[weakness] × 문제 수 × party[사서 수−1] × (1 + floorStep × 층 순서)`. enemyHpPerQ {1:4, 2:4, 3:4.4}, party [1, 1.2, 1.25], floorStep 0.05. (전: {1:2.07, 2:2.07, 3:2.28}, [1, 2.05, 3.2], 그 위에 ×SCALE_ENEMY)
+- 적 하나: `hp = max(minHp 6, round(전체 × 그 적의 문제 수 / 전체 문제 수))`, 흐트러짐 = `max(minSt 4, round(hp × leaderSt 1.1 | followerSt 0.7))`.
+- 적 주사위: 손님 키트 값을 `MB.DICE.scale[weakness] × partyScale[사서 수−1] / GUEST_SCALE[weakness]` 로 다시 맞춤(scale {1:1.15, 2:1.15, 3:1.32}, partyScale [0.55, 0.9, 1.25] (전 [1, 1.1, 1.2]), 큰 공격 ×bigScale 0.9). 주사위 수: 우두머리 `leaderDice[w] + partyLeader`, 부하 `1 + partyFollower`.
 
 ## 3. 공개 API `Game` (`js/core/api.js`)
 
@@ -99,8 +101,8 @@
 | `isClash(u, i)` / `relink()` / `setEnemyTarget(eid, k, target)` | 합 여부 / 적 목표 다시 / 적 목표 지정(테스트) |
 | `setRng(fn)` | 난수 교체 |
 | `hand(uid)` / `cardOf(cid)` / `internals()` / `mb` / `outcome` / `current` | 손패 id / 카드 / `mb.x`(유닛별 내부: `cu`, `mods`, `handIds`, `diePages`, `e`, `S`) / 전체 상태 / "win"\|"lose"\|null / `mb.cur`(`{q, isKey}`) |
-| `questionCount(gid)` / `enemyCap(gid)` / `enemyHpTotal(gid, n)` | 문제 수 / 적 수 상한 / 무리 체력(배율 전) |
-| `allyStats(mods, gid)` / `enemyScale(n)` / `enemyStats(guest, e, idx, ctx)` | 사서 `{hp, st}` / `SCALE_ENEMY[n]` / 적 스탯 |
+| `questionCount(gid)` / `enemyCap(gid)` / `enemyHpTotal(gid, n)` | 문제 수 / 적 수 상한 / 무리 체력 |
+| `allyStats(mods, gid, n?)` / `enemyStats(guest, e, idx, ctx)` | 사서 `{hp, st}`(n 사서 수, 없으면 지금 판의 사서 수) / 적 스탯. (`enemyScale` 은 2026-11-19 삭제) |
 | `ENEMY_BODY`, `enemyBody(gid, e)`, `ENEMY_STATS` | 적 몸 표 / 몸 결정 / 적 key 별 덮어쓰기 |
 | `MB`, `hooks` | 설정값, `MB_HOOKS` |
 | `libMods`, `libStartLight`, `libStartEmotion`, `libLightRegen`, `libDeckIds` | 사서별 기프트·장서복 효과 |
@@ -128,11 +130,11 @@
 - `result`: `{staggered:[새로 흐트러진 id], dead:[쓰러진 id]}`, `expr`: `{유닛id: "idle"|"win"|"hurt"|"shock"}`
 - 예전 필드: `by, speed, ally, allyDie, enemy, enemyDie, allyCard, enemyCard, win:"ally"|"enemy"|"tie"|null, snap`
 - `steps[]`: `resolveScene` step 필드(위) +
-  - `aVal`, `bVal`, `winner:"a"|"b"|"tie"`, `dmg:{unit, hp, stagger}|null`(실제 적용 값, 배율 포함), `expr`
+  - `aVal`, `bVal`, `winner:"a"|"b"|"tie"`, `dmg:{unit, hp, stagger}|null`(실제 적용 값 = 주사위 값 × 이름 있는 보정), `expr`
   - `aDie` / `bDie`: `{type(참격/관통/타격/방어/회피), min, max(이번에 실제 적용된 범위), value, idx(책장 안 몇 번째 주사위, 0부터), reused(회피 재사용)}` | `null`
   - `aResult` / `bResult`: `"win"|"lose"|"draw"|"block"|"evade"|"none"`. 방어가 공격을 이기면 `"block"`, 회피가 이기면 `"evade"`, 비기면 둘 다 `"draw"`, 일방 공격은 공격자 `"win"`·받는 쪽 `null`
-  - `blocked`: 방어 주사위가 공격을 상대했을 때 줄어든 체력 피해(방어가 이기거나 비기면 공격 전부, 지면 방어 값 몫). 막은 쪽 기준 배율: 적이 막으면 ×SCALE_ENEMY, 사서가 막으면 ×1. 해당 없으면 0
-  - `recovered`: 회피 성공 시 회복한 흐트러짐(사서 ×1, 적 ×SCALE_ENEMY). 아니면 0
+  - `blocked`: 방어 주사위가 공격을 상대했을 때 줄어든 체력 피해(방어가 이기거나 비기면 공격 전부, 지면 방어 값 몫). 공격한 쪽 보정 그대로(사서 공격 ×(1+dmgPct), 오답 막 적 공격 ×WRONG.hp). 해당 없으면 0
+  - `recovered`: 회피 성공 시 회복한 흐트러짐(주사위 값 그대로). 아니면 0
 
 ## 5. 저장 데이터
 - 키 `SAVE_KEY` = `"concept-library-game-v1"`(바꾸지 않음), 기본값 `defaultSave`, 불러오기 `loadSave`, 쓰기 `persist`.
@@ -140,29 +142,39 @@
 - 그 밖의 버전 필드: `acqV`(책 획득, `migrateAcq`), `libV`(사서별 기프트, `migrateLibrarians`/`sanitizeLibrarians`). 다대다 끄기 `multiBattle:false`.
 
 ## 6. 밸런스 기준과 최신 시뮬 결과
-기준(큐 양): 정답률 70% 사서 혼자(기프트 없음) 승률 약 80%, 사서 셋 약 84%, 정답률 30% 사서 셋 + 기프트 보통 ≤35%, 막 수 ≈ 손님 문제 수.
+기준(큐 양): 정답률 70% 사서 혼자(기프트 없음) 승률 약 75~90%, 정답률 30% 혼자 ≤35%, 사서 셋 + 기프트 보통 30% ≤35%·70% 이김, 막 수 ≈ 손님 문제 수.
+2026-11-19 A안 추가: 적 하나는 평균 3~4방 — 사서 한 방 중앙 ≈ 그 적 최대 체력 25~30%, 꽉 찬 적 한 방 사망 ≤5%.
 
-zm(2026-11-18) `node tools/sim/balance.mjs`, 손님마다 200판:
+2026-11-19 `node tools/sim/balance.mjs`, 손님마다 200판(한 줄 = 11손님 × 200판). 한 방 중앙 = 사서가 적을 때린 체력 피해 하나 ÷ 그 적 최대 체력의 중앙값, 방/막 = 막마다 사서가 적에게 맞힌 방 수:
 
-| 기프트(사서당) | 사서 | 정답률 | 승률% | 평균 막 | 막/문제 중앙 | 0.8~1.2% |
-|---|---|---|---|---|---|---|
-| 0 | 1 | 30% | 32 | 8.9 | 1.14 | 40 |
-| 0 | 1 | 70% | 81 | 8.6 | 1.14 | 30 |
-| 0 | 1 | 100% | 99 | 6.4 | 0.79 | 32 |
-| 0 | 3 | 30% | 24 | 7.6 | 1.00 | 53 |
-| 0 | 3 | 70% | 84 | 7.2 | 0.93 | 43 |
-| 4 | 3 | 30% | 23 | 7.7 | 1.00 | 54 |
-| 4 | 3 | 70% | 85 | 7.1 | 0.93 | 42 |
+| 기프트(사서당) | 사서 | 정답률 | 승률% | 평균 막 | 막/문제 중앙 | 0.8~1.2% | 한 방 중앙% | 꽉 찬 적 한 방 사망% | 방/막 |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 1 | 30% | 15 | 9.2 | 1.14 | 40 | 25 | 1.6 | 0.44 |
+| 0 | 1 | 70% | 77 | 11.8 | 1.57 | 22 | 28 | 3.0 | 0.64 |
+| 0 | 1 | 100% | 100 | 9.2 | 1.17 | 47 | 31 | 4.3 | 0.88 |
+| 0 | 2 | 30% | 26 | 7.0 | 0.86 | 42 | 20 | 0.4 | 0.79 |
+| 0 | 2 | 70% | 84 | 7.1 | 0.93 | 43 | 27 | 0.7 | 1.26 |
+| 0 | 2 | 100% | 100 | 5.0 | 0.67 | 22 | 30 | 0.8 | 1.83 |
+| 0 | 3 | 30% | 29 | 5.9 | 0.83 | 42 | 20 | 0.3 | 0.99 |
+| 0 | 3 | 70% | 85 | 5.4 | 0.71 | 32 | 25 | 0.7 | 1.65 |
+| 0 | 3 | 100% | 100 | 3.7 | 0.50 | 6 | 31 | 0.9 | 2.40 |
+| 4 | 3 | 30% | 31 | 6.0 | 0.83 | 41 | 20 | 0.3 | 1.00 |
+| 4 | 3 | 70% | 86 | 5.5 | 0.71 | 32 | 25 | 0.9 | 1.63 |
+| 4 | 3 | 100% | 100 | 3.8 | 0.50 | 5 | 31 | 0.7 | 2.39 |
 
-정답률 70% 손님별(중앙 막/문제 수, 승률): 혼자 — defamation-truth 18/14 71%, beccaria 8/7 87%, pomodoro 6/6 95%. 셋 — 15/14 71%, 6/7 74%, 5/6 93%.
-실제 숫자(`node tools/sim/hp.mjs`): beccaria 혼자 사서 157/39, 적 120/140·120/80·120/80. 셋이면 적 91~140.
+전체 한 방 중앙 27%(사분위 13~47%), 꽉 찬 적 한 방 사망 1.2%.
+정답률 70% 손님별(중앙 막/문제 수, 승률): 혼자 — defamation-truth 24/14 65%, beccaria 11/7 86%, pomodoro 10/6 93%, metacognition(weakness 3) 8/6 39%. 셋 — 12/14 81%, 5/7 81%, 4/6 90%.
+실제 숫자(`node tools/sim/hp.mjs`): beccaria 혼자 사서 100/24, 적 8/9·12/8·8/6. 셋이면 사서 155/37, 적 10~15. defamation-truth 혼자 사서 200/24, 적 9~32.
+
+**A안과 막 수가 같이 안 맞는 이유(구조).** 막 수 ≈ 3.5방 × 적 수 ÷ 막당 맞히는 방 수. 사서 혼자는 시작 덱 절반이 방어·회피이고 빛이 막당 1 회복이라 막당 0.6방 정도 → A안을 지키면 막 수/문제 수 ≈ 1.5. 사서 셋은 막당 1.6방이라 ≈ 0.7. 적 체력을 반대로 움직이면 한 방 비율이 25~30% 를 벗어난다. 둘 다 맞추려면 규칙 쪽(혼자일 때 적 수·주사위 수, 시작 덱 구성 등)을 바꿔야 해서 손대지 않았다.
+사서 체력이 적보다 여전히 큰 것(혼자 100 대 적 8~13)도 같은 구조: 적은 막당 사서를 1.7번 맞히고 사서는 0.6번 맞혀서, 승률을 지키려면 사서 체력 ≈ 적 하나의 8~10배가 필요하다.
 
 ## 7. 시뮬 실행
 ```
 npm install                              # playwright-core
-node tools/sim/balance.mjs               # 표 출력 (1~3분)
+node tools/sim/balance.mjs               # 표 출력 (30초 남짓). 한 방 중앙%·꽉 찬 적 한 방 사망%·방/막 열 포함
 N=100 CFG='[[0,1]]' node tools/sim/balance.mjs
-HPO='{"enemyHpPerQ":{"1":2.2,"2":2.2,"3":2.4}}' node tools/sim/balance.mjs   # 값 바꿔 보기 (코드 수정 없이)
+HPO='{"enemyHpPerQ":{"1":4.2,"2":4.2,"3":4.6},"allyParty":[1,1.3,1.6]}' node tools/sim/balance.mjs   # 값 바꿔 보기 (코드 수정 없이)
 node tools/sim/hp.mjs                    # 손님별 실제 체력·흐트러짐·주사위 수
 ```
 - AI는 단순(사서 주사위마다 쓸 수 있는 가장 센 카드, 그 주사위를 노린 적 주사위와 합 → 사서를 노린 적 주사위 → 체력 낮은 적). 사람·더 공격적인 AI 는 30% 승률이 더 높게 나온 적이 있다(약 0.47). 시드 고정.
@@ -180,7 +192,7 @@ JOBS=2 node tests/run.mjs                # 동시 실행 수 (기본 4)
 - `LIB_ROOT`(기본 저장소 맨 위)의 `index.html` 을 테스트마다 로컬 서버로 띄운다. 브라우저는 `tests/lib/browser.mjs`: `CHROME_PATH` → `/usr/bin/google-chrome` → `/usr/bin/chromium` → macOS Chrome → `channel:"chrome"` → playwright 기본 chromium.
 - 스크린샷·로그는 `shots/`(git 에 안 올림), 로그 `shots/test-logs/<이름>.log`.
 - 지금 테스트 파일은 `tests/*.test.mjs` 38개 + `tests/overlap-check.mjs` = 39개(UI·학습내용 담당 것 포함). 새 테스트는 `tests/` 에 `이름.test.mjs` 로 넣으면 `run.mjs` 가 자동으로 집는다. 맨 위에서 `import { LIB_ROOT, launchBrowser } from "./lib/browser.mjs"` 를 쓰고 `executablePath` 는 적지 않는다.
-- 전투 쪽 주요 테스트: `mbdata`(체력 공식·1:1 값·문제 순서·벌점·스케일·저장 v2·간이 시뮬 승률), `mbresolve`(교환 이벤트·합 단계 필드 경우마다·Promise 흐름), `multibattle`(유닛 필드·한 막 진행), `hpstatus`, `evade`, `emotion`, `unassign`, `sim`(1:1 시뮬). 겹침: `overlap-check.mjs`(10화면). 전투 UI끼리 겹침(주사위·체력/흐트러짐 바·화살표·손패·[개막]·상태 패널)은 0건이어야 하고 하나라도 있으면 실패한다. 캐릭터와 앞쪽 UI 겹침(`fighter-front-ui`)은 참고용으로 출력만 하고 실패로 치지 않는다(무대·캐릭터는 배경이라는 결정, `docs/decisions.md`).
+- 전투 쪽 주요 테스트: `mbdata`(체력 공식·1:1 값·문제 순서·벌점·피해 = 주사위 값 × 이름 있는 보정·A안 한 방 중앙 25~30%·한 방 사망 ≤5%·저장 v2·간이 시뮬 승률), `mbresolve`(교환 이벤트·합 단계 필드 경우마다·Promise 흐름), `multibattle`(유닛 필드·한 막 진행), `hpstatus`, `evade`, `emotion`, `unassign`, `sim`(1:1 시뮬). 겹침: `overlap-check.mjs`(10화면). 전투 UI끼리 겹침(주사위·체력/흐트러짐 바·화살표·손패·[개막]·상태 패널)은 0건이어야 하고 하나라도 있으면 실패한다. 캐릭터와 앞쪽 UI 겹침(`fighter-front-ui`)은 참고용으로 출력만 하고 실패로 치지 않는다(무대·캐릭터는 배경이라는 결정, `docs/decisions.md`).
 
 ## 9. 배포
 1. `git pull --rebase origin main`(다른 봇이 동시에 올림)

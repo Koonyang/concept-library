@@ -18,7 +18,7 @@
 `index.html` 안의 주요 묶음(이름으로 검색할 것):
 - 데이터: `FLOORS`(층 4개: crime, memory, cognition, criminal-law), `WEAK_POINTS`(손님 11명, 문제 `questions`),
   `KEY_QUESTIONS`(핵심 문제), `COMBAT_PAGES`(책장 33장), `KEY_PAGES`(핵심 책장 = 장서복 7개), `EGO_GIFTS`(33개), `COSMETIC_ITEMS`.
-- 수치: `COMBAT`(1:1 수치, 주사위 비율 `COMBAT.pct`, 흐트러짐 배율 `correctStagger`/`keyCorrectStagger`), `MB`(다대다, `MB.ENEMY_MAX=3`, `MB.HP`, `MB.SCALE_ENEMY`, `MB.WRONG`),
+- 수치: `COMBAT`(1:1 수치, 주사위 비율 `COMBAT.pct`, 흐트러짐 배율 `correctStagger`/`keyCorrectStagger`), `MB`(다대다, `MB.ENEMY_MAX=3`, `MB.HP`, `MB.WRONG`; 2026-11-19부터 `SCALE_ENEMY` 없음),
   `ENEMY_STATS`, `DECK_MIN=6`/`DECK_MAX=20`, `DECK_MAX_COPIES=2`, `HAND_MAX=8`, `PARTY_MAX=3`, `LIB_UNLOCK_AT=[0,5,10]`.
 - 주사위 변동: `pctEnd`, `pctRange`. 1:1 엔진: `resolveScene`. 다대다 엔진: `mbCreate`, `mbStartScene`, `mbAssign`/`mbUnassign`,
   `mbAnswer`, `mbResolve`, `mbRunResolve`, `mbQuestionCount`, `mbEnemyCap`, `mbCardInfo`. 화면: `renderMulti`.
@@ -67,11 +67,7 @@
 - 전체 승률 혼자 81%, 셋 85%(`zj`는 80% / 84%). 정답률 30%면 혼자 32%, 셋+기프트 24%(목표 35% 이하).
 - 막 수가 문제 수의 0.8~1.2배 안에 드는 판은 32~43%.
 
-수치(`zm` 기준):
-- 다대다 사서 체력 = 157 × clamp(문제 수 / 7, 0.85, 2) (+ 기프트·장서복), 흐트러짐 39(`MB.HP`, `mbAllyStats`).
-  "체력은 문제 수에 비례" 결정을 따른 것으로 의도된 값이다.
-- 적은 `MB.SCALE_ENEMY`(사서 1명 20, 2명 10, 3명 7)를 체력·흐트러짐·받는 피해에 곱한다. 적 하나는 대부분 100~300.
-  예외: 베카리아를 사서 셋으로 하면 91, 명예훼손의 소문꾼은 340(사서 셋이면 378).
+수치: **2026-11-19 재조정**으로 위 `zm` 수치는 옛것이다. 피해량 = 주사위 값(숨은 배율 없음), 적 하나 3~4방, 사서 100/24(혼자 기준, 사서 수 배율 `MB.HP.allyParty`). 공식과 시뮬 결과는 `docs/battle.md` 2·6절.
 - 1:1 사서는 100/26 그대로.
 
 ## 6. 남은 일
