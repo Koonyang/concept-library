@@ -151,7 +151,7 @@ const Game={
     nextGuest:nextGuestAfter, hooks:MB_HOOKS,
     get state(){ return mb?mb.battle:null; }, get outcome(){ return mb&&mb.outcome; }, get log(){ return mb?mb.log:[]; }, get reception(){ return reception; }
   },
-  books:{held:heldBooks,count:bookCount,shown:shownBookCount,total:totalBooks,maxed:bookMaxed,pool:gid=>poolEntries(save,gid),burn:burnBooks,sourcesOf},
+  books:{held:heldBooks,count:gid=>bookCount(save,gid),shown:gid=>shownBookCount(save,gid),total:()=>totalBooks(save),maxed:gid=>bookMaxed(save,gid),pool:gid=>poolEntries(save,gid),burn:burnBooks,sourcesOf},
   deck:{toggle:toggleDeckPage,active:()=>activeDeck(save),ready:()=>isDeckReady(save),owned:()=>ownedPageIds(save),ownedCount:id=>ownedCount(save,id),limit:id=>deckLimit(save,id)},
   libs:{list:()=>libsList(save),pick:pickLibrarian,toggleParty,equipKey,equipGift,unlockedCount:()=>libUnlockedCount(save),nextAt:()=>libNextAt(save),
     keyOf:id=>libsKeyOf(save,id),giftTotals:id=>giftTotals(save,id),activeSets:id=>activeSets(save,id),bonusLabel},

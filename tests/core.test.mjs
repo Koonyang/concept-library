@@ -111,5 +111,7 @@ ok(qi.infoOk,"questionInfo: 지금 문제·낸 적 유닛·핵심 여부",qi.inf
 ok(qi.afterAnswer===null,"문제 단계가 아니면 questionInfo 는 null",qi.afterAnswer);
 ok(qi.lightOk&&qi.badUnit===null&&qi.spent,"lightOf: 사서 빛·최대 빛·감정, 없는 유닛 null, 배치하면 빛이 줄어듦",qi.light);
 ok(qi.keySeen,"핵심 문제 막에서 questionInfo.isKey === true");
+const bk=await p.evaluate(()=>{ const s=__studyGame.save; __studyGame.acq.addBooks(s,"active-recall",3); return {count:Game.books.count("active-recall"),shown:Game.books.shown("active-recall"),total:Game.books.total(),maxed:Game.books.maxed("active-recall")}; });
+ok(bk.count===3&&bk.shown===3&&bk.total>=3&&bk.maxed===false,"Game.books.count/shown/total/maxed 가 저장을 읽음",bk);
 ok(errs.length===0,"오류 없음",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);
