@@ -1,7 +1,8 @@
 /* 효과음: 도서관 소리(종이·나무, ElevenLabs로 만든 assets/audio/sfx/*.mp3, 프롬프트는 tools/sfx/prompts.json).
    첫 사용자 입력 뒤에 AudioContext 를 만들고 파일을 받는다(브라우저 규칙). 파일이 아직 없으면 예전 합성음으로 대신한다.
    sfx.tap() clash() hit() book() stagger() wrong() correct(), sfx.setMuted(bool) */
-const FILES = { tap: ["tap-1", "tap-2", "tap-3"], correct: ["correct"], wrong: ["wrong"], clash: ["clash"], hit: ["hit"], stagger: ["stagger"], book: ["book"] };
+const FILES = { tap: ["tap-1", "tap-2", "tap-3"], correct: ["correct"], wrong: ["wrong"], clash: ["correct"], hit: ["hit"], stagger: ["stagger"], book: ["book"] };
+/* 합 들어갈 때(clash)도 정답과 같은 핑거스냅(2026-11-20 큐 양: 둔탁한 나무 소리 대신) */
 const VOL = { tap: 0.15, correct: 0.8, wrong: 0.9, clash: 0.75, hit: 0.8, stagger: 0.7, book: 0.8 };   // 소리별 크기(탭은 자주 나니 작게)
 const bufs = {}; let loading = false, lastTap = -1;
 function load(c) {
