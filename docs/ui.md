@@ -23,6 +23,7 @@ js/stage/*            3D 무대 (규칙 모름)
   fx.js               불꽃·섬광·고리·조각·책 낙하, registerFx(pageId, fn)
 js/ui/*               DOM 화면
   app.js              진입점: 무대 만들고 화면 오가기, 설정(BGM·효과음), BGM
+  bgm.js              배경음 재생: 곡 바꿀 때 페이드 아웃 → 페이드 인(Web Audio 게인)
   screens.js          층 고르기·손님 고르기·결과
   battle.js           전투 화면 mountBattle(root, stage, guestId, {onEnd})
   sfx.js              도서관 효과음(assets/audio/sfx, ElevenLabs, `npm run sfx`로 다시 만듦). 못 받으면 합성음
@@ -105,7 +106,7 @@ look: { top:"Knight",                          // 상의(몸통·팔)를 빌려 
         props:[{name:"lantern", bone:"back", scale:0.5, pos:[0,0.1,-0.34], rot:[0,0,0]}] }  // 공용 소품을 뼈에 붙이기
 ```
 - 빌려 오는 법(`js/stage/characters.js`): 상의는 `<모델>_Body/_ArmLeft/_ArmRight` 스킨 메시를 사서 뼈대에 다시 묶고(모든 모델 뼈 이름이 같다) 자기 상의는 숨긴다. 모자·망토·무기는 원래 붙어 있던 뼈(head·chest·handslot)와 같은 이름의 뼈에 같은 자리로 붙인다. 두건(Rogue_Hooded)은 머리와 한 덩어리라 빌릴 수 없다.
-- **입 없음(2026-11-19)**: 모든 사람 모델 머리(`*_Head`, `Rogue_Head_Hooded`)는 불러올 때 코 아래 입 부분을 둘레 얼굴 면에 맞춰 평평하게 누른다(`flattenMouth`, 원본 지오메트리 한 번, 수치는 `MOUTH`). 모델을 다시 받아도 그대로 적용된다.
+- **입 없음(2026-11-19)**: 모든 사람 모델 머리(`*_Head`, `Rogue_Head_Hooded`)는 불러올 때 코 아래 입 부분을 처음부터 입이 없던 얼굴처럼 메운다(`flattenMouth`→`fillMouth`, 원본 지오메트리 한 번, 상자 수치는 `MOUTH`). 둘레는 고정하고 안쪽 꼭짓점을 얇은 판(∆²=0)으로 풀어 볼·턱 곡면을 잇고, 입술·입안 색은 둘레 피부(수염) UV 로, 법선은 이음매 없이 하나로. 예전 2차 곡면 맞추기는 입 자리가 파여 보였다. 모델을 다시 받아도 그대로 적용된다.
 - 기본 무기: Knight `1H_Sword`, Mage `1H_Wand`(+사서 책 `Spellbook_open`), Barbarian `2H_Axe`, Rogue·Rogue_Hooded `Knife`. 나머지 무기·방패는 숨김.
 - `hide:["book"]`은 사서가 왼손에 드는 책을 뺀다. 왼손에 방패·보조 무기를 `show`하거나 `hand.l` 소품을 붙이면 책은 저절로 빠진다.
 - `props[]`: `name`(PROP_KIT), `bone`(아래 4개), 선택 `scale`(기본: head 0.35, back 0.5, 손 0.4), `pos`(키 1.9 기준 단위, 뼈 좌표계), `rot`(라디안). 모르는 소품·뼈는 경고 한 줄 뒤 건너뛴다. 모델을 못 받으면(자리표시 도형) 몸통 근처에 붙는다.

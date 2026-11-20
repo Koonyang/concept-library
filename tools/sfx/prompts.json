@@ -30,10 +30,6 @@
     "seconds": 0.9,
     "text": "a heavy thick hardcover book falling and landing flat on a wooden table, loud deep dull thud, a few pages flapping after, close microphone, no music"
   },
-  "clash": {
-    "seconds": 0.6,
-    "text": "two thick hardcover books slammed against each other, sharp hollow wooden clack with paper flutter, no music"
-  },
   "hit": {
     "seconds": 0.6,
     "text": "a thick hardcover book striking a wooden table hard, punchy hollow wooden thump, short, no music"
