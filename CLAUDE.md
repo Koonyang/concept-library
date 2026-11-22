@@ -33,21 +33,19 @@ python3 -m http.server 8000   # 저장소 루트에서. 그다음 http://localho
 
 ## 테스트
 - Playwright(`playwright-core`) + 시스템 Chrome으로 로컬 서버를 띄워 화면을 찍고 검사한다.
-- 테스트: `npm install` 후 `node tests/run.mjs`(= `npm test`): core, libs, mbdata, sim, assets, stage, ui, app, library, moon, overlap-check(기본 2개씩 동시 실행, 약 7분). 옛 화면 테스트는 `legacy/tests/`(참고용, 안 돔). 3D는 `--use-gl=swiftshader`로 그려 느리다. 골라 돌리기 `node tests/run.mjs core mbdata`. 브라우저는 `tests/lib/browser.mjs`가 찾는다(`CHROME_PATH` 우선). 자세한 건 `docs/battle.md`.
+- 작업 중엔 `node tests/run.mjs --changed`(origin/main 이후 바뀐 파일에 맞는 테스트만, `--dry` 면 고르기만). 배포 전엔 전부.
+- 화면 확인: `node tools/shot.mjs [floors|library|moon|battle|assign|resolve|faces|outfit:<id>|deploy] [--size land|port|both]` → `shots/shot/*.png` 를 Read. 일회용 Playwright 스크립트를 새로 쓰지 말고 이것부터.
+- 테스트: `npm install` 후 `node tests/run.mjs`(= `npm test`): core, libs, mbdata, sim, assets, stage, ui, app, library, moon, landscape, overlap-check(기본 2개씩 동시 실행, 약 7분). 옛 화면 테스트는 `legacy/tests/`(참고용, 안 돔). 3D는 `--use-gl=swiftshader`로 그려 느리다. 골라 돌리기 `node tests/run.mjs core mbdata`. 브라우저는 `tests/lib/browser.mjs`가 찾는다(`CHROME_PATH` 우선). 자세한 건 `docs/battle.md`.
 - 밸런스 시뮬레이션: `npm run sim`(`tools/sim/balance.mjs`), 체력표 `npm run sim:hp`(`tools/sim/hp.mjs`).
 - 겹침 검사 `tests/overlap-check.mjs`(새 UI 기준): 전투 UI끼리(주사위·체력/흐트러짐 막대·화살표·손패·[개막]·상태판·문제) 겹침은 0건이어야 하고, 하나라도 있으면 배포하지 않는다. 무대·캐릭터는 배경층이라 세지 않는다. 배포 전 844×390·390×844 스크린샷을 직접 눈으로 본다.
 - 캐릭터 에셋 다시 만들기: `npm run assets:characters`(KayKit 원본을 받아 줄임).
 
 ## 배포
-1. `git pull --rebase origin main`
-2. `index.html` 7번째 줄 `<meta name="build" content="library-YYYYMMDD?">`의 표시를 다음 빈 글자로 올린다.
-   같은 날은 a…z 다음 za, zb …(예: `library-20261118zm` 다음은 `zn`). 날짜가 바뀌면 `library-<새 날짜>a`.
-   `git log origin/main`에서 가장 최근 `[library-…]`를 확인하고, 다른 작업자와 같은 글자를 쓰지 않는다.
-3. 커밋 메시지는 한국어, 사용자 입장에서 바뀐 점을 적고 끝에 `[library-…]`. 문서만 바꿀 때는 표시를 올리지 않는다.
-4. `git push origin main` → GitHub Pages가 1~2분 뒤 반영. `js/core/*.js`는 캐시 버스터가 없으니 확인할 때 강력 새로고침.
-5. **검수함 갱신**(큐 양이 대화를 자주 지워서 링크가 사라지므로 꼭 한다): 검수함 https://claude.ai/artifact/9sgvnqxxCFKEZ6g48XKBHs (사이드바 고정)의 db에
-   `ArtifactData`로 `status/live`={build, at:"MM/DD"}를 고치고, `updates/<build 뒤 글자들>`={at:ISO 시각, date:"MM/DD", build, live:true, title, items:[바뀐 점], check:[큐 양이 확인해 볼 것]}를 추가한다(사용자 말로, 짧게).
-   배포 전 작업 브랜치 내용은 `live:false`, `build:"작업 브랜치"`로 올리고, 배포하면 그 문서를 지우거나 고친다. 페이지 자체는 다시 올리지 않는다.
+스킬 **`/deploy`**(`.claude/skills/deploy/SKILL.md`)를 따른다: 전체 테스트·겹침 0건 → `node tools/shot.mjs deploy` 스크린샷 보기 →
+`node tools/deploy/next-build.mjs --write`(index.html build 표시를 서울 날짜 기준 다음 글자로) → main 에 합쳐 push → 검수함 갱신.
+- 커밋 메시지는 한국어, 사용자 입장에서 바뀐 점, 끝에 `[library-…]`. 문서만 바꿀 때는 표시를 올리지 않는다.
+- **검수함**(큐 양이 대화를 자주 지워서 꼭 한다): https://claude.ai/artifact/9sgvnqxxCFKEZ6g48XKBHs 의 db(`ArtifactData`).
+  작업 브랜치에 올린 변경은 `updates/<id>`={…, build:"작업 브랜치", live:false} 로 먼저 적어 두고, 배포 때 라이브 문서로 옮긴다. 형식은 스킬에.
 
 ## 문서
 - `docs/HANDOFF.md` — 전체 개요, 파일 지도, 게임 흐름, 현재 상태, 남은 일 (먼저 읽기)
