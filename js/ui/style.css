@@ -60,7 +60,7 @@ button { font: inherit; color: inherit; }
 .speed-die.set { border-color: var(--ally); box-shadow: 0 0 0 2px rgba(143,211,200,.18); }
 .speed-die.sel { border-color: var(--accent); transform: translateY(-2px) scale(1.08); }
 .speed-die.can-target { border-color: var(--enemy); animation: pulse 1s ease-in-out infinite; }
-.enemy-target { pointer-events: auto; position: absolute; z-index: 1; margin-top: 4px; width: 56px; height: 90px; transform: translate(-50%, 0); border-radius: 12px; cursor: pointer; background: none; border: 0; padding: 0; -webkit-appearance: none; appearance: none; }   /* 주사위 없는 적(흐트러짐)의 몸을 누르는 투명한 자리 */
+.enemy-target { pointer-events: auto; position: absolute; z-index: 1; width: 56px; height: 72px; transform: translate(-50%, -50%); border-radius: 12px; cursor: pointer; background: none; border: 0; padding: 0; -webkit-appearance: none; appearance: none; }   /* 적 몸통을 누르는 투명한 자리(일방 공격·흐트러진 적), 가운데가 몸통 */
 .enemy-target.can-target { outline: 1.5px dashed var(--enemy); }
 /* 끌기: 책장 끼운 내 주사위를 상대 주사위·몸에 놓는다 */
 .speed-die[data-side="ally"] { touch-action: none; }

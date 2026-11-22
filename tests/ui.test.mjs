@@ -107,6 +107,35 @@ ok(info.includes(ed.name)&&info.includes(`${ed.min}~${ed.max}`)&&info.includes(S
 ok(await p.evaluate(()=>Game.battle.state.units.filter(u=>u.side==="ally").flatMap(u=>u.dice).every(d=>!d.card)),"정보만 보고 배정은 안 함");
 await p.mouse.click(422,330); await p.waitForTimeout(200);
 ok(!(await p.$("#enemy-info.on")),"다른 데 누르면 닫힘");
+/* 일방 공격 화살표는 대상 몸통으로(2026-11-23): 적 주사위 하나에 합 하나 + 같은 적 주사위를 노린 일방 공격 → 화살표 끝 = 그 적의 몸통.
+   몸통 자리(enemy-target)에 끌어다 놓으면 주사위가 아니라 몸(die:null)을 노림 */
+await go("beccaria"); await answer(true);
+const aim=await p.evaluate(()=>{ const B=Game.battle.state, G=Game.battle, a=B.units.find(u=>u.side==="ally");
+  const e=B.units.filter(u=>u.side==="enemy").flatMap(u=>u.dice.map((d,i)=>({u:u.id,i,d}))).find(x=>x.d.target&&x.d.target.unit===a.id&&x.d.target.die!=null);
+  if(!e) return null; const card=()=>G.hand(a.id).find(c=>G.usable(a.id,c).usable), j=e.d.target.die, k=a.dice.findIndex((d,i)=>i!==j);
+  G.assign(a.id,j,card(),{unit:e.u,die:e.i}); if(k>=0) G.assign(a.id,k,card(),{unit:e.u,die:e.i}); window.__battle.render();
+  return {enemy:e.u,clash:G.isClash(a.id,j),one:k>=0&&!G.isClash(a.id,k)}; });
+await p.waitForTimeout(400);
+if(aim&&aim.one){
+  const geo=await p.evaluate(en=>{ const body=window.__stage.unitPoint(en,"body"), head=window.__stage.unitPoint(en);
+    const ends=[...document.querySelectorAll("#target-arrows path.ally")].map(q=>q.getAttribute("d").trim().split(/[ MQ]+/).filter(Boolean).slice(-2).map(Number));
+    const t=document.querySelector(`.enemy-target[data-unit="${en}"]`).getBoundingClientRect();
+    return {body,head,ends,tc:{x:t.left+t.width/2,y:t.top+t.height/2},stack:document.querySelectorAll("#dice-stack .st-row").length}; },aim.enemy);
+  ok(aim.clash&&geo.stack>=1,"합 짝은 바닥 더미로",{aim,stack:geo.stack});
+  ok(geo.ends.length>=1&&geo.ends.every(([x,y])=>Math.hypot(x-geo.body.x,y-geo.body.y)<4)&&geo.body.y>geo.head.y+20,"일방 공격 화살표 끝 = 대상 몸통(머리 위보다 아래)",geo);
+  ok(Math.hypot(geo.tc.x-geo.body.x,geo.tc.y-geo.body.y)<4,"몸통 누르는 자리 가운데 = 몸통",geo);
+} else ok(false,"합+일방 공격 장면을 못 만듦",aim);
+/* 끌어다 몸통에 놓기 → 몸(die:null) 노림 */
+await go("beccaria"); await answer(true);
+{ const a=await p.evaluate(()=>{ const B=Game.battle.state, G=Game.battle, a=B.units.find(u=>u.side==="ally"), c=G.hand(a.id).find(c=>G.usable(a.id,c).usable);
+    G.assign(a.id,0,c,null); window.__battle.render(); return {unit:a.id,enemy:B.units.find(u=>u.side==="enemy"&&u.hp>0).id}; });
+  await p.waitForTimeout(300);
+  const from=await (await p.$(`.speed-die[data-unit="${a.unit}"][data-die="0"]`)).boundingBox(), to=await (await p.$(`.enemy-target[data-unit="${a.enemy}"]`)).boundingBox();
+  await p.mouse.move(from.x+from.width/2,from.y+from.height/2); await p.mouse.down();
+  for(let s=1;s<=8;s++){ await p.mouse.move(from.x+from.width/2+(to.x+to.width/2-from.x-from.width/2)*s/8,from.y+from.height/2+(to.y+to.height/2-from.y-from.height/2)*s/8); await p.waitForTimeout(20); }
+  await p.mouse.up(); await p.waitForTimeout(200);
+  const t=await p.evaluate(u=>Game.battle.state.units.find(x=>x.id===u).dice[0].target,a.unit);
+  ok(t&&t.unit===a.enemy&&t.die==null,"몸통에 끌어다 놓기 → 그 적의 몸(일방 공격)",t); }
 /* 가로·세로 스크린샷 (배정 단계) */
 for(const [w,h] of [[844,390],[390,844]]){ await p.setViewportSize({width:w,height:h}); await go("beccaria"); await answer(true);
   await p.click(`.speed-die[data-side="ally"]`); await p.waitForTimeout(400); await p.screenshot({path:join(ROOT,`shots/ui-battle-${w}.png`)}); }

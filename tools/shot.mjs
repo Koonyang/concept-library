@@ -2,6 +2,7 @@
    장면(여러 개 가능, 없으면 deploy):
      floors · library · moon            기본 화면(index.html)
      battle · assign · resolve           전투 3:3(문제 / 책장 하나 놓은 뒤 / 개막 뒤 합 중), tests/battle.html
+     aim                                 내 주사위 전부를 첫 적의 주사위 하나에 놓은 뒤(합 하나 + 나머지 일방 공격 화살표)
      outfit:<장서복 id>                  사서(kyu)가 그 장서복을 입은 모습, tests/stage.html  예) outfit:archivist
      faces                               다섯 모델 얼굴 가까이(정면·비스듬히·옆), 실제 게임과 같은 입 메우기 적용
      deploy                              = floors library moon battle assign resolve (배포 전 확인용)
@@ -32,6 +33,13 @@ const sizesFor = s => (/^(faces|outfit:)/.test(s) || SIZE === "land") ? [SIZES.l
 /* 겹침 검사와 같은 3:3 구성 */
 const party3 = () => { const G = __studyGame, s = G.save; s.unlockedKeyIds = ["novice", "reading-room", "midnight", "archivist", "classical-robe", "panopticon-coat", "truth-robe", "pad8", "pad9", "pad10"]; G.libs.sync(s);
   G.libs.equipKey(s, "lib2", "archivist"); G.libs.equipKey(s, "lib3", "classical-robe"); G.libs.setParty(s, ["kyu", "lib2", "lib3"]); Game.persist(); };
+/* aim: 나를 노리는 적 주사위 하나와 합을 만들고(그 적 주사위가 바닥 더미로), 나머지 내 주사위도 같은 적 주사위에 → 일방 공격 화살표 */
+const aimAll = () => { const B = Game.battle.state, G = Game.battle, allies = B.units.filter(u => u.side === "ally" && u.hp > 0);
+  let ed = null; for (const e of B.units.filter(u => u.side === "enemy" && u.hp > 0)) e.dice.forEach((d, i) => { if (!ed && d.target && d.target.die != null && allies.some(a => a.id === d.target.unit)) ed = { unit: e.id, die: i, t: d.target }; });
+  if (!ed) return false; const card = uid => G.hand(uid).find(c => G.usable(uid, c).usable);
+  const c0 = card(ed.t.unit); if (c0) G.assign(ed.t.unit, ed.t.die, c0, { unit: ed.unit, die: ed.die });
+  for (const a of allies) a.dice.forEach((d, i) => { if (d.card) return; const c = card(a.id); if (c) G.assign(a.id, i, c, { unit: ed.unit, die: ed.die }); });
+  return allies.some(a => a.dice.some((d, i) => G.isClash(a.id, i))); };   /* 더 빠른 내 주사위가 그 적 주사위를 끌어가 합 짝이 바뀔 수 있음 */
 /* 살아 있는 사서 주사위마다 쓸 수 있는 책장을 첫 적에게 놓는다(n 개까지) */
 const fill = n => { const B = Game.battle.state; let k = 0;
   for (const u of B.units.filter(u => u.side === "ally" && u.hp > 0)) u.dice.forEach((d, i) => { if (k >= n || d.card) return; const e = B.units.find(x => x.side === "enemy" && x.hp > 0);
@@ -47,14 +55,14 @@ async function run(scene, w, h) {
       await p.goto(BASE + "index.html"); await p.waitForFunction(() => window.__app, null, { timeout: 30000 });
       if (scene !== "floors") await p.evaluate(s => window.__app.nav[s](), scene);
       await p.waitForTimeout(1500);
-    } else if (["battle", "assign", "resolve"].includes(scene)) {
+    } else if (["battle", "assign", "aim", "resolve"].includes(scene)) {
       await p.goto(BASE + "tests/battle.html?guest=" + GUEST); await p.waitForFunction(() => window.__ready, null, { timeout: 30000 });
       await p.evaluate(party3); await p.evaluate(async () => { window.__battle.unmount(); Game.battle.leave(); window.__battle = await window.__mount(); });
       await p.waitForSelector("#question.on");
       if (scene !== "battle") {
         const ci = await p.evaluate(() => Game.battle.question().correctIndex);
         await p.evaluate(ci => { const b = document.querySelector(`.q-opt[data-i="${ci}"]`); if (b) b.click(); else Game.battle.answer(true); }, ci);
-        await p.waitForTimeout(600); await p.evaluate(fill, scene === "assign" ? 1 : 99); await p.evaluate(() => window.__battle.render && window.__battle.render());
+        await p.waitForTimeout(600); if (scene === "aim") { if (!await p.evaluate(aimAll)) errs.push(`aim ${w}x${h}: 합을 못 만듦`); } else await p.evaluate(fill, scene === "assign" ? 1 : 99); await p.evaluate(() => window.__battle.render && window.__battle.render());
         if (scene === "resolve") { await p.click("#btn-open"); await p.waitForSelector("#clash-panel.on .cp-die.shown", { timeout: 30000 }); await p.waitForTimeout(150); }
         else await p.waitForTimeout(400);
       } else await p.waitForTimeout(800);

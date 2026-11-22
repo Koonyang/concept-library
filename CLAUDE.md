@@ -34,7 +34,7 @@ python3 -m http.server 8000   # 저장소 루트에서. 그다음 http://localho
 ## 테스트
 - Playwright(`playwright-core`) + 시스템 Chrome으로 로컬 서버를 띄워 화면을 찍고 검사한다.
 - 작업 중엔 `node tests/run.mjs --changed`(origin/main 이후 바뀐 파일에 맞는 테스트만, `--dry` 면 고르기만). 배포 전엔 전부.
-- 화면 확인: `node tools/shot.mjs [floors|library|moon|battle|assign|resolve|faces|outfit:<id>|deploy] [--size land|port|both]` → `shots/shot/*.png` 를 Read. 일회용 Playwright 스크립트를 새로 쓰지 말고 이것부터.
+- 화면 확인: `node tools/shot.mjs [floors|library|moon|battle|assign|aim|resolve|faces|outfit:<id>|deploy] [--size land|port|both]` → `shots/shot/*.png` 를 Read. 일회용 Playwright 스크립트를 새로 쓰지 말고 이것부터.
 - 테스트: `npm install` 후 `node tests/run.mjs`(= `npm test`): core, libs, mbdata, sim, assets, stage, ui, app, library, moon, landscape, overlap-check(기본 2개씩 동시 실행, 약 7분). 옛 화면 테스트는 `legacy/tests/`(참고용, 안 돔). 3D는 `--use-gl=swiftshader`로 그려 느리다. 골라 돌리기 `node tests/run.mjs core mbdata`. 브라우저는 `tests/lib/browser.mjs`가 찾는다(`CHROME_PATH` 우선). 자세한 건 `docs/battle.md`.
 - 밸런스 시뮬레이션: `npm run sim`(`tools/sim/balance.mjs`), 체력표 `npm run sim:hp`(`tools/sim/hp.mjs`).
 - 겹침 검사 `tests/overlap-check.mjs`(새 UI 기준): 전투 UI끼리(주사위·체력/흐트러짐 막대·화살표·손패·[개막]·상태판·문제) 겹침은 0건이어야 하고, 하나라도 있으면 배포하지 않는다. 무대·캐릭터는 배경층이라 세지 않는다. 배포 전 844×390·390×844 스크린샷을 직접 눈으로 본다.

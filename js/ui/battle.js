@@ -99,11 +99,11 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
       const r = n.getBoundingClientRect(); const dx = o.x - r.left, dy = o.y - r.top; if (Math.abs(dx) + Math.abs(dy) < 2) return;
       n.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "translate(0, 0)" }], { duration: 300, easing: "cubic-bezier(.3,.7,.3,1)" }); });
   }
-  /* 머리 위 좌표(무대) — 무대가 없으면 화면 왼쪽/오른쪽 가운데에 세운다 */
-  function pointOf(id) {
-    const p = stage.unitPoint && stage.unitPoint(id); if (p) return p;
+  /* 머리 위 좌표(무대) — 무대가 없으면 화면 왼쪽/오른쪽 가운데에 세운다. part "body" = 몸통(머리 위보다 아래) */
+  function pointOf(id, part = "head") {
+    const p = stage.unitPoint && stage.unitPoint(id, part); if (p) return p;
     const u = B().units.find(x => x.id === id), list = units(u.side), i = list.indexOf(u), r = root.getBoundingClientRect();
-    return { x: r.width * (u.side === "ally" ? 0.22 : 0.78) + (i - 1) * 60, y: r.height * 0.42 + (i % 2) * 30 };
+    return { x: r.width * (u.side === "ally" ? 0.22 : 0.78) + (i - 1) * 60, y: r.height * 0.42 + (i % 2) * 30 + (part === "body" ? 70 : 0) };
   }
   /* 정수 px 로만, 1px 넘게 움직였을 때만 옮긴다(카메라가 천천히 흔들려도 주사위가 떨지 않게) */
   function setPos(n, x, y) { x = Math.round(x); y = Math.round(y); const ox = +n.dataset.x, oy = +n.dataset.y;
@@ -127,7 +127,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
         if (!hit) break; r.y = hit.y + hit.h + 4; }
       placed.push(r); setPos(r.row, r.x, r.y);
     }
-    for (const t of el.dice.querySelectorAll(".enemy-target")) { const p = pointOf(t.dataset.unit); setPos(t, p.x, p.y); }
+    for (const t of el.dice.querySelectorAll(".enemy-target")) { const p = pointOf(t.dataset.unit, "body"); setPos(t, p.x, p.y); }   /* 몸통 가운데 */
   }
   /* 더미 자리: 가운데, 손패(없으면 개막 버튼·화면 아래) 바로 위에서 위로 쌓임. 높이가 모자라면 줄여서 */
   function placeStack() {
@@ -143,7 +143,9 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     if (!n) { const p = pointOf(unit); return p; }
     const r = n.getBoundingClientRect(); if (!r.width) { const p = pointOf(unit); return p; } return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   }
-  /* 화살표: 머리 위에 남은 일방 공격(내 것·적 것)의 대상, 그리고 끌어다 놓는 중인 선. 바닥 더미에 내려간 합 짝은 안 그림 */
+  /* 화살표: 머리 위에 남은 일방 공격(내 것·적 것), 그리고 끌어다 놓는 중인 선. 바닥 더미에 내려간 합 짝은 안 그림.
+     합이 아니면 대상 주사위가 아니라 대상의 몸통을 가리킨다(2026-11-23 큐 양): 대상 주사위가 다른 합으로 바닥에 내려가도
+     허공을 가리키지 않고, 주사위 줄과 높이가 달라 합 대기와 헷갈리지 않는다 */
   function drawArrows() {
     const st = B(); if (!st || busy || st.phase !== "assign" || peek) { if (el.arrows.firstChild) el.arrows.innerHTML = ""; return; }
     const paths = [], curve = (a, b, cls) => { const lift = Math.max(30, Math.abs(b.x - a.x) * 0.22), lim = barsFloor(Math.min(a.x, b.x), Math.max(a.x, b.x)) + 8;
@@ -152,8 +154,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     for (const u of st.units) { if (u.hp <= 0) continue; u.dice.forEach((d, i) => { if (!d.target || G.battle.isClash(u.id, i)) return; if (drag && drag.on && drag.uid === u.id && drag.i === i) return;
       const n = el.dice.querySelector(`.speed-die[data-k="${dieKey(u.id, i)}"]`); if (!n) return;
       const r = n.getBoundingClientRect(), a = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-      const tn = d.target.die != null && el.dice.querySelector(`.speed-die[data-k="${dieKey(d.target.unit, d.target.die)}"]`), tr = tn && tn.getBoundingClientRect();
-      curve(a, tr && tr.width ? { x: tr.left + tr.width / 2, y: tr.top + tr.height / 2 } : pointOf(d.target.unit), u.side); }); }
+      curve(a, pointOf(d.target.unit, "body"), u.side); }); }
     if (drag && drag.on) curve(drag.from, drag.at, drag.over ? "clash" : "ally");
     const html = paths.join(""); if (el.arrows.dataset.h !== html) { el.arrows.innerHTML = html; el.arrows.dataset.h = html; }
   }
@@ -461,5 +462,6 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   /* ---------- 매 프레임: 주사위·화살표를 무대 위치에 붙인다 ---------- */
   const loop = () => { if (!alive) return; placeDice(); placeStack(); placeClash(); drawArrows(); raf = requestAnimationFrame(loop); };
   render(); raf = requestAnimationFrame(loop);
-  return { unmount() { alive = false; cancelAnimationFrame(raf); clearTimeout(msgT); flashT.forEach(clearTimeout); root.innerHTML = ""; delete root.dataset.screen; } };
+  return { render: () => { if (alive) render(); },   /* 화면 밖(API·도구)에서 상태를 바꾼 뒤 다시 그리기 */
+    unmount() { alive = false; cancelAnimationFrame(raf); clearTimeout(msgT); flashT.forEach(clearTimeout); root.innerHTML = ""; delete root.dataset.screen; } };
 }

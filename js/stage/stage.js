@@ -513,9 +513,11 @@ export async function createStage(canvas) {
     }
   }
   const v3 = new THREE.Vector3();
-  function unitPoint(id) {
+  /* 화면 좌표: part "head"(기본) = 머리 위(주사위 줄 자리), "body" = 몸통 가운데(일방 공격·흐트러진 대상을 노리는 자리) */
+  function unitPoint(id, part = "head") {
     const f = figures.get(id); if (!f) return null;
-    const o = f.F.obj; v3.set(o.position.x, o.position.y + f.F.height * o.scale.y + 0.25, o.position.z).project(cam);
+    const o = f.F.obj, y = part === "body" ? f.F.height * 0.4 : f.F.height + 0.25 / o.scale.y;
+    v3.set(o.position.x, o.position.y + y * o.scale.y, o.position.z).project(cam);
     const r = canvas.getBoundingClientRect();
     return { x: r.left + (v3.x + 1) / 2 * r.width, y: r.top + (1 - v3.y) / 2 * r.height };
   }
