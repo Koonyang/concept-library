@@ -188,9 +188,12 @@ export async function createStage(canvas) {
     if (slow.t / slow.n > SLOW_FRAME_MS) { pixelRatio = Math.max(PIXEL_RATIO_MIN, pixelRatio - 0.25); renderer.setPixelRatio(pixelRatio); debug.pixelRatio = pixelRatio; resize(); }
     slow.t = 0; slow.n = 0;
   }
+  /* 120Hz 휴대폰에서 두 배로 그리지 않게: 앞 장면에서 10ms 안이면 건너뛴다(120Hz→60, 60·90Hz 는 그대로). 배터리·발열 */
+  const MIN_FRAME_MS = 10;
   function frame(now) {
     raf = 0;
     const rawMs = now - last;
+    if (rawMs < MIN_FRAME_MS) { if (!document.hidden && !debug.contextLost) raf = requestAnimationFrame(frame); return; }
     const dt = Math.min(0.05, rawMs / 1000); last = now;
     adaptResolution(rawMs);
     for (const f of tickers) f(dt, now);

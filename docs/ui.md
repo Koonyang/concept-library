@@ -58,7 +58,7 @@ assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/bui
 | `setStaggered(id, on)` | 머리 위 별 고리 |
 | `registerFx(pageId, async ctx => …)` | 그 책장만의 전용 연출. 없으면 등급 연출: N 기본, R 불꽃 2배, SR 클로즈업+어둡게, SSR 크게 어둡게+클로즈업+감속+고리. 적 카드는 큰 일격(`big`)이 SR |
 
-성능: 픽셀 비율 ≤ 1.5, 느린 기기는 1.0까지 자동으로 내림, 실시간 그림자 없음, 책은 InstancedMesh, 연출 빛은 1개를 돌려 씀. 참고 측정 `node tests/perf.mjs`.
+성능: 그리기는 최대 약 60fps(120Hz 휴대폰은 한 장씩 건너뜀, `MIN_FRAME_MS`), 픽셀 비율 ≤ 1.5, 느린 기기는 1.0까지 자동으로 내림, 실시간 그림자 없음, 책은 InstancedMesh, 연출 빛은 1개를 돌려 씀. 참고 측정 `node tests/perf.mjs`.
 
 ## 5. 전투 화면 (`js/ui/battle.js`)
 - 자리(가로): 막대는 위 왼쪽(사서)·위 오른쪽(적), 상태판·오답 해설은 위 가운데, 속도 주사위는 머리 위(막대·상태판 아래로, 다른 유닛 주사위와 안 겹치게 밀어냄), 손패는 아래 가운데, [개막]은 아래 오른쪽, 문제 패널은 아래.
