@@ -146,8 +146,8 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     const r = n.getBoundingClientRect(); if (!r.width) { const p = pointOf(unit); return p; } return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   }
   /* 화살표: 머리 위에 남은 일방 공격(내 것·적 것), 그리고 끌어다 놓는 중인 선. 바닥 더미에 내려간 합 짝은 안 그림.
-     합이 아니면 대상 주사위가 아니라 대상의 몸통을 가리킨다(2026-11-23 큐 양): 대상 주사위가 다른 합으로 바닥에 내려가도
-     허공을 가리키지 않고, 주사위 줄과 높이가 달라 합 대기와 헷갈리지 않는다 */
+     내 → 적: 대상의 몸통(2026-11-23 큐 양) — 노린 적 주사위가 다른 합으로 바닥에 내려가도 허공을 가리키지 않는다.
+     적 → 나: 노린 내 주사위(어느 주사위로 맞받으면 합인지 보이게). 그 주사위가 바닥에 내려갔으면 몸통 */
   /* 화살표 모양(style.css 의 #target-arrows path 와 같게). 3D 무대가 있으면 무대가 캐릭터 뒤에 그리고(stage.setArrows),
      SVG 는 숨긴 채 자리만 남는다(테스트·겹침 검사가 path 를 잰다). 무대가 없으면 SVG 가 그대로 보인다 */
   const viaStage = !!(stage.ok && stage.setArrows); if (viaStage) el.arrows.classList.add("via-stage");
@@ -165,7 +165,10 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     for (const u of st.units) { if (u.hp <= 0) continue; u.dice.forEach((d, i) => { if (!d.target || G.battle.isClash(u.id, i)) return; if (drag && drag.on && drag.uid === u.id && drag.i === i) return;
       const k = dieKey(u.id, i), n = el.dice.querySelector(`.speed-die[data-k="${k}"]`); if (!n) return;
       const r = n.getBoundingClientRect(), a = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-      curve(a, pointOf(d.target.unit, "body"), u.side + (k === fk ? " focus" : "")); }); }
+      /* 적 → 내 주사위: 노린 내 주사위가 머리 위에 있으면 그 주사위를(그 주사위로 맞받으면 느려도 합). 그 주사위가 다른 합으로
+         바닥에 내려갔거나 주사위가 아닌 몸을 노리면 몸통(실제로 몸에 일방 공격). 내 → 적은 언제나 몸통 */
+      const tn = u.side === "enemy" && d.target.die != null && el.dice.querySelector(`.speed-die[data-k="${dieKey(d.target.unit, d.target.die)}"]`), tr = tn && tn.getBoundingClientRect();
+      curve(a, tr && tr.width ? { x: tr.left + tr.width / 2, y: tr.top + tr.height / 2 } : pointOf(d.target.unit, "body"), u.side + (k === fk ? " focus" : "")); }); }
     if (drag && drag.on) curve(drag.from, drag.at, drag.over ? "clash" : "ally");
     const html = paths.join(""); if (el.arrows.dataset.h !== html) { el.arrows.innerHTML = html; el.arrows.dataset.h = html; }
     if (viaStage) stage.setArrows(specs);

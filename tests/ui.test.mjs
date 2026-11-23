@@ -106,9 +106,12 @@ const info=await p.waitForSelector("#enemy-info.on",{timeout:3000}).then(h=>h.te
 ok(info.includes(ed.name)&&info.includes(`${ed.min}~${ed.max}`)&&info.includes(String(ed.speed))&&!info.includes("노림"),"적 주사위 → 책장 이름·범위·속도(대상 글은 없음)",{info:info.slice(0,160),ed});
 /* 대상은 글 대신 그 주사위의 선을 실선으로(하나만), 끝은 대상의 몸통 */
 { await p.waitForTimeout(150); const f=await p.evaluate(()=>{ const ps=[...document.querySelectorAll("#target-arrows path.enemy.focus")], u=document.getElementById("enemy-info").dataset.unit, d=Game.battle.state.units.find(x=>x.id===u).dice[+document.getElementById("enemy-info").dataset.die];
-    const end=ps[0]&&ps[0].getAttribute("d").trim().split(/[ MQ]+/).filter(Boolean).slice(-2).map(Number), body=d.target&&window.__stage.unitPoint(d.target.unit,"body"), cs=ps[0]&&getComputedStyle(ps[0]);
+    const end=ps[0]&&ps[0].getAttribute("d").trim().split(/[ MQ]+/).filter(Boolean).slice(-2).map(Number), cs=ps[0]&&getComputedStyle(ps[0]);
+    /* 적 → 나: 노린 내 주사위(머리 위에 있으면), 아니면 몸통 */
+    const chip=d.target&&d.target.die!=null&&document.querySelector(`#dice-layer .speed-die[data-k="${d.target.unit}:${d.target.die}"]`), cr=chip&&chip.getBoundingClientRect();
+    const body=cr&&cr.width?{x:cr.left+cr.width/2,y:cr.top+cr.height/2,die:true}:d.target&&window.__stage.unitPoint(d.target.unit,"body");
     return {n:ps.length,end,body,dash:cs&&cs.strokeDasharray,others:document.querySelectorAll("#target-arrows path.enemy:not(.focus)").length}; });
-  ok(f.n===1&&f.end&&f.body&&Math.hypot(f.end[0]-f.body.x,f.end[1]-f.body.y)<4&&(f.dash==="none"||!f.dash),"누른 적 주사위의 대상 선만 실선, 끝은 대상 몸통",f); }
+  ok(f.n===1&&f.end&&f.body&&f.body.die&&Math.hypot(f.end[0]-f.body.x,f.end[1]-f.body.y)<4&&(f.dash==="none"||!f.dash),"누른 적 주사위의 대상 선만 실선, 끝은 노린 내 주사위(없으면 몸통)",f); }
 ok(await p.evaluate(()=>Game.battle.state.units.filter(u=>u.side==="ally").flatMap(u=>u.dice).every(d=>!d.card)),"정보만 보고 배정은 안 함");
 await p.mouse.click(422,330); await p.waitForTimeout(200);
 ok(!(await p.$("#enemy-info.on")),"다른 데 누르면 닫힘");
