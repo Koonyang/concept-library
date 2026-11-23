@@ -39,6 +39,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
 
   /* ---------- 그리기 ---------- */
   const units = side => B().units.filter(u => !side || u.side === side);
+  const standOrder = side => units(side).sort((a, b) => (b.leader ? 1 : 0) - (a.leader ? 1 : 0));
   const liveAllies = () => units("ally").filter(u => u.hp > 0);
   function setMsg(text, cls, ms) { const m = el.status.querySelector(".msg"); m.textContent = text || ""; m.className = "msg " + (cls || ""); clearTimeout(msgT); if (ms) msgT = setTimeout(() => setMsg(""), ms); }
   function renderStatus() { el.status.querySelector(".scene").textContent = `${B().scene}막`; el.status.querySelector(".guest").textContent = guest.concept; }
@@ -46,10 +47,11 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   function renderBars(snap) {
     for (const side of ["ally", "enemy"]) {
       const box = el.bars.querySelector(".side." + side);
-      box.innerHTML = units(side).map(u => { const s = snap && snap[u.id] || u, hp = Math.max(0, s.hp), st = Math.max(0, s.stagger);
+      /* 무대에 선 순서(우두머리 먼저, stage.setUnits 와 같은 정렬). 번호는 발밑 고리 앞 바닥의 숫자와 같다 */
+      box.innerHTML = standOrder(side).map((u, i) => { const s = snap && snap[u.id] || u, hp = Math.max(0, s.hp), st = Math.max(0, s.stagger);
         const hot = sel && sel.unit === u.id ? " hot" : "";
-        return `<div class="unit-bar ${side}${hp <= 0 ? " dead" : ""}${s.staggered ? " stag" : ""}${hot}" data-unit="${u.id}">
-          <span class="nm">${esc(u.name)}${u.leader ? " ★" : ""}</span><span class="v num">${hp}/${u.maxHp}</span>
+        return `<div class="unit-bar ${side}${hp <= 0 ? " dead" : ""}${s.staggered ? " stag" : ""}${hot}" data-unit="${u.id}" role="button" aria-label="${esc(u.name)} 위치 보기">
+          <span class="nm"><b class="no num">${i + 1}</b>${esc(u.name)}${u.leader ? " ★" : ""}</span><span class="v num">${hp}/${u.maxHp}</span>
           <span class="bars"><span class="hp"><i style="transform:scaleX(${(hp / u.maxHp).toFixed(3)})"></i></span><span class="st"><i style="transform:scaleX(${(st / u.maxStagger).toFixed(3)})"></i></span></span></div>`; }).join("");
     }
   }
@@ -347,6 +349,9 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   }
   let drag = null, eatClick = false;
   el.dice.addEventListener("click", onDieClick); el.stack.addEventListener("click", onDieClick);
+  /* 체력바를 누르면 그 캐릭터 발밑 고리가 잠깐 반짝(누가 누군지, 2026-11-23) */
+  el.bars.addEventListener("click", e => { const b = e.target.closest(".unit-bar"); if (!b || b.classList.contains("dead")) return;
+    if (stage.flashUnit && stage.flashUnit(b.dataset.unit)) { sfx.tap(); b.classList.remove("ping"); void b.offsetWidth; b.classList.add("ping"); } });
   function onDieClick(e) {
     if (eatClick) { eatClick = false; return; }
     if (busy || B().phase !== "assign") return;

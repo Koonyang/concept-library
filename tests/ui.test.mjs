@@ -148,6 +148,17 @@ for(const fast of [true,false]){ await go("beccaria"); await answer(true);
   const t=await p.evaluate(u=>({t:Game.battle.state.units.find(x=>x.id===u).dice[0].target,clash:Game.battle.isClash(u,0)}),a.unit);
   if(fast) ok(t.t&&t.t.unit===a.enemy&&t.t.die==null&&!t.clash,"몸통에 끌어다 놓기(적이 더 빠름) → 그 적의 몸에 일방 공격",t);
   else ok(t.t&&t.t.unit===a.enemy&&t.t.die!=null&&t.clash,"몸통에 끌어다 놓기(내가 더 빠름) → 그 적의 느린 주사위와 합",t); }
+/* 누가 누군지(2026-11-23): 체력바 번호 = 발밑 번호(무대에 선 순서, 우두머리 1), 체력바를 누르면 그 캐릭터 발밑 고리가 반짝 */
+await go("beccaria"); await answer(true); await p.waitForTimeout(300);
+{ const nb=await p.evaluate(()=>{ const S=window.__stage, out=[];
+    document.querySelectorAll(".unit-bar").forEach(b=>{ const f=S.figures.get(b.dataset.unit), n=f&&f.ring&&f.ring.getObjectByName("ring-number");
+      out.push({u:b.dataset.unit,bar:+b.querySelector(".no").textContent,ring:n?n.userData.n:null}); }); return out; });
+  ok(nb.length>=2&&nb.every(x=>x.bar===x.ring),"체력바 번호 = 발밑 번호",nb);
+  const bar=await p.$('.unit-bar.enemy:not(.dead)'), uid=await bar.getAttribute("data-unit"); await bar.click(); await p.waitForTimeout(350);
+  const fl=await p.evaluate(u=>{ const f=window.__stage.figures.get(u); return {flash:window.__stage.debug.flash,op:f.ring.material.opacity,base:f.ringOp,sc:f.ring.scale.x,ping:document.querySelector(`.unit-bar[data-unit="${u}"]`).classList.contains("ping")}; },uid);
+  ok(fl.flash===uid&&(fl.op>fl.base||fl.sc>1.01)&&fl.ping,"체력바를 누르면 그 캐릭터 발밑 고리가 반짝",fl);
+  await p.waitForTimeout(800); const back=await p.evaluate(u=>{ const f=window.__stage.figures.get(u); return {op:f.ring.material.opacity,base:f.ringOp,sc:f.ring.scale.x}; },uid);
+  ok(back.op===back.base&&back.sc===1,"반짝임은 0.9초 뒤 원래대로",back); }
 /* 가로·세로 스크린샷 (배정 단계) */
 for(const [w,h] of [[844,390],[390,844]]){ await p.setViewportSize({width:w,height:h}); await go("beccaria"); await answer(true);
   await p.click(`.speed-die[data-side="ally"]`); await p.waitForTimeout(400); await p.screenshot({path:join(ROOT,`shots/ui-battle-${w}.png`)}); }

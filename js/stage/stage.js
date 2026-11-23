@@ -49,7 +49,7 @@ const ATTACK_ANIM = { 참격: "1H_Melee_Attack_Slice_Diagonal", 관통: "1H_Mele
 
 function nullStage() {
   const done = () => Promise.resolve();
-  return { ok: false, setFloor() {}, resize() {}, setUnits: done, sceneEnd: done, showLibrarian: done, cheer: done, play: done, burnBook: done, wrongBonk: done, finishNow() {}, syncUnits() {}, setStaggered() {}, unitPoint: () => null, setArrows() {}, figure: () => null,
+  return { ok: false, setFloor() {}, resize() {}, setUnits: done, sceneEnd: done, showLibrarian: done, cheer: done, play: done, burnBook: done, wrongBonk: done, finishNow() {}, syncUnits() {}, setStaggered() {}, unitPoint: () => null, setArrows() {}, flashUnit: () => false, figure: () => null,
     ring: () => null, onFrame() {}, dispose() {}, debug: { mood: null, props: [], frames: 0 } };
 }
 
@@ -64,6 +64,21 @@ function sideRing(R) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ map: ringTex, color: R.color, transparent: true, opacity: R.op,
     blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false }));
   m.rotation.x = -Math.PI / 2; m.position.y = 0.02; m.renderOrder = 1; m.name = "side-ring"; return m;
+}
+
+/* 발밑 번호(2026-11-23 큐 양): 체력바의 번호와 같은 숫자를 고리 앞(카메라 쪽) 바닥 위에 세운다. 늘 카메라를 보는 작은 판(Sprite)이라
+   눕힌 글자처럼 찌그러지지 않는다. 고리의 자식이라 고리와 함께 숨고 반짝인다. ry = 캐릭터가 돌아선 각도(되돌려서 늘 카메라 쪽에) */
+const numTex = new Map();
+function ringNumber(n, R, ry) {
+  let t = numTex.get(n);
+  if (!t) { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d");
+    x.font = "700 46px 'Space Grotesk', 'Pretendard', sans-serif"; x.textAlign = "center"; x.textBaseline = "middle";
+    x.lineWidth = 7; x.strokeStyle = "rgba(0,0,0,.6)"; x.strokeText(String(n), 32, 35); x.fillStyle = "#fff"; x.fillText(String(n), 32, 35);
+    t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; numTex.set(n, t); }
+  const size = 0.3, d = R.r + 0.2;
+  const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, color: R.color, transparent: true, depthWrite: false, toneMapped: false, fog: false }));
+  /* 고리 평면 좌표: +y = 화면 안쪽(-z), +z = 위. 바닥에 닿게 판 높이의 반만큼 띄운다 */
+  m.position.set(-d * Math.sin(ry), -d * Math.cos(ry), size / 2); m.scale.setScalar(size); m.renderOrder = 1; m.name = "ring-number"; m.userData.n = n; return m;
 }
 
 /* 무대(바닥·책장·책)는 거친 무광이라 Lambert 로 충분하다(Standard 보다 픽셀당 계산이 훨씬 가벼움) */
@@ -279,8 +294,9 @@ export async function createStage(canvas) {
         F.obj.position.set(x * slotSpread, 0, z); F.obj.rotation.y = side === "ally" ? FACE : -FACE;
         F.act("Idle"); unitsRoot.add(F.obj); inFront(F.obj);
         const R = side === "ally" ? RING.ally : u.leader ? RING.leader : RING.enemy, ringM = sideRing(R);
+        ringM.add(ringNumber(i + 1, R, F.obj.rotation.y));   /* 번호 = 이 편에서 선 순서(체력바 번호와 같음, 우두머리가 1) */
         F.obj.add(ringM);
-        F.look = look; figures.set(u.id, { F, home: F.obj.position.clone(), homeRy: F.obj.rotation.y, slot: [x, z], side, unit: u, look, dead: u.hp <= 0, ring: ringM, ringR: R.r });
+        F.look = look; figures.set(u.id, { F, home: F.obj.position.clone(), homeRy: F.obj.rotation.y, slot: [x, z], side, unit: u, look, dead: u.hp <= 0, ring: ringM, ringR: R.r, ringOp: R.op, no: i + 1 });
         if (u.hp <= 0) { F.obj.visible = false; ringM.visible = false; }
       });
     }
@@ -319,7 +335,7 @@ export async function createStage(canvas) {
   function disposeFigure(f) {
     if (f.starsOff) f.starsOff(); if (f.F.dispose) f.F.dispose();
     f.F.obj.traverse(n => { if (n.userData.own) { if (n.geometry) n.geometry.dispose(); [].concat(n.material || []).forEach(m => m && m.dispose()); } else if (n.userData.ownMat && n.material) n.material.dispose(); });
-    if (f.ring) { f.ring.geometry && f.ring.geometry.dispose(); f.ring.material && f.ring.material.dispose(); }
+    if (f.ring) f.ring.traverse(n => { if (n.isMesh) n.geometry && n.geometry.dispose(); if ((n.isMesh || n.isSprite) && n.material) n.material.dispose(); });   /* 번호 판도(Sprite 지오메트리·숫자 텍스처는 공유라 남김) */
   }
   /* 연출 없이 지나간 교환(길게 눌러 건너뛰기)까지 포함해, 규칙 상태에 무대를 맞춘다: 쓰러짐(조각·책 한 번)·흐트러짐 */
   function syncUnits(units) {
@@ -562,6 +578,14 @@ export async function createStage(canvas) {
     return { x: r.left + (v3.x + 1) / 2 * r.width, y: r.top + (1 - v3.y) / 2 * r.height };
   }
 
+  /* 그 유닛의 발밑 고리를 잠깐 반짝(체력바를 누르면, 2026-11-23): 0.9초 동안 밝아졌다 커졌다 돌아온다 */
+  const flashes = new Map();
+  function flashUnit(id) { const f = figures.get(id); if (!f || !f.ring || f.dead) return false; flashes.set(id, performance.now()); debug.flash = id; return true; }
+  tickers.add((dt, now) => { for (const [id, t0] of flashes) { const f = figures.get(id), k = (now - t0) / 900;
+    if (!f || !f.ring || k >= 1) { if (f && f.ring) { f.ring.material.opacity = f.ringOp; f.ring.scale.setScalar(1); } flashes.delete(id); continue; }
+    const p = Math.sin(Math.PI * k) * (0.6 + 0.4 * Math.cos(k * Math.PI * 6) ** 2);   /* 한 번 크게 + 잔물결 */
+    f.ring.material.opacity = f.ringOp + (1 - f.ringOp) * p; f.ring.scale.setScalar(1 + 0.35 * p); } });
+
   /* 편 고리 상태(테스트·UI용): {color:"#rrggbb", radius(월드), opacity, visible} */
   function ringInfo(id) {
     const f = figures.get(id); if (!f) return null;
@@ -571,7 +595,7 @@ export async function createStage(canvas) {
   const S = {
     ok: true, three: THREE, scene, camera: cam, renderer, debug, camShake, tickers,
     setFloor, resize,
-    setUnits, showLibrarian, cheer, unitPoint, setArrows, ring: ringInfo, figure: id => (figures.get(id) || {}).F || null, figures,
+    setUnits, showLibrarian, cheer, unitPoint, setArrows, flashUnit, ring: ringInfo, figure: id => (figures.get(id) || {}).F || null, figures,
     play, finishNow, sceneEnd, burnBook, wrongBonk, setStaggered, syncUnits, fx,
     onFrame(f) { tickers.add(f); return () => tickers.delete(f); },
     dispose() { cancelAnimationFrame(raf); ro.disconnect(); document.removeEventListener("visibilitychange", wake); if (world) disposeTree(world); renderer.dispose(); },

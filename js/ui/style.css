@@ -40,6 +40,12 @@ button { font: inherit; color: inherit; }
 #hud-bars .side.enemy { right: max(10px, env(safe-area-inset-right)); }
 .unit-bar { display: grid; grid-template-columns: 1fr auto; column-gap: 6px; row-gap: 2px; align-items: center; padding: 3px 7px 4px; border-radius: 7px; background: var(--glass); border: 1px solid var(--line); }
 .unit-bar .nm { font-size: 11px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.unit-bar { pointer-events: auto; cursor: pointer; }   /* 누르면 그 캐릭터 발밑 고리가 반짝 */
+.unit-bar .no { display: inline-block; min-width: 13px; height: 13px; margin-right: 5px; border-radius: 4px; font-size: 9.5px; line-height: 13px; text-align: center; vertical-align: 1px; color: #0b0d10; font-weight: 700; }
+.unit-bar.ally .no { background: var(--ally); } .unit-bar.enemy .no { background: var(--enemy); }
+.unit-bar.dead .no { opacity: .45; }
+.unit-bar.ping { animation: bar-ping .9s ease-out; }
+@keyframes bar-ping { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,.55); } 100% { box-shadow: 0 0 0 8px rgba(255,255,255,0); } }
 .unit-bar .v { font-size: 10px; color: var(--muted); }
 .unit-bar .bars { grid-column: 1 / -1; display: grid; gap: 2px; }
 .unit-bar .hp, .unit-bar .st { height: 4px; border-radius: 2px; background: rgba(255,255,255,.08); overflow: hidden; }
