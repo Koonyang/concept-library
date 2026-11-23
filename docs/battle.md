@@ -125,6 +125,9 @@
 (legacy: 옛 UI 는 `mbRunResolve` 가 교환마다 `BattleStage.clash(ev,{fast})`(`legacy/` 의 `assets/ui/battle-stage.js`)를 부르고 Promise 를 기다렸다. 지금 코어에는 없음.)
 
 교환 이벤트 `ev`:
+- **대상 잇기**(`mbRelink`, 배치·해제마다): 적 주사위를 원래 대상으로 되돌린 뒤, 배치한 순서대로 ① 적 주사위를 노린 내 주사위가 그 주사위보다 빠르면 끌어와 합.
+  ② 몸을 노린 내 주사위(`target.die=null`)는 그 적에게 **합이 안 잡힌 주사위 중 나보다 느린 것**이 있으면 그 주사위로 대상을 바꿔 끌어와 합(나를 노리던 것 → 빠른 것 순).
+  없으면(모두 합 중이거나 나보다 빠르거나 흐트러짐) 몸에 일방 공격(2026-11-23, 라오루 규칙).
 - `kind`: `"clash"`(서로 노린 두 주사위) | `"one-sided"` | `"skip"`(흐트러짐·사망으로 못 움직임. `stepNext`·`resolve` 결과에도 나옴)
 - `a`: `{unit, die, card, values:[굴린 값…], expr, side?, body?, form?, leader?}` — 먼저 움직인(빠른) 주사위
 - `b`: 같은 모양 | `null`(일방 공격), `target`: 맞는 유닛 id

@@ -151,10 +151,12 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     const paths = [], curve = (a, b, cls) => { const lift = Math.max(30, Math.abs(b.x - a.x) * 0.22), lim = barsFloor(Math.min(a.x, b.x), Math.max(a.x, b.x)) + 8;
       let cy = Math.min(a.y, b.y) - lift; cy = Math.max(cy, 2 * lim - (a.y + b.y) / 2);
       paths.push(`<path class="${cls}" d="M${a.x.toFixed(1)} ${a.y.toFixed(1)} Q${((a.x + b.x) / 2).toFixed(1)} ${cy.toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}"/>`); };
+    /* 정보창을 연 적 주사위의 선은 실선으로(누가 노리는지 글 대신 선으로 보여 줌) */
+    const fk = el.info.classList.contains("on") ? dieKey(el.info.dataset.unit, +el.info.dataset.die) : null;
     for (const u of st.units) { if (u.hp <= 0) continue; u.dice.forEach((d, i) => { if (!d.target || G.battle.isClash(u.id, i)) return; if (drag && drag.on && drag.uid === u.id && drag.i === i) return;
-      const n = el.dice.querySelector(`.speed-die[data-k="${dieKey(u.id, i)}"]`); if (!n) return;
+      const k = dieKey(u.id, i), n = el.dice.querySelector(`.speed-die[data-k="${k}"]`); if (!n) return;
       const r = n.getBoundingClientRect(), a = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-      curve(a, pointOf(d.target.unit, "body"), u.side); }); }
+      curve(a, pointOf(d.target.unit, "body"), u.side + (k === fk ? " focus" : "")); }); }
     if (drag && drag.on) curve(drag.from, drag.at, drag.over ? "clash" : "ally");
     const html = paths.join(""); if (el.arrows.dataset.h !== html) { el.arrows.innerHTML = html; el.arrows.dataset.h = html; }
   }
@@ -313,16 +315,14 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     }
   }
 
-  /* ---------- 적 주사위 정보(책장을 안 고른 상태에서 누르면): 이번 막에 쓸 책장·주사위·속도·대상 ---------- */
+  /* ---------- 적 주사위 정보(책장을 안 고른 상태에서 누르면): 이번 막에 쓸 책장·주사위·속도. 대상은 그 선을 실선으로 ---------- */
   function showEnemyInfo(uid, die) {
     const st = B(), u = st.units.find(x => x.id === uid), d = u && u.dice[die]; if (!d) return;
-    const c = G.battle.cardInfo(d.card, uid) || {}, t = d.target && st.units.find(x => x.id === d.target.unit);
-    const td = t && d.target.die != null && t.dice[d.target.die];
+    const c = G.battle.cardInfo(d.card, uid) || {};
     const dice = (c.dice || []).map(x => { const ko = x.ko || TYPE_KO[x.type] || x.type; return `<span class="t-${ko}">${ko} <b class="num">${x.min}~${x.max}</b></span>`; }).join(" · ");
     el.learn.classList.remove("on");
     el.info.innerHTML = `<div class="ei-head"><b>${esc(u.name)}</b><span class="num">속도 ${d.speed}</span>${c.big ? `<em>큰 일격</em>` : ""}</div>
-      <p class="ei-card">${esc(c.name || "?")}</p><p class="ei-dice">${dice}</p>
-      <p class="ei-target">${t ? `노림 → <b>${esc(t.name)}</b>${td ? ` 의 속도 ${td.speed} 주사위` : ""}${G.battle.isClash(uid, die) ? " · <b>합</b>" : ""}` : "노리는 대상 없음"}</p>`;
+      <p class="ei-card">${esc(c.name || "?")}</p><p class="ei-dice">${dice}</p>`;   /* 노리는 대상은 글 대신 실선 화살표로(drawArrows 의 focus). 합이면 바닥 더미에 짝이 보임 */
     el.info.dataset.unit = uid; el.info.dataset.die = die; el.info.classList.add("on"); sfx.tap();
   }
   const hideInfo = () => el.info.classList.remove("on");

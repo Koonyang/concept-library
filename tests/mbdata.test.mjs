@@ -63,7 +63,7 @@ const stg=await p.evaluate(()=>{ const G=__studyGame, A=G.battleApi, E=G.engine,
     X.a1.handIds.splice(0,X.a1.handIds.length,"turn-page"); U("a1").light=3; U("a1").emotion=0; X.a1.mods={...X.a1.mods,staggerPct:0,dmgPct:0};
     B.units.filter(u=>u.side==="enemy").forEach(e=>e.dice.forEach((d,k)=>A.setEnemyTarget(e.id,k,{unit:"a2",die:null})));
     A.setEnemyTarget("e1",0,{unit:"a1",die:null});
-    U("a1").dice[0].speed=9; A.assign("a1",0,"turn-page",{unit:"e1",die:null});
+    U("e1").dice.forEach(d=>{ d.speed=99; }); U("a1").dice[0].speed=9; A.assign("a1",0,"turn-page",{unit:"e1",die:null});   /* 적 주사위가 더 빨라 몸에 일방 공격(느린 적 주사위가 있으면 끌어와 합이 됨) */
     const pre=JSON.parse(JSON.stringify(X.e1.cu)), preA=JSON.parse(JSON.stringify(X.a1.cu));
     const ev=A.resolveOnly(); const mine=ev.find(e=>e.by&&e.by.unit==="a1"&&e.by.die===0), theirs=ev.find(e=>e.kind==="one-sided"&&e.by&&e.by.unit==="e1"&&e.target==="a1");
     /* 피해 = 주사위 값 × 이름 있는 보정만(숨은 배율 없음, 2026-11-19). 사서가 받는 피해는 오답 막만 MB.WRONG 배 (다대다 전용) */
@@ -191,7 +191,7 @@ const bal=await p.evaluate(()=>{ const G=__studyGame, A=G.battleApi, C=G.engine.
     A.setRng(()=>0.5); A.answer(true);
     X.a1.handIds.splice(0,X.a1.handIds.length,"turn-page"); U("a1").light=3; X.a1.mods={...X.a1.mods,dmgPct:0,staggerPct:0}; X.e1.cu.resist=E.FLAT_RESIST;
     B.units.filter(u=>u.side==="enemy").forEach(e=>e.dice.forEach((d,k)=>A.setEnemyTarget(e.id,k,{unit:"a2",die:null})));
-    U("a1").dice[0].speed=9; A.assign("a1",0,"turn-page",{unit:"e1",die:null});
+    U("e1").dice.forEach(d=>{ d.speed=99; }); U("a1").dice[0].speed=9; A.assign("a1",0,"turn-page",{unit:"e1",die:null});   /* 적 주사위가 더 빨라 몸에 일방 공격(느린 적 주사위가 있으면 끌어와 합이 됨) */
     const ev=A.resolveOnly(), mine=ev.find(e=>e.by&&e.by.unit==="a1"&&e.by.die===0), st=mine&&mine.steps[0];
     out.plain={kind:mine&&mine.kind,roll:st&&st.pd&&st.pd.roll,hp:st&&st.dmg&&st.dmg.hp,unit:st&&st.dmg&&st.dmg.unit,maxHp:U("e1").maxHp}; }
   { const E=G.engine, T=E.TIER, rngX=(a=>()=>{a=(a*16807)%2147483647; return a/2147483647;})(4242), bad=[]; let n=0, plainN=0, plainEq=0;
@@ -293,5 +293,16 @@ const mig=await p.evaluate(()=>{ const G=__studyGame, s=G.save, K=G.gifts.SAVE_K
 ok(mig.fields.length===0&&mig.saveV===2&&mig.stored.length===0&&mig.freshFields.length===0&&mig.freshV===2,"old save with level/xp/maxHp loads; those fields are dropped, saveV=2",mig);
 ok(mig.kept.won===3&&JSON.stringify(mig.kept.conq)==='["pomodoro"]'&&mig.eff===mig.base&&!mig.lobbyUndef,"other progress kept; 1:1 max HP = fixed base + gifts/key page (no level)",mig);
 ok(mig.ally.length>0&&mig.ally[0][0]===mig.allyExp[0]&&mig.ally[0][1]===mig.allyExp[1],"multi librarian stats after migration = fixed allyStats",mig);
+/* 몸 노리기(die:null) — 라오루 규칙(2026-11-23): 그 적에게 합이 안 잡힌 나보다 느린 주사위가 있으면 끌어와 합, 없으면 몸에 일방 공격 */
+const body=await p.evaluate(()=>{ const G=Game.battle, out={};
+  const prep=(mySpeed,enemySpeeds)=>{ G.leave(); G.begin("beccaria"); const q=G.question(); G.answer(q.type==="short"?String(q.answer):q.correctIndex);
+    const B=G.state, a=B.units.find(u=>u.side==="ally"), e=B.units.find(u=>u.side==="enemy"&&u.dice.length>=1);
+    a.dice[0].speed=mySpeed; e.dice.forEach((d,k)=>{ d.speed=enemySpeeds[k%enemySpeeds.length]; });
+    const c=G.hand(a.id).find(c=>G.usable(a.id,c).usable); return {B,a,e,c}; };
+  { const {a,e,c}=prep(9,[1]); const r=G.assign(a.id,0,c,{unit:e.id,die:null}); out.slower={r,t:{...a.dice[0].target},clash:G.isClash(a.id,0)}; }
+  { const {a,e,c}=prep(2,[99]); const r=G.assign(a.id,0,c,{unit:e.id,die:null}); out.faster={r,t:{...a.dice[0].target},clash:G.isClash(a.id,0)}; }
+  G.leave(); return out; });
+ok(body.slower.r.ok&&body.slower.clash&&body.slower.t.die!=null,"몸 노리기: 합 안 잡힌 적 주사위가 나보다 느리면 끌어와 합",body.slower);
+ok(body.faster.r.ok&&!body.faster.clash&&body.faster.t.die==null,"몸 노리기: 적 주사위가 모두 나보다 빠르면 몸에 일방 공격",body.faster);
 ok(errs.length===0,"no errors",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

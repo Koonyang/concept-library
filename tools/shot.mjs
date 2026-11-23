@@ -2,6 +2,7 @@
    장면(여러 개 가능, 없으면 deploy):
      floors · library · moon            기본 화면(index.html)
      battle · assign · resolve           전투 3:3(문제 / 책장 하나 놓은 뒤 / 개막 뒤 합 중), tests/battle.html
+     einfo                               적 주사위 하나를 누른 모습(정보창 + 그 주사위의 대상 선만 실선)
      aim                                 내 주사위 전부를 첫 적의 주사위 하나에 놓은 뒤(합 하나 + 나머지 일방 공격 화살표)
      outfit:<장서복 id>                  사서(kyu)가 그 장서복을 입은 모습, tests/stage.html  예) outfit:archivist
      faces                               다섯 모델 얼굴 가까이(정면·비스듬히·옆), 실제 게임과 같은 입 메우기 적용
@@ -55,14 +56,14 @@ async function run(scene, w, h) {
       await p.goto(BASE + "index.html"); await p.waitForFunction(() => window.__app, null, { timeout: 30000 });
       if (scene !== "floors") await p.evaluate(s => window.__app.nav[s](), scene);
       await p.waitForTimeout(1500);
-    } else if (["battle", "assign", "aim", "resolve"].includes(scene)) {
+    } else if (["battle", "assign", "aim", "einfo", "resolve"].includes(scene)) {
       await p.goto(BASE + "tests/battle.html?guest=" + GUEST); await p.waitForFunction(() => window.__ready, null, { timeout: 30000 });
       await p.evaluate(party3); await p.evaluate(async () => { window.__battle.unmount(); Game.battle.leave(); window.__battle = await window.__mount(); });
       await p.waitForSelector("#question.on");
       if (scene !== "battle") {
         const ci = await p.evaluate(() => Game.battle.question().correctIndex);
         await p.evaluate(ci => { const b = document.querySelector(`.q-opt[data-i="${ci}"]`); if (b) b.click(); else Game.battle.answer(true); }, ci);
-        await p.waitForTimeout(600); if (scene === "aim") { if (!await p.evaluate(aimAll)) errs.push(`aim ${w}x${h}: 합을 못 만듦`); } else await p.evaluate(fill, scene === "assign" ? 1 : 99); await p.evaluate(() => window.__battle.render && window.__battle.render());
+        await p.waitForTimeout(600); if (scene === "einfo") { await p.click('.speed-die[data-side="enemy"]'); await p.waitForTimeout(300); } else if (scene === "aim") { if (!await p.evaluate(aimAll)) errs.push(`aim ${w}x${h}: 합을 못 만듦`); } else await p.evaluate(fill, scene === "assign" ? 1 : 99); await p.evaluate(() => window.__battle.render && window.__battle.render());
         if (scene === "resolve") { await p.click("#btn-open"); await p.waitForSelector("#clash-panel.on .cp-die.shown", { timeout: 30000 }); await p.waitForTimeout(150); }
         else await p.waitForTimeout(400);
       } else await p.waitForTimeout(800);

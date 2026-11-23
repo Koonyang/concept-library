@@ -100,6 +100,7 @@ button { font: inherit; color: inherit; }
 #target-arrows path { fill: none; stroke-width: 2; stroke-linecap: round; }
 #target-arrows path.ally { stroke: var(--ally); }
 #target-arrows path.enemy { stroke: var(--enemy); stroke-dasharray: 4 5; opacity: .55; }
+#target-arrows path.enemy.focus { stroke-dasharray: none; opacity: 1; stroke-width: 2.5; }   /* 정보창을 연 적 주사위의 대상 선 */
 #target-arrows path.clash { stroke: var(--accent); stroke-width: 2.5; }
 
 /* ---------- 손패: 아래 가운데 ---------- */
@@ -400,7 +401,7 @@ button { font: inherit; color: inherit; }
 #enemy-info p { margin: 0; }
 #enemy-info .ei-head { display: flex; gap: 8px; align-items: baseline; } #enemy-info .ei-head b { color: var(--enemy); } #enemy-info .ei-head .num { color: var(--muted); }
 #enemy-info .ei-head em { margin-left: auto; font-style: normal; font-size: 10px; font-weight: 800; color: var(--accent); }
-#enemy-info .ei-card { font-size: 13.5px; font-weight: 700; } #enemy-info .ei-target { color: var(--muted); } #enemy-info .ei-target b { color: var(--fg); }
+#enemy-info .ei-card { font-size: 13.5px; font-weight: 700; }
 @media (max-aspect-ratio: 1/1) { #enemy-info { top: calc(max(8px, env(safe-area-inset-top)) + 148px); width: calc(100vw - 24px); } }
 #burn-skip { position: absolute; inset: 0; z-index: 8; cursor: pointer; }
 #burn-skip .hint { position: absolute; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); font-size: 11px; color: var(--muted); padding: 3px 10px; border-radius: 999px; background: var(--glass); }

@@ -314,6 +314,17 @@ function mbRelink(){
     const already=td.target&&td.target.unit===a.u.id&&td.target.die===a.i;
     if(!already&&a.d.speed>td.speed) td.target={unit:a.u.id,die:a.i};
   }
+  /* 몸을 노린 주사위(die:null)(2026-11-23 큐 양, 라오루 규칙): 그 적에게 합이 안 잡힌 주사위 중 나보다 느린 게 있으면
+     일방 공격이 아니라 그 주사위를 끌어와 합이 된다(대상을 그 주사위로 바꿈). 나를 노리던 것 → 가장 빠른 것 순으로 고른다.
+     합 안 잡힌 주사위가 없거나 모두 나보다 빠르면(또는 흐트러져 주사위가 없으면) 몸에 일방 공격 */
+  for(const a of acts){
+    const t=a.d.target; if(t.die!=null) continue;
+    const tu=mbUnit(t.unit); if(!tu||tu.hp<=0) continue;
+    const free=tu.dice.map((td,k)=>({td,k})).filter(({td,k})=>td.speed<a.d.speed&&!mbIsClash(tu.id,k));
+    if(!free.length) continue;
+    free.sort((x,y)=>((y.td.target&&y.td.target.unit===a.u.id)-(x.td.target&&x.td.target.unit===a.u.id))||y.td.speed-x.td.speed||x.k-y.k);
+    const k=free[0].k; t.die=k; tu.dice[k].target={unit:a.u.id,die:a.i};
+  }
 }
 function mbIsClash(uid,i){
   const u=mbUnit(uid), d=u&&u.dice[i]; if(!d||!d.target||d.target.die==null) return false;
