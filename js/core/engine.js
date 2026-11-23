@@ -15,7 +15,8 @@ function resTier(u,kind,type){ return u.stag>0?"치명":((u.resist&&u.resist[kin
 function hitUnit(u,type,value,m){
   m=m||{};
   const th=resTier(u,"hp",type), ts=resTier(u,"st",type), rh=TIER[th], rs=TIER[ts];
-  const hp=value>0&&rh>0?Math.max(1,Math.floor(value*rh*(m.hp||1))):0;
+  let hp=value>0&&rh>0?Math.max(1,Math.floor(value*rh*(m.hp||1))):0;
+  if(hp>0&&m.flat) hp=Math.max(0,hp+m.flat);   /* 보호(−)·무방비(+): 맞을 때마다 체력 피해에 더함(다대다 기믹, 2026-11-23) */
   let st=value>0&&rs>0?Math.max(1,Math.floor(value*rs*(m.st||1))):0;
   if(u.stag>0) st=0;
   u.hp=Math.max(0,u.hp-hp);
@@ -51,7 +52,7 @@ function resolveScene(o){
      o.pTaken {hp,st}: 사서(P)가 받는 피해에만 더 곱하는 배율 (다대다 오답 막 벌점, 1:1 은 없음=1) */
   const sc=o.dmgScale||1, ps=o.pScale!=null?o.pScale:sc, pt=o.pTaken||{};
   const m={hp:(1+(mods.dmgPct||0))*sc, st:(1+(mods.staggerPct||0))*(o.stMul!=null?o.stMul:(correct?(isKey?COMBAT.keyCorrectStagger:COMBAT.correctStagger):1))*sc};
-  const one={hp:ps*(pt.hp||1),st:ps*(pt.st||1)};
+  const one={hp:ps*(pt.hp||1),st:ps*(pt.st||1),flat:o.pFlat||0}; m.flat=o.gFlat||0;   /* 보호·무방비(다대다 상태): 맞는 쪽 기준 */
   const steps=[], pn=pDice?pDice.length:0, gn=gDice?gDice.length:0;
   /* 두 쪽의 주사위를 포인터로 맞붙인다. 회피 주사위가 공격 주사위와 합해 이기거나 비기면 소모되지 않고
      (매번 다시 굴려) 상대의 다음 주사위와 다시 맞붙는다 — 질 때까지(2026-11-19 큐 양: 비겨도 남음).
@@ -140,7 +141,13 @@ const GUEST_COMBAT={
   "active-recall":{names:["다시 읽기의 유혹","형광펜 난사","익숙함의 착각"],bigName:"유창성의 착각",atk:"관통",alt:"참격"},
   "spaced-repetition":{names:["벼락치기 타작","줄 당기기","굳은 자세"],bigName:"몰아치기의 난타",atk:"타격",alt:"참격"},
   metacognition:{names:["흐릿한 확신","빗나간 점검","마나 장막"],bigName:"아는 척의 소용돌이",atk:"관통",alt:"참격"},
-  "defamation-truth":{names:["허위의 소문","가벼운 전력 들추기","진실이라 우기기"],bigName:"입증 책임 떠넘기기",atk:"타격",alt:"참격"}
+  "defamation-truth":{names:["허위의 소문","가벼운 전력 들추기","진실이라 우기기"],bigName:"입증 책임 떠넘기기",atk:"타격",alt:"참격"},
+  /* 기믹 적 책장(2026-11-23): 적도 상태를 건다. fx·power 는 battle.js 머리 주석 */
+  insult:{names:["순화 안 된 욕설","익명의 손가락질","확성기 보도"],bigName:"비방의 1면 기사",atk:"타격",alt:"참격",
+    pages:[{name:"순화 안 된 욕설",dice:[{type:"참격",min:2,max:5}],fx:[{on:"hit",give:"feeble",n:1}],text:"[적중] 다음 막 허약 1."},
+      {name:"익명의 손가락질",dice:[{type:"관통",min:2,max:4},{type:"타격",min:2,max:4}],fx:[{on:"use",give:"bind",n:1}],text:"[사용 시] 다음 막 속박 1."},
+      {name:"확성기 보도",dice:[{type:"방어",min:3,max:6},{type:"타격",min:2,max:5}],fx:[{on:"hit",give:"bleed",n:1}],text:"[적중] 출혈 1."}],
+    big:{name:"비방의 1면 기사",dice:[{type:"타격",min:7,max:11},{type:"참격",min:3,max:6}],fx:[{on:"hit",give:"bleed",n:2}],text:"[적중] 출혈 2."}}
 };
 const GUEST_SCALE=[0,1,1.2,1.45];
 function guestCombat(g){
@@ -153,10 +160,10 @@ function guestCombat(g){
     {name:o.names[0],dice:[{type:atk,min:2,max:5}]},
     {name:o.names[1],dice:[{type:alt,min:2,max:4},{type:atk,min:2,max:4}]},
     {name:o.names[2],dice:[{type:"방어",min:3,max:6},{type:atk,min:2,max:5}]}
-  ]).map(p=>({name:p.name,dice:p.dice.map(S)}));
+  ]).map(p=>({...p,dice:p.dice.map(S)}));   /* fx·power·text(기믹) 등 다른 필드는 그대로 */
   const bigDice=o.big&&o.big.dice?o.big.dice:[{type:o.bigType||atk,min:7,max:11}].concat(w>=2?[{type:alt,min:3,max:6}]:[]);
   return {hp:COMBAT.guestHp[w], st:COMBAT.guestStagger[w], resist:o.resist||A.resist, pages,
-    big:{name:(o.big&&o.big.name)||o.bigName,dice:bigDice.map(S)}, bigEvery:COMBAT.bigEvery[w]||3};
+    big:{...(o.big||{}),name:(o.big&&o.big.name)||o.bigName,dice:bigDice.map(S)}, bigEvery:COMBAT.bigEvery[w]||3};
 }
 function planIntent(kit,rec){
   if(rec.g.stag>0) return null;
@@ -260,6 +267,12 @@ const KEY_QUESTIONS={
       options:["검사가 엄격한 증명으로 입증해야 한다","피고인이 입증해야 하고, 자유로운 증명으로 족하다","피고인이 입증해야 하고, 엄격한 증명이 필요하다","검사가 입증하되, 자유로운 증명으로 족하다"],correctIndex:1},
     {id:"defamation-truth-k1",type:"short",hard:true,prompt:"형법 제310조가 상관 명예훼손(제64조 제3항)에 유추적용되는 법률의 이름은?",
       answer:"군형법",accept:["군 형법","군형법 제64조 제3항","군형법64조3항","군형법 제64조"]}
+  ],
+  insult:[
+    {id:"insult-k0",type:"mc",hard:true,prompt:"\"자식을 범죄 방패로 쓰시다니 대~단하십니다\", \"기레기\" 같은 표현에 대한 설명으로 옳은 것은?",
+      options:["공익 목적이 인정되어 무죄다","구체적 사실을 적시했으므로 명예훼손죄다","모욕적이어서 구성요건은 성립하지만, 사회상규 범위 안이라 위법성이 없어 무죄다","모욕적이지 않아 구성요건에 해당하지 않는다"],correctIndex:2},
+    {id:"insult-k1",type:"short",hard:true,prompt:"모욕죄처럼 피해자의 고소가 있어야 공소를 제기할 수 있는 범죄를 무엇이라 하는가?",
+      answer:"친고죄",accept:["친고","친고 죄"]}
   ]
 };
 function keyQsOf(g){

@@ -147,7 +147,7 @@ const Game={
   battle:{
     begin:beginBattle, answer:mbAnswer, assign:mbAssign, unassign:mbUnassign, target:mbTarget, plan:mbPlan, ready:mbReady, untargeted:mbUntargeted, resolve:battleResolve, stepBegin:()=>(mb?mbResolveBegin():null), stepNext:R=>mbResolveNext(R), stepEnd:battleStepEnd, settle:battleSettle, leave:battleLeave,
     cardInfo:mbCardInfo, usable:(uid,cid)=>mbUsable(mbUnit(uid),PAGE_BY[cid]||(mb&&mb.cards[cid])), hand:uid=>mb?mb.x[uid].handIds:[],
-    question:()=>mb&&mb.cur?mb.cur.q:null, questionInfo:battleQuestionInfo, lightOf:battleLightOf, isClash:mbIsClash, unit:mbUnit, enemyBody:(gid,e)=>enemyBody(GUEST_BY[gid],e||{}),
+    question:()=>mb&&mb.cur?mb.cur.q:null, questionInfo:battleQuestionInfo, lightOf:battleLightOf, isClash:mbIsClash, unit:mbUnit, isCounter:(uid,i)=>mbIsCounter(mbUnit(uid),i), statusInfo:MB_STATUS, status:uid=>{ const u=mbUnit(uid); return u?(u.status||[]).map(s=>({...s,...MB_STATUS[s.id]})):[]; }, give:(uid,id,n)=>mbGive(mbUnit(uid),id,n), enemyBody:(gid,e)=>enemyBody(GUEST_BY[gid],e||{}),
     nextGuest:nextGuestAfter, hooks:MB_HOOKS,
     get state(){ return mb?mb.battle:null; }, get outcome(){ return mb&&mb.outcome; }, get log(){ return mb?mb.log:[]; }, get reception(){ return reception; }
   },

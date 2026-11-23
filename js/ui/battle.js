@@ -39,6 +39,19 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
 
   /* ---------- 그리기 ---------- */
   const units = side => B().units.filter(u => !side || u.side === side);
+  /* 기믹(2026-11-23): 책장 효과를 카드 한 줄로("적중 출혈3", "반격", "감정2 +3"). 자세한 글은 책장을 놓을 때 안내줄에 */
+  const ST = () => (G.battle.statusInfo || {});
+  function fxTag(P) {
+    if (!P) return ""; const t = [];
+    if (P.counter) t.push("반격");
+    if (P.power) { const w = P.power; t.push(w.when === "emotion" ? `감정${w.n} +${w.add}` : w.when === "lastFoe" ? `혼자면 +${w.add}` : w.when === "foeBleed" ? `출혈이면 +${w.add}` : `+${w.add}`); }
+    for (const f of P.fx || []) { const on = { use: "", hit: "적중 ", win: "합승 ", lose: "합패 " }[f.on] || "";
+      if (f.give) t.push(`${on}${(ST()[f.give] || {}).name || f.give}${f.n || 1}${f.to === "self" ? "(나)" : ""}`); if (f.light) t.push(`${on}빛+${f.light}`); }
+    return t.join(" · ");
+  }
+  /* 상태 칩: 켜진 것은 진하게, 다음 막에 켜질 것(pending)은 흐리게 */
+  const statusChips = uid => { const L = G.battle.status ? G.battle.status(uid) : []; if (!L.length) return "";
+    return `<span class="sts">${L.map(x => `<i class="st-${x.id}${x.bad ? " bad" : ""}${x.pending ? " next" : ""}" title="${esc((x.pending ? "다음 막 · " : "") + x.name + " " + x.stacks + " — " + (x.text || ""))}">${esc(x.name)}<b class="num">${x.stacks}</b></i>`).join("")}</span>`; };
   const standOrder = side => units(side).sort((a, b) => (b.leader ? 1 : 0) - (a.leader ? 1 : 0));
   const liveAllies = () => units("ally").filter(u => u.hp > 0);
   function setMsg(text, cls, ms) { const m = el.status.querySelector(".msg"); m.textContent = text || ""; m.className = "msg " + (cls || ""); clearTimeout(msgT); if (ms) msgT = setTimeout(() => setMsg(""), ms); }
@@ -52,14 +65,21 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
         const hot = sel && sel.unit === u.id ? " hot" : "";
         return `<div class="unit-bar ${side}${hp <= 0 ? " dead" : ""}${s.staggered ? " stag" : ""}${hot}" data-unit="${u.id}" role="button" aria-label="${esc(u.name)} 위치 보기">
           <span class="nm"><b class="no num">${i + 1}</b>${esc(u.name)}${u.leader ? " ★" : ""}</span><span class="v num">${hp}/${u.maxHp}</span>
-          <span class="bars"><span class="hp"><i style="transform:scaleX(${(hp / u.maxHp).toFixed(3)})"></i></span><span class="st"><i style="transform:scaleX(${(st / u.maxStagger).toFixed(3)})"></i></span></span></div>`; }).join("");
+          <span class="bars"><span class="hp"><i style="transform:scaleX(${(hp / u.maxHp).toFixed(3)})"></i></span><span class="st"><i style="transform:scaleX(${(st / u.maxStagger).toFixed(3)})"></i></span></span>${hp > 0 ? statusChips(u.id) : ""}</div>`; }).join("");
     }
+  }
+  /* 세로 화면: 상태판·학습 패널을 체력바 묶음 바로 아래에(상태 칩으로 막대가 길어져도 겹치지 않게). 가로는 CSS 그대로 */
+  const tallMq = matchMedia("(max-aspect-ratio: 1/1)");
+  function layoutTop() {
+    if (!tallMq.matches) { if (el.status.style.top) { el.status.style.top = ""; el.learn.style.top = ""; } return; }
+    let b = 0; for (const sd of el.bars.querySelectorAll(".side")) b = Math.max(b, sd.getBoundingClientRect().bottom);
+    const t = Math.round(b + 6) + "px"; if (el.status.style.top !== t) { el.status.style.top = t; el.learn.style.top = Math.round(b + 6 + (el.status.offsetHeight || 26) + 6) + "px"; }
   }
   const snapUnits = () => Object.fromEntries(B().units.map(u => [u.id, { hp: u.hp, stagger: u.stagger, staggered: u.staggered }]));
 
   const dieKey = (uid, i) => uid + ":" + i;
   const chipHtml = (u, d, i, extra) => {
-    const cls = ["speed-die"]; if (u.side === "ally" && d.card) cls.push("set"); if (sel && sel.unit === u.id && sel.die === i) cls.push("sel"); if (extra) cls.push(extra);
+    const cls = ["speed-die"]; if (u.side === "ally" && d.card) cls.push("set"); if (u.side === "ally" && d.card && G.battle.isCounter && G.battle.isCounter(u.id, i)) cls.push("counter"); if (sel && sel.unit === u.id && sel.die === i) cls.push("sel"); if (extra) cls.push(extra);
     if (u.side === "enemy" && selHasCard()) cls.push("can-target");
     return `<button type="button" class="${cls.join(" ")}" data-unit="${u.id}" data-die="${i}" data-side="${u.side}" data-k="${dieKey(u.id, i)}" aria-label="${esc(u.name)} 속도 ${d.speed}">${d.speed}</button>`; };
   const selHasCard = () => { if (!sel) return false; const u = B().units.find(x => x.id === sel.unit), d = u && u.dice[sel.die]; return !!(d && d.card); };
@@ -186,7 +206,8 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     el.hand.querySelector(".cards").innerHTML = G.battle.hand(uid).map((cid, k) => { const c = G.battle.cardInfo(cid, uid) || {}, P = G.data.PAGE_BY[cid] || {};
       const dice = (c.dice || []).map(d => { const ko = d.ko || TYPE_KO[d.type] || d.type; return `<span class="t-${ko}">${ko} ${d.min}~${d.max}</span>`; }).join("");
       const dis = c.usable === false ? " disabled" : "", s = selCard === cid ? " sel" : "";
-      return `<button type="button" class="card r-${P.rarity || "N"}${dis}${s}" data-card="${esc(cid)}" data-k="${k}" title="${esc(c.text)}"><span class="nm">${esc(c.name)}</span><span class="dice">${dice}</span>
+      const tag = fxTag(P);
+      return `<button type="button" class="card r-${P.rarity || "N"}${dis}${s}${tag ? " gimmick" : ""}" data-card="${esc(cid)}" data-k="${k}" title="${esc(c.text)}"><span class="nm">${esc(c.name)}</span><span class="dice">${dice}${tag ? `<em class="fx">${esc(tag)}</em>` : ""}</span>
         <span class="cost"><span>빛 ${c.cost}</span><span>${c.emotionReq ? "감정 " + c.emotionReq : ""}</span></span></button>`; }).join("");
   }
 
@@ -335,7 +356,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     const dice = (c.dice || []).map(x => { const ko = x.ko || TYPE_KO[x.type] || x.type; return `<span class="t-${ko}">${ko} <b class="num">${x.min}~${x.max}</b></span>`; }).join(" · ");
     el.learn.classList.remove("on");
     el.info.innerHTML = `<div class="ei-head"><b>${esc(u.name)}</b><span class="num">속도 ${d.speed}</span>${c.big ? `<em>큰 일격</em>` : ""}</div>
-      <p class="ei-card">${esc(c.name || "?")}</p><p class="ei-dice">${dice}</p>`;   /* 노리는 대상은 글 대신 실선 화살표로(drawArrows 의 focus). 합이면 바닥 더미에 짝이 보임 */
+      <p class="ei-card">${esc(c.name || "?")}</p><p class="ei-dice">${dice}</p>${c.text && !c.big ? `<p class="ei-fx">${esc(c.text)}</p>` : c.big && c.text && c.text !== "이 손님의 큰 일격" ? `<p class="ei-fx">${esc(c.text)}</p>` : ""}`;   /* 노리는 대상은 글 대신 실선 화살표로(drawArrows 의 focus). 합이면 바닥 더미에 짝이 보임 */
     el.info.dataset.unit = uid; el.info.dataset.die = die; el.info.classList.add("on"); sfx.tap();
   }
   const hideInfo = () => el.info.classList.remove("on");
@@ -379,6 +400,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     if (busy || B().phase !== "assign") return;
     const chip = e.target.closest('.speed-die[data-side="ally"]'); if (!chip) return;
     const uid = chip.dataset.unit, i = +chip.dataset.die, d = dieOf(uid, i); if (!d || !d.card) return;
+    if (G.battle.isCounter && G.battle.isCounter(uid, i)) return;   /* 반격 책장은 대상을 정하지 않는다(끌지 않음) */
     const r = chip.getBoundingClientRect();
     drag = { uid, i, chip, id: e.pointerId, sx: e.clientX, sy: e.clientY, on: false, from: { x: r.left + r.width / 2, y: r.top + r.height / 2 }, at: { x: e.clientX, y: e.clientY }, over: null };
   });
@@ -410,7 +432,10 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     const r = G.battle.assign(sel.unit, sel.die, cid, d.target ? { ...d.target } : auto);
     if (!r.ok) { failMsg(r); return; }
     sfx.tap(); selCard = null;
-    if (dieOf(sel.unit, sel.die).target) sel = firstEmptyDie() || sel; else setMsg("주사위를 상대 주사위(또는 몸)로 끌어다 놓아 줘", "", 2600);
+    const P = G.data.PAGE_BY[cid] || {};
+    if (P.counter) { sel = firstEmptyDie() || sel; setMsg(`반격 · 나를 일방 공격하는 상대에게만 맞서 — ${P.text || ""}`, "", 3200); }   /* 반격 책장은 대상이 없다 */
+    else if (dieOf(sel.unit, sel.die).target) { sel = firstEmptyDie() || sel; if (P.fx || P.power) setMsg(`${P.name} · ${P.text || ""}`, "", 2600); }
+    else setMsg(P.fx || P.power ? `${P.text || ""} · 주사위를 상대에게 끌어다 놓아 줘` : "주사위를 상대 주사위(또는 몸)로 끌어다 놓아 줘", "", 2800);
     render();
   });
 
@@ -456,6 +481,10 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
         barSnap = null; renderBars(); } });
       } catch (e) { console.warn("[battle] 연출 오류 — 건너뛰고 계속", e); }
       revealClash(); barSnap = null; renderBars();
+      /* 기믹 발동: 출혈로 잃은 체력, 걸린 상태, 얻은 빛을 머리 위에 잠깐 */
+      (ev.fx || []).forEach((f, n) => { const side = (B().units.find(u => u.id === f.unit) || {}).side, txt = f.kind === "bleed" ? `출혈 -${f.hp}` : f.kind === "light" ? `빛 +${f.n}` : `${(ST()[f.status] || {}).name || f.status} ${f.n}`;
+        const cls = f.kind === "bleed" ? "hp" + (side === "ally" ? " ally" : "") : "fx" + ((ST()[f.status] || {}).bad ? " bad" : "");
+        if (fast || skipAll) floatNum(f.unit, txt, cls); else setTimeout(() => alive && floatNum(f.unit, txt, cls), 140 * n); });
       if ((ev.result && ev.result.staggered || []).length) sfx.stagger();
       if ((ev.result && ev.result.dead || []).some(id => id[0] === "e")) sfx.book();
       if (!alive) return;
@@ -476,7 +505,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   el.open.addEventListener("click", () => { sfx.tap(); runOpen(); });
 
   /* ---------- 매 프레임: 주사위·화살표를 무대 위치에 붙인다 ---------- */
-  const loop = () => { if (!alive) return; placeDice(); placeStack(); placeClash(); drawArrows(); raf = requestAnimationFrame(loop); };
+  const loop = () => { if (!alive) return; layoutTop(); placeDice(); placeStack(); placeClash(); drawArrows(); raf = requestAnimationFrame(loop); };
   render(); raf = requestAnimationFrame(loop);
   return { render: () => { if (alive) render(); },   /* 화면 밖(API·도구)에서 상태를 바꾼 뒤 다시 그리기 */
     unmount() { alive = false; cancelAnimationFrame(raf); if (stage.setArrows) stage.setArrows([]); clearTimeout(msgT); flashT.forEach(clearTimeout); root.innerHTML = ""; delete root.dataset.screen; } };

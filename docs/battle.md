@@ -51,6 +51,14 @@
 - 적 하나: `hp = max(minHp 6, round(전체 × 그 적의 문제 수 / 전체 문제 수))`, 흐트러짐 = `max(minSt 4, round(hp × leaderSt 1.1 | followerSt 0.7))`.
 - 적 주사위: 손님 키트 값을 `MB.DICE.scale[weakness] × partyScale[사서 수−1] / GUEST_SCALE[weakness]` 로 다시 맞춤(scale {1:1.15, 2:1.15, 3:1.32}, partyScale [0.55, 0.9, 1.25] (전 [1, 1.1, 1.2]), 큰 공격 ×bigScale 0.9). 주사위 수: 우두머리 `leaderDice[w] + partyLeader`, 부하 `1 + partyFollower`.
 
+### 기믹 책장·상태 (2026-11-23)
+책장(사서 `COMBAT_PAGES`·적 `GUEST_COMBAT[손님].pages/big`)에 선택 필드를 붙이면 숫자 말고 효과가 생긴다. 정의·처리는 `js/core/battle.js` 머리(`MB_STATUS`, `mbGive`, `mbStatusStart/End`, `mbPowerOn`)와 `mbResolveNext`.
+- `fx:[{on, give, n, to}|{on, light}]` — 교환 하나가 끝난 뒤 발동. `on`: `use`(굴림) · `hit`(상대 체력 피해) · `win`/`lose`(합 승패). `to:"self"` 면 자기, 아니면 상대.
+- `power:{when, n, add}` — 조건이 맞으면 그 책장 주사위 모두 +add. `when`: `emotion`(감정 n 이상) · `lastFoe`(살아 있는 상대 하나) · `foeBleed`(상대 출혈).
+- `counter:true` — 반격(사서만). 대상을 두지 않고(`ready()` 통과, 끌기 안 됨) 막 시작에 "남은 회피" 자리에 놓여, 그 사서를 일방 공격하는 교환에만 맞선다(`ev.counter`).
+- 상태 `u.status=[{id,stacks,pending}]`(최대 10): 출혈 `bleed`(바로, 공격 주사위를 굴릴 때마다 그만큼 체력 −, 1/3 감소, 막 끝 1/3 감소) · 다음 막에 켜지는 것: 마비 `para`(주사위 n개 최솟값) · 힘 `str`/허약 `feeble`(공격 주사위 ±) · 보호 `prot`/무방비 `frag`(맞을 때 체력 피해 ±, `hitUnit` 의 `m.flat`) · 신속 `haste`/속박 `bind`(속도 주사위 ±, 최소 1).
+- 교환 이벤트에 `ev.fx=[{unit,kind:"bleed",hp}|{unit,kind:"give",status,n}|{unit,kind:"light",n}]`. API: `Game.battle.status(uid)`, `statusInfo`, `give(uid,id,n)`, `isCounter(uid,i)`, `cardInfo` 의 `counter`·`gimmick`.
+
 ## 3. 공개 API `Game` (`js/core/api.js`)
 
 새 UI는 `window.Game` 만 부른다. 부른 다음 `Game.save`, `Game.battle.state`(= `mb.battle`) 를 읽어 그린다.

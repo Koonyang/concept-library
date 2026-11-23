@@ -96,7 +96,7 @@ function paneDeck(pane, ctx) {
     <div id="deck-pool" data-scroll="pool">${list.length ? list.map(p => { const k = inDeck(p.id), lim = G().deck.limit(p.id), full = k >= lim;
       return `<button type="button" class="pool-card r-${p.rarity || "N"}${k ? " in" : ""}${full ? " full" : ""}" data-page="${p.id}" data-types="${(p.dice || []).map(d => d.type).join(",")}">
         <span class="top"><b>${esc(p.name)}</b><span class="num">빛 ${p.cost || 0}${p.emotion ? ` · 감정 ${p.emotion}` : ""}</span></span>
-        <span class="rng">${rangesOf(p)}</span><span class="own num">${k}/${lim}${k ? "<em>덱</em>" : ""}</span></button>`; }).join("") : `<p class="empty">조건에 맞는 책장이 없어</p>`}</div></div>`;
+        <span class="rng">${rangesOf(p)}</span>${p.fx || p.power || p.counter ? `<span class="fx">${esc(p.text || "")}</span>` : ""}<span class="own num">${k}/${lim}${k ? "<em>덱</em>" : ""}</span></button>`; }).join("") : `<p class="empty">조건에 맞는 책장이 없어</p>`}</div></div>`;
   const redraw = () => keepScroll(pane, () => paneDeck(pane, ctx));
   pane.querySelector("#deck-pool").addEventListener("click", e => { const c = e.target.closest(".pool-card"); if (!c) return; const r = G().deck.toggle(c.dataset.page); if (r.ok) sfx.tap(); redraw(); });
   pane.querySelector("#deck-slots").addEventListener("click", e => { const c = e.target.closest(".slot-card"); if (!c) return; G().deck.toggle(c.dataset.page, { slot: true }); sfx.tap(); redraw(); });

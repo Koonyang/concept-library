@@ -47,7 +47,7 @@ const r=await p.evaluate(()=>{
   out.moonPhase=G.moon.state.phase; G.moon.skipReplay(); out.moonDone=G.moon.state.phase; out.moonSave=G.save.moon;
   return out;
 });
-ok(r.data.join()==="4,11,33,7,33","데이터 개수 (층 4·손님 11·책장 33·핵심 책장 7·기프트 33)",r.data);
+ok(r.data.join()==="4,12,42,8,36","데이터 개수 (층 4·손님 12·책장 42·핵심 책장 8·기프트 36)",r.data);
 ok(r.cover==="assets/books/book-7.webp","책 표지 경로 (guest.book)",r.cover);
 ok(r.begin&&r.phase0==="question"&&r.q&&r.early===null,"접대 시작: 1막 문제 단계, 문제 전에는 개막 안 됨",r);
 ok(r.outcome==="win"&&r.scenes>0,"정답만 내면 이긴다",{o:r.outcome,s:r.scenes});

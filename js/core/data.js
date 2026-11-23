@@ -188,6 +188,30 @@ const WEAK_POINTS = [
       { key:"defamation-rumormonger", name:"허위의 소문꾼", topic:"허위 인식·사실 적시 판례", q:["defamation-truth-q0","defamation-truth-q1","defamation-truth-q2","defamation-truth-q3","defamation-truth-q4","defamation-truth-q5","defamation-truth-q10"] },
       { key:"defamation-accuser", name:"공익을 내건 고발자", topic:"상당한 이유·공익 범주", q:["defamation-truth-q9","defamation-truth-q11"] }
     ]
+  },
+  {
+    id:"insult", floorId:"criminal-law", concept:"모욕죄와 출판물 명예훼손", subject:"형법", weakness:2, archetype:"knight", palette:"crimson", accessory:"banner", book:4,
+    sourceNote:"형법 · 모욕죄, 출판물 명예훼손 (11/23)",
+    explanation:"모욕죄는 친고죄입니다. 무례하고 저속한 표현만으로는 성립하지 않고, 구체적 사실 없는 욕설처럼 '순화하고 순화해도 세다' 싶은 말이 모욕적 언사입니다. 집단을 모욕해도 구성원 개개인에 대한 모욕은 원칙적으로 아니지만, 개인이 특정되면 성립할 수 있고, 국가·자치단체는 대상이 아닙니다. 모욕적이면 구성요건은 성립해도 사회상규 범위 안이면 위법성이 없어 무죄입니다. 신문·잡지·라디오 같은 출판물로 명예를 훼손하면 가중처벌되지만, 비방할 목적이 있어야 하고 없으면 일반 명예훼손입니다.",
+    questions:[
+      { id:"insult-q0", type:"ox", prompt:"무례하고 저속한 표현이면 그것만으로 모욕죄가 성립한다.", options:["O","X"], correctIndex:1 },
+      { id:"insult-q1", type:"ox", prompt:"판례: \"나이 처먹은 게 자랑이냐\"라는 말은 모욕죄가 성립한다.", options:["O","X"], correctIndex:1 },
+      { id:"insult-q2", type:"ox", prompt:"판례: \"첩년\", \"개새끼\" 같은 욕설은 모욕죄가 성립한다.", options:["O","X"], correctIndex:0 },
+      { id:"insult-q3", type:"mc", prompt:"구체적인 사실을 드러내지 않고 욕설만 했다. 문제되는 죄는?", options:["사실 적시 명예훼손죄","출판물에 의한 명예훼손죄","모욕죄","허위 사실 적시 명예훼손죄"], correctIndex:2 },
+      { id:"insult-q4", type:"ox", prompt:"집단을 모욕하면 원칙적으로 그 집단 구성원 개개인에 대한 모욕죄가 성립한다.", options:["O","X"], correctIndex:1 },
+      { id:"insult-q5", type:"ox", prompt:"집단을 향한 표현이라도 그 말로 구성원 개인이 특정되어 추론된다면 모욕죄가 성립할 수 있다.", options:["O","X"], correctIndex:0 },
+      { id:"insult-q6", type:"ox", prompt:"국가나 지방자치단체도 모욕죄의 대상이 된다.", options:["O","X"], correctIndex:1 },
+      { id:"insult-q7", type:"ox", prompt:"판례: 말이 아니라 사진 합성 같은 비언어적 방법으로 모욕해도 모욕죄가 성립할 수 있다.", options:["O","X"], correctIndex:0 },
+      { id:"insult-q8", type:"ox", prompt:"판례: 사진에 개 얼굴을 합성했지만 그 용도가 얼굴을 가리는 처리였다면 모욕죄가 성립한다.", options:["O","X"], correctIndex:1 },
+      { id:"insult-q9", type:"mc", prompt:"신문·잡지·라디오 같은 출판물을 이용해 명예를 훼손하면?", options:["형을 감경한다","가중처벌한다","일반 명예훼손과 똑같이 처벌한다","처벌하지 않는다"], correctIndex:1 },
+      { id:"insult-q10", type:"ox", prompt:"출판물에 의한 명예훼손죄는 일반 명예훼손죄와 달리 비방할 목적이 있어야 성립한다.", options:["O","X"], correctIndex:0 },
+      { id:"insult-q11", type:"mc", prompt:"출판물로 남의 명예를 훼손했지만 비방할 목적이 없었다면?", options:["출판물에 의한 명예훼손죄가 그대로 성립한다","모욕죄가 성립한다","무죄다","일반 명예훼손죄로 본다"], correctIndex:3 }
+    ],
+    enemies:[
+      { key:"insult-curser", name:"순화되지 않는 욕설", topic:"모욕적 언사·위법성", leader:true, q:["insult-q0","insult-q1","insult-q2","insult-q3","insult-k0","insult-k1"] },
+      { key:"insult-crowd", name:"익명의 군중", topic:"집단 모욕·대상·합성", q:["insult-q4","insult-q5","insult-q6","insult-q7","insult-q8"] },
+      { key:"insult-megaphone", name:"가중의 확성기", topic:"출판물 명예훼손", q:["insult-q9","insult-q10","insult-q11"] }
+    ]
   }
 ];
 
@@ -273,7 +297,13 @@ const EGO_GIFTS = [
   { id:"defendant-proof-scroll", guestId:"defamation-truth", name:"피고인의 입증 두루마리", slot:"등", art:"scroll",
     text:"제310조의 입증은 피고인의 몫. 다만 자유로운 증명으로.", perk:{ staggerPct:1 } },
   { id:"military-64-gavel", guestId:"defamation-truth", name:"군형법 제64조의 판결봉", slot:"목", art:"gavel",
-    text:"제310조는 군형법 제64조 제3항에도 유추적용된다.", perk:{ dmgPct:1 } }
+    text:"제310조는 군형법 제64조 제3항에도 유추적용된다.", perk:{ dmgPct:1 } },
+  { id:"refined-filter", guestId:"insult", name:"순화의 여과지", slot:"얼굴", art:"mask",
+    text:"순화하고 순화해도 세다 싶으면, 그것이 모욕적 언사다.", perk:{ hp:1 } },
+  { id:"complaint-seal", guestId:"insult", name:"고소장의 인장", slot:"손", art:"stamp",
+    text:"모욕죄는 친고죄. 고소가 있어야 움직인다.", perk:{ staggerPct:1 } },
+  { id:"press-badge", guestId:"insult", name:"출판물의 완장", slot:"가슴", art:"badge",
+    text:"출판물이면 가중, 단 비방할 목적이 있어야.", perk:{ dmgPct:1 } }
 ];
 const EGO_BY = Object.fromEntries(EGO_GIFTS.map(g=>[g.id,g]));
 
@@ -364,7 +394,27 @@ const COMBAT_PAGES = [
   {id:"public-interest",name:"공공의 이익",cost:2,emotion:1,dice:[{type:"참격",min:5,max:8}],text:"사회 전반과 그 안의 한 집단을 위해 벤다.",rarity:"R",floorId:"criminal-law",subject:"형법",sourceGuest:"defamation-truth",
     flavor:"공공의 이익은 사회 전반만이 아니다. 특정 사회집단의 이익도 공익이다."},
   {id:"defendant-burden",name:"피고인의 입증",cost:2,emotion:2,dice:[{type:"관통",min:4,max:6},{type:"방어",min:3,max:5}],text:"진실과 공익을 스스로 증명하며 꿰뚫는다.",rarity:"SR",floorId:"criminal-law",subject:"형법",sourceGuest:"defamation-truth",
-    flavor:"제310조, 진실성과 공익성의 입증은 피고인이 진다. 엄격한 증명이 아니라 자유로운 증명으로."}
+    flavor:"제310조, 진실성과 공익성의 입증은 피고인이 진다. 엄격한 증명이 아니라 자유로운 증명으로."},
+  /* ---- 기믹 책장(2026-11-23): fx·power·counter 는 battle.js 머리 주석 ---- */
+  {id:"social-norm-shield",name:"사회상규의 방패",cost:1,emotion:0,dice:[{type:"방어",min:4,max:7}],text:"[합 승리] 다음 막 보호 2.",rarity:"R",floorId:"criminal-law",subject:"형법",sourceGuest:"insult",
+    fx:[{on:"win",give:"prot",n:2,to:"self"}],flavor:"모욕적이어도 사회상규의 범위 안이라면 위법하지 않다. 방패는 그 범위만큼 넓다."},
+  {id:"press-megaphone",name:"출판물의 확성기",cost:2,emotion:1,dice:[{type:"타격",min:3,max:7}],text:"[적중] 출혈 3.",rarity:"R",floorId:"criminal-law",subject:"형법",sourceGuest:"insult",
+    fx:[{on:"hit",give:"bleed",n:3}],flavor:"신문·잡지·라디오를 탄 말은 한 번으로 끝나지 않는다. 그래서 가중처벌이다."},
+  {id:"intent-to-defame",name:"비방의 목적",cost:2,emotion:1,dice:[{type:"관통",min:4,max:7}],text:"감정 2 이상이면 주사위 +3(가중). 아니면 그냥 찌른다.",rarity:"SR",floorId:"criminal-law",subject:"형법",sourceGuest:"insult",
+    power:{when:"emotion",n:2,add:3},flavor:"비방할 목적이 있어야 출판물 명예훼손. 목적이 없으면 일반 명예훼손일 뿐이다."},
+  {id:"singled-out",name:"특정된 한 사람",cost:1,emotion:0,dice:[{type:"참격",min:3,max:6}],text:"살아 있는 상대가 하나뿐이면 주사위 +4.",rarity:"R",floorId:"criminal-law",subject:"형법",sourceGuest:"insult",
+    power:{when:"lastFoe",add:4},flavor:"집단을 향한 말은 개개인에게 닿지 않는다. 한 사람으로 좁혀지는 순간, 말은 칼이 된다."},
+  {id:"complaint-only",name:"친고죄",cost:1,emotion:1,dice:[{type:"회피",min:4,max:8}],text:"[반격] 대상을 정하지 않는다. 나를 일방 공격하는 상대에게만 맞선다. [합 승리] 상대 허약 1.",rarity:"SR",floorId:"criminal-law",subject:"형법",sourceGuest:"insult",
+    counter:true,fx:[{on:"win",give:"feeble",n:1}],flavor:"고소가 없으면 공소도 없다. 먼저 건드리지 않으면 움직이지 않는다."},
+  /* 일반 기믹 책장: 새 강의(모욕죄) 책에서 같이 나온다(결정 2026-11-12: 기믹은 새 강의 내용에만, 기존 손님 책은 그대로) */
+  {id:"red-underline",name:"붉은 밑줄",cost:1,emotion:0,dice:[{type:"참격",min:2,max:5}],text:"[적중] 출혈 2.",rarity:"R",floorId:"criminal-law",subject:"형법",sourceGuest:"insult",
+    fx:[{on:"hit",give:"bleed",n:2}],flavor:"한 번 그은 붉은 줄은 페이지를 넘겨도 번져 있다."},
+  {id:"frozen-gaze",name:"얼어붙은 시선",cost:2,emotion:1,dice:[{type:"타격",min:3,max:6}],text:"[적중] 다음 막 마비 1.",rarity:"R",floorId:"criminal-law",subject:"형법",sourceGuest:"insult",
+    fx:[{on:"hit",give:"para",n:1}],flavor:"안다고 믿는 순간, 생각은 그 자리에 굳는다."},
+  {id:"speed-reading",name:"속독",cost:0,emotion:0,dice:[{type:"회피",min:2,max:5}],text:"[사용 시] 다음 막 신속 2.",rarity:"R",floorId:"criminal-law",subject:"형법",sourceGuest:"insult",
+    fx:[{on:"use",give:"haste",n:2,to:"self"}],flavor:"훑어 읽으면 빨라진다. 다만 남는 것은 적다."},
+  {id:"footnote-snare",name:"발목 잡는 각주",cost:1,emotion:0,dice:[{type:"관통",min:2,max:5}],text:"[적중] 다음 막 속박 2.",rarity:"R",floorId:"criminal-law",subject:"형법",sourceGuest:"insult",
+    fx:[{on:"hit",give:"bind",n:2}],flavor:"본문을 읽다 각주에 걸리면, 다음 줄로 넘어가는 발이 무거워진다."}
 ];
 
 /* look: 3D 복장(선택, docs/ui.md 9절). 장서복은 옷만 바꾼다 — 사서 얼굴·머리·다리는 그대로.
@@ -377,7 +427,8 @@ const KEY_PAGES = [
   {id:"archivist",name:"소장관의 망토",text:"서고를 지키는 자의 옷. 매 턴 빛 회복 +1.",perk:"recover",coat:3,look:{top:"Knight",cloth:"#d0463a",body:"#8a3a3a",hide:["hat","cape"],show:["Knight_Cape"]}},
   {id:"classical-robe",name:"고전주의 재판관의 법복",text:"합리의 저울을 입는다. 최대 체력 +10.",perk:"hp10",coat:4,look:{top:"Mage",cloth:"#f0e6cc",body:"#d8cdb2",hide:["hat","cape","book","1H_Wand","1H_Sword","Knife"],show:["Mage_Hat","2H_Staff"],props:[{name:"scales",bone:"back",scale:0.45,pos:[0.3,0.4,-0.2]}]}},
   {id:"panopticon-coat",name:"파놉티콘 감시관의 외투",text:"모든 곳을 보는 눈. 흐트러짐 피해 +10%.",perk:"stagger10",coat:5,look:{top:"Knight",cloth:"#a86e3c",body:"#7a5a3e",hide:["hat","cape"],show:["Knight_Helmet"],props:[{name:"lantern",bone:"hand.l",scale:0.5}]}},
-  {id:"truth-robe",name:"진실과 공익의 법복",text:"진실을 비추는 등불을 든다. 접대 시작 빛 +1.",perk:"light",coat:6,look:{top:"Barbarian",cloth:"#9a52c8",body:"#6a3a8a",hide:["hat","cape"],show:["Rogue_Cape"],props:[{name:"lantern",bone:"hand.l",scale:0.5},{name:"scroll",bone:"back",scale:0.4,pos:[0.3,0.4,-0.2]}]}}
+  {id:"truth-robe",name:"진실과 공익의 법복",text:"진실을 비추는 등불을 든다. 접대 시작 빛 +1.",perk:"light",coat:6,look:{top:"Barbarian",cloth:"#9a52c8",body:"#6a3a8a",hide:["hat","cape"],show:["Rogue_Cape"],props:[{name:"lantern",bone:"hand.l",scale:0.5},{name:"scroll",bone:"back",scale:0.4,pos:[0.3,0.4,-0.2]}]}},
+  {id:"social-norm-coat",name:"사회상규의 장서복",text:"선을 넘지 않는 말을 입는다. 감정 단계 1로 시작.",perk:"emotion",coat:7,look:{top:"Rogue",cloth:"#b8434a",body:"#6a2a2e",hide:["hat"],props:[{name:"banner",bone:"back",scale:0.45,pos:[0.28,0.42,-0.22]}]}}
 ];
 
 /* 책 소각 풀 — 모든 비기본 책장/핵심 책장은 최소 한 손님의 책에서 나온다 (acqAudit가 검사) */
@@ -392,7 +443,8 @@ const BOOK_POOLS = {
   "active-recall":[{k:"page",id:"repeat-line",w:10},{k:"page",id:"underline",w:5},{k:"key",id:"reading-room",w:5}],
   "spaced-repetition":[{k:"page",id:"blank-fill",w:10},{k:"page",id:"heavy-tome",w:5},{k:"key",id:"midnight",w:5}],
   metacognition:[{k:"page",id:"night-study",w:8},{k:"page",id:"repeat-line",w:5},{k:"page",id:"apex",w:3},{k:"key",id:"archivist",w:4}],
-  "defamation-truth":[{k:"page",id:"reasonable-belief",w:10},{k:"page",id:"public-interest",w:10},{k:"page",id:"defendant-burden",w:6},{k:"key",id:"classical-robe",w:4},{k:"key",id:"truth-robe",w:4}]
+  "defamation-truth":[{k:"page",id:"reasonable-belief",w:10},{k:"page",id:"public-interest",w:10},{k:"page",id:"defendant-burden",w:6},{k:"key",id:"classical-robe",w:4},{k:"key",id:"truth-robe",w:4}],
+  insult:[{k:"page",id:"social-norm-shield",w:10},{k:"page",id:"press-megaphone",w:10},{k:"page",id:"singled-out",w:8},{k:"page",id:"intent-to-defame",w:6},{k:"page",id:"complaint-only",w:6},{k:"page",id:"red-underline",w:3},{k:"page",id:"frozen-gaze",w:3},{k:"page",id:"speed-reading",w:3},{k:"page",id:"footnote-snare",w:3},{k:"key",id:"social-norm-coat",w:4}]
 };
 const BOOK_RULES = { recallOne:0.65, firstClear:1, pityGuarantee:2, newMul:3, dupMul:0.5, burnDraws:1 };
 const DECK_MAX_COPIES = 2;

@@ -304,5 +304,48 @@ const body=await p.evaluate(()=>{ const G=Game.battle, out={};
   G.leave(); return out; });
 ok(body.slower.r.ok&&body.slower.clash&&body.slower.t.die!=null,"몸 노리기: 합 안 잡힌 적 주사위가 나보다 느리면 끌어와 합",body.slower);
 ok(body.faster.r.ok&&!body.faster.clash&&body.faster.t.die==null,"몸 노리기: 적 주사위가 모두 나보다 빠르면 몸에 일방 공격",body.faster);
+/* ---------- 기믹(2026-11-23): 상태·책장 효과 ---------- */
+const gm=await p.evaluate(()=>{ const G=__studyGame, A=G.battleApi, out={};
+  /* 준비: insult 손님, 사서 하나, 정답, 손패를 원하는 책장으로 */
+  const prep=(hand,gid="insult")=>{ A.begin(gid); const B=G.battle, X=A.internals(), U=id=>B.units.find(u=>u.id===id); A.setRng(()=>0.5); A.answer(true);
+    X.a1.handIds.splice(0,X.a1.handIds.length,...hand); U("a1").light=9; U("a1").maxLight=9; U("a1").emotion=3; return {B,X,U}; };
+  /* ① 출혈: 공격 주사위를 굴릴 때마다 그만큼 잃고 1/3 줄어듦 */
+  { const {B,X,U}=prep(["turn-page"]); const e=B.units.find(u=>u.side==="enemy"&&u.dice.length&&mbDiceAtk(u));
+    function mbDiceAtk(u){ return true; }
+    Game.battle.give(e.id,"bleed",6); const st0=Game.battle.status(e.id); B.units.filter(u=>u.side==="enemy").forEach(x=>x.dice.forEach((d,k)=>A.setEnemyTarget(x.id,k,{unit:"a1",die:null})));
+    const hp0=X[e.id].cu.hp; const ev=A.resolveOnly(); const mine=ev.filter(v=>v.fx&&v.fx.some(f=>f.kind==="bleed"&&f.unit===e.id));
+    out.bleed={st0,hp0,events:mine.length,lost:mine.reduce((t,v)=>t+v.fx.filter(f=>f.kind==="bleed"&&f.unit===e.id).reduce((a,f)=>a+f.hp,0),0),left:Game.battle.status(e.id).map(s=>s.id+s.stacks)}; }
+  /* ② 다음 막 상태: 주면 대기 → 다음 막에 켜짐 → 그다음 막엔 사라짐. 신속은 속도 주사위 + */
+  { const {B,U}=prep(["turn-page"]); Game.battle.give("a1","haste",4); const s0=Game.battle.status("a1").map(s=>s.id+(s.pending?"?":"")+s.stacks);
+    A.resolveOnly(); A.nextScene(); const s1=Game.battle.status("a1").map(s=>s.id+(s.pending?"?":"")+s.stacks), sp1=U("a1").dice.map(d=>d.speed);
+    A.answer(true); A.resolveOnly(); A.nextScene(); const s2=Game.battle.status("a1").length;
+    out.pend={s0,s1,sp1,s2,minSpeed:G.battleApi.MB?G.battleApi.MB.allySpeed[0]:2}; }
+  /* ③ 조건부 위력: 특정된 한 사람 — 살아 있는 적이 하나면 +4 */
+  { const {B,X,U}=prep(["singled-out"]); const foes=B.units.filter(u=>u.side==="enemy"); foes.slice(1).forEach(f=>{ X[f.id].cu.hp=0; f.hp=0; });
+    const e=foes[0]; A.assign("a1",0,"singled-out",{unit:e.id,die:null}); const ev=A.resolveOnly(), mine=ev.find(v=>v.by&&v.by.unit==="a1");
+    const base=G.engine.playerDieRange({type:"참격",min:3,max:6},true,false,3,0); out.power={range:mine&&mine.steps[0].pRange,base}; }
+  /* ④ [적중] 출혈 3: 출판물의 확성기 */
+  { const {B,X}=prep(["press-megaphone"]); const e=B.units.find(u=>u.side==="enemy"); B.units.filter(u=>u.side==="enemy").forEach(x=>x.dice.forEach((d,k)=>A.setEnemyTarget(x.id,k,{unit:"a1",die:null})));
+    e.dice.forEach(d=>d.speed=1); A.assign("a1",0,"press-megaphone",{unit:e.id,die:null}); const ev=A.resolveOnly(), mine=ev.find(v=>v.by&&v.by.unit==="a1"&&v.by.die===0);
+    out.hitFx={hit:!!(mine&&mine.steps.some(s=>s.dmg&&s.dmg.unit===e.id&&s.dmg.hp>0)),fx:mine&&mine.fx}; }
+  /* ⑤ 반격(친고죄): 대상 없이 놓아도 개막 가능, 나를 일방 공격하는 교환에만 맞선다 */
+  { const {B,X}=prep(["complaint-only"]); const r=A.assign("a1",0,"complaint-only",{unit:B.units.find(u=>u.side==="enemy").id,die:null});
+    const tgt=B.units.find(u=>u.id==="a1").dice[0].target, ready=Game.battle.ready();
+    B.units.filter(u=>u.side==="enemy").forEach(x=>x.dice.forEach((d,k)=>A.setEnemyTarget(x.id,k,{unit:"a1",die:null})));
+    const ev=A.resolveOnly(); out.counter={ok:r.ok,tgt,ready,counterEv:ev.filter(v=>v.counter).length,firstCounter:(ev.find(v=>v.counter)||{}).kind}; }
+  /* ⑥ 마비: 이번 막 그 수만큼 주사위가 최솟값 */
+  { const {B,X,U}=prep(["turn-page"]); const e=B.units.find(u=>u.side==="enemy"&&u.dice.length); Game.battle.give(e.id,"para",9); A.resolveOnly(); A.nextScene(); A.answer(true);
+    const e2=B.units.find(u=>u.id===e.id); B.units.filter(u=>u.side==="enemy").forEach(x=>x.dice.forEach((d,k)=>A.setEnemyTarget(x.id,k,{unit:"a1",die:null})));
+    const ev=A.resolveOnly(), rs=ev.filter(v=>v.by&&v.by.unit===e.id).flatMap(v=>v.steps.map(s=>s.gRange)).filter(Boolean); out.para={n:rs.length,flat:rs.every(r=>r[0]===r[1])}; }
+  /* ⑦ 보호: 맞을 때마다 체력 피해 −(엔진 hitUnit) */
+  { const E=G.engine, u1=E.mkUnit(100,50), u2=E.mkUnit(100,50); const a=E.hitUnit(u1,"참격",6,{}), b=E.hitUnit(u2,"참격",6,{flat:-2}); out.prot={a:a.hp,b:b.hp}; }
+  A.begin("beccaria"); return out; });
+ok(gm.bleed.st0.some(s=>s.id==="bleed"&&s.stacks===6&&!s.pending)&&gm.bleed.events>=1&&gm.bleed.lost>=6,"기믹 출혈: 바로 켜지고, 공격 주사위를 굴리면 그만큼 체력을 잃고 줄어듦",gm.bleed);
+ok(gm.pend.s0.join()==="haste?4"&&gm.pend.s1.join()==="haste4"&&gm.pend.sp1.every(v=>v>=5)&&gm.pend.s2===0,"기믹 다음 막 상태: 대기 → 다음 막 켜짐(신속 +4) → 그다음 막 사라짐",gm.pend);
+ok(gm.power.range&&gm.power.range[0]===gm.power.base[0]+4&&gm.power.range[1]===gm.power.base[1]+4,"기믹 조건부 위력: 특정된 한 사람 — 적이 하나면 +4",gm.power);
+ok(!gm.hitFx.hit||(gm.hitFx.fx||[]).some(f=>f.kind==="give"&&f.status==="bleed"&&f.n===3),"기믹 [적중] 출혈 3",gm.hitFx);
+ok(gm.counter.ok&&gm.counter.tgt===null&&gm.counter.ready&&gm.counter.counterEv>=1&&gm.counter.firstCounter==="clash","기믹 반격: 대상 없이 개막 가능, 나를 일방 공격하면 맞섬",gm.counter);
+ok(gm.para.n>=1&&gm.para.flat,"기믹 마비: 그 막 주사위가 최솟값",gm.para);
+ok(gm.prot.a-gm.prot.b===2,"기믹 보호: 맞을 때 체력 피해 −2",gm.prot);
 ok(errs.length===0,"no errors",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

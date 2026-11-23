@@ -16,7 +16,7 @@
 > 규칙 이름(`FLOORS`, `WEAK_POINTS`, `mbCreate` …)은 `js/core/`에 그대로 있다. 옛 화면 함수는 `legacy/`에만 있다.
 
 `index.html` 안의 주요 묶음(이름으로 검색할 것):
-- 데이터: `FLOORS`(층 4개: crime, memory, cognition, criminal-law), `WEAK_POINTS`(손님 11명, 문제 `questions`),
+- 데이터: `FLOORS`(층 4개: crime, memory, cognition, criminal-law), `WEAK_POINTS`(손님 12명, 문제 `questions`),
   `KEY_QUESTIONS`(핵심 문제), `COMBAT_PAGES`(책장 33장), `KEY_PAGES`(핵심 책장 = 장서복 7개), `EGO_GIFTS`(33개), `COSMETIC_ITEMS`.
 - 수치: `COMBAT`(1:1 수치, 주사위 비율 `COMBAT.pct`, 흐트러짐 배율 `correctStagger`/`keyCorrectStagger`), `MB`(다대다, `MB.ENEMY_MAX=3`, `MB.HP`, `MB.WRONG`; 2026-11-19부터 `SCALE_ENEMY` 없음),
   `ENEMY_STATS`, `DECK_MIN=6`/`DECK_MAX=20`, `DECK_MAX_COPIES=2`, `HAND_MAX=8`, `PARTY_MAX=3`, `LIB_UNLOCK_AT=[0,5,10]`.
