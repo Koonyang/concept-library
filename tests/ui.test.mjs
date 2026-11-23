@@ -130,6 +130,11 @@ if(aim&&aim.one){
   ok(aim.clash&&geo.stack>=1,"합 짝은 바닥 더미로",{aim,stack:geo.stack});
   ok(geo.ends.length>=1&&geo.ends.every(([x,y])=>Math.hypot(x-geo.body.x,y-geo.body.y)<4)&&geo.body.y>geo.head.y+20,"일방 공격 화살표 끝 = 대상 몸통(머리 위보다 아래)",geo);
   ok(Math.hypot(geo.tc.x-geo.body.x,geo.tc.y-geo.body.y)<4,"몸통 누르는 자리 가운데 = 몸통",geo);
+  /* 화살표는 3D 무대가 캐릭터 뒤에 그림: SVG 는 숨기고(자리만), 무대 화살표 수 = path 수, 캐릭터 메시는 화살표(1) 다음 순서(2) */
+  const lay=await p.evaluate(()=>{ const sv=document.getElementById("target-arrows"), S=window.__stage; let ch=0, bad=0;
+    S.scene.getObjectByName("units").traverse(n=>{ if(n.isMesh&&!n.material.transparent){ ch++; if(n.renderOrder<=1) bad++; } });
+    return {hidden:getComputedStyle(sv).visibility==="hidden",paths:sv.querySelectorAll("path").length,stage:S.debug.arrows,ch,bad}; });
+  ok(lay.hidden&&lay.paths>0&&lay.stage===lay.paths&&lay.ch>0&&lay.bad===0,"화살표는 캐릭터 뒤(무대가 그림, 캐릭터가 덮음)",lay);
 } else ok(false,"합+일방 공격 장면을 못 만듦",aim);
 /* 끌어다 몸통에 놓기: 적 주사위가 모두 나보다 빠르면 몸에 일방 공격(die:null), 합 안 잡힌 느린 주사위가 있으면 그것과 합(라오루 규칙) */
 for(const fast of [true,false]){ await go("beccaria"); await answer(true);

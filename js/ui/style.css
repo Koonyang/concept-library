@@ -100,6 +100,7 @@ button { font: inherit; color: inherit; }
 #target-arrows path { fill: none; stroke-width: 2; stroke-linecap: round; }
 #target-arrows path.ally { stroke: var(--ally); }
 #target-arrows path.enemy { stroke: var(--enemy); stroke-dasharray: 4 5; opacity: .55; }
+#target-arrows.via-stage { visibility: hidden; }   /* 3D 무대가 캐릭터 뒤에 대신 그림(stage.setArrows). 자리는 그대로 남는다 */
 #target-arrows path.enemy.focus { stroke-dasharray: none; opacity: 1; stroke-width: 2.5; }   /* 정보창을 연 적 주사위의 대상 선 */
 #target-arrows path.clash { stroke: var(--accent); stroke-width: 2.5; }
 

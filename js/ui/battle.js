@@ -146,11 +146,18 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   /* 화살표: 머리 위에 남은 일방 공격(내 것·적 것), 그리고 끌어다 놓는 중인 선. 바닥 더미에 내려간 합 짝은 안 그림.
      합이 아니면 대상 주사위가 아니라 대상의 몸통을 가리킨다(2026-11-23 큐 양): 대상 주사위가 다른 합으로 바닥에 내려가도
      허공을 가리키지 않고, 주사위 줄과 높이가 달라 합 대기와 헷갈리지 않는다 */
+  /* 화살표 모양(style.css 의 #target-arrows path 와 같게). 3D 무대가 있으면 무대가 캐릭터 뒤에 그리고(stage.setArrows),
+     SVG 는 숨긴 채 자리만 남는다(테스트·겹침 검사가 path 를 잰다). 무대가 없으면 SVG 가 그대로 보인다 */
+  const viaStage = !!(stage.ok && stage.setArrows); if (viaStage) el.arrows.classList.add("via-stage");
+  const cssVar = k => getComputedStyle(root).getPropertyValue(k).trim() || "#ffffff";
+  const ARROW = { ally: { color: cssVar("--ally"), width: 2 }, enemy: { color: cssVar("--enemy"), width: 2, dash: [4, 5], alpha: 0.55 },
+    "enemy focus": { color: cssVar("--enemy"), width: 2.5 }, clash: { color: cssVar("--accent"), width: 2.5 } };
   function drawArrows() {
-    const st = B(); if (!st || busy || st.phase !== "assign" || peek) { if (el.arrows.firstChild) el.arrows.innerHTML = ""; return; }
-    const paths = [], curve = (a, b, cls) => { const lift = Math.max(30, Math.abs(b.x - a.x) * 0.22), lim = barsFloor(Math.min(a.x, b.x), Math.max(a.x, b.x)) + 8;
+    const st = B(); if (!st || busy || st.phase !== "assign" || peek) { if (el.arrows.firstChild) { el.arrows.innerHTML = ""; el.arrows.dataset.h = ""; } if (viaStage) stage.setArrows([]); return; }
+    const paths = [], specs = [], curve = (a, b, cls) => { const lift = Math.max(30, Math.abs(b.x - a.x) * 0.22), lim = barsFloor(Math.min(a.x, b.x), Math.max(a.x, b.x)) + 8;
       let cy = Math.min(a.y, b.y) - lift; cy = Math.max(cy, 2 * lim - (a.y + b.y) / 2);
-      paths.push(`<path class="${cls}" d="M${a.x.toFixed(1)} ${a.y.toFixed(1)} Q${((a.x + b.x) / 2).toFixed(1)} ${cy.toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}"/>`); };
+      const c = { x: (a.x + b.x) / 2, y: cy }; specs.push({ a, c, b, ...(ARROW[cls] || ARROW.ally) });
+      paths.push(`<path class="${cls}" d="M${a.x.toFixed(1)} ${a.y.toFixed(1)} Q${c.x.toFixed(1)} ${cy.toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}"/>`); };
     /* 정보창을 연 적 주사위의 선은 실선으로(누가 노리는지 글 대신 선으로 보여 줌) */
     const fk = el.info.classList.contains("on") ? dieKey(el.info.dataset.unit, +el.info.dataset.die) : null;
     for (const u of st.units) { if (u.hp <= 0) continue; u.dice.forEach((d, i) => { if (!d.target || G.battle.isClash(u.id, i)) return; if (drag && drag.on && drag.uid === u.id && drag.i === i) return;
@@ -159,6 +166,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
       curve(a, pointOf(d.target.unit, "body"), u.side + (k === fk ? " focus" : "")); }); }
     if (drag && drag.on) curve(drag.from, drag.at, drag.over ? "clash" : "ally");
     const html = paths.join(""); if (el.arrows.dataset.h !== html) { el.arrows.innerHTML = html; el.arrows.dataset.h = html; }
+    if (viaStage) stage.setArrows(specs);
   }
 
   function renderHand() {
@@ -463,5 +471,5 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   const loop = () => { if (!alive) return; placeDice(); placeStack(); placeClash(); drawArrows(); raf = requestAnimationFrame(loop); };
   render(); raf = requestAnimationFrame(loop);
   return { render: () => { if (alive) render(); },   /* 화면 밖(API·도구)에서 상태를 바꾼 뒤 다시 그리기 */
-    unmount() { alive = false; cancelAnimationFrame(raf); clearTimeout(msgT); flashT.forEach(clearTimeout); root.innerHTML = ""; delete root.dataset.screen; } };
+    unmount() { alive = false; cancelAnimationFrame(raf); if (stage.setArrows) stage.setArrows([]); clearTimeout(msgT); flashT.forEach(clearTimeout); root.innerHTML = ""; delete root.dataset.screen; } };
 }

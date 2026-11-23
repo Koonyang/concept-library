@@ -49,7 +49,7 @@ const ATTACK_ANIM = { 참격: "1H_Melee_Attack_Slice_Diagonal", 관통: "1H_Mele
 
 function nullStage() {
   const done = () => Promise.resolve();
-  return { ok: false, setFloor() {}, resize() {}, setUnits: done, sceneEnd: done, showLibrarian: done, cheer: done, play: done, burnBook: done, wrongBonk: done, finishNow() {}, syncUnits() {}, setStaggered() {}, unitPoint: () => null, figure: () => null,
+  return { ok: false, setFloor() {}, resize() {}, setUnits: done, sceneEnd: done, showLibrarian: done, cheer: done, play: done, burnBook: done, wrongBonk: done, finishNow() {}, syncUnits() {}, setStaggered() {}, unitPoint: () => null, setArrows() {}, figure: () => null,
     ring: () => null, onFrame() {}, dispose() {}, debug: { mood: null, props: [], frames: 0 } };
 }
 
@@ -188,6 +188,46 @@ export async function createStage(canvas) {
     if (slow.t / slow.n > SLOW_FRAME_MS) { pixelRatio = Math.max(PIXEL_RATIO_MIN, pixelRatio - 0.25); renderer.setPixelRatio(pixelRatio); debug.pixelRatio = pixelRatio; resize(); }
     slow.t = 0; slow.n = 0;
   }
+  /* ---------- 대상 화살표(2026-11-23 큐 양: 캐릭터를 가리지 않게 캐릭터 뒤로) ----------
+     UI 가 화면 좌표의 2차 곡선(a·c·b)과 모양을 주면, 같은 화면 자리에 얇은 띠로 그린다. 깊이 검사 없이 배경·바닥 다음,
+     캐릭터(renderOrder 2) 앞에 그려서 캐릭터가 선을 덮는다. 선은 불투명(투명 패스는 캐릭터 뒤에 그려져 앞에 나옴) — 흐린 선은 바닥색 쪽으로 섞어 낸다.
+     setArrows([{a:{x,y}, c:{x,y}, b:{x,y}, color:"#rrggbb", width:px, dash:[칠함,빔]|null, alpha:0~1}]) — 매 프레임 불러도 된다 */
+  let arrowSpec = [];
+  const arrowRoot = new THREE.Object3D(); arrowRoot.name = "arrows"; scene.add(arrowRoot);
+  const arrowMeshes = [], arrowBg = new THREE.Color(0x1c130e), av = new THREE.Vector3(), aDir = new THREE.Vector3();
+  function setArrows(list) { arrowSpec = Array.isArray(list) ? list : []; }
+  function screenToWorld(x, y, r, out) {   /* 화면 점 → 카메라 앞 1.0 거리의 점(깊이 검사를 안 하니 거리는 상관없음) */
+    av.set((x - r.left) / r.width * 2 - 1, -((y - r.top) / r.height) * 2 + 1, 0.5).unproject(cam);
+    aDir.copy(av).sub(cam.position).normalize(); return out.copy(cam.position).addScaledVector(aDir, 1.0);
+  }
+  function buildArrows() {
+    const r = canvas.getBoundingClientRect(); let used = 0;
+    if (r.width && r.height) for (const A of arrowSpec) {
+      const pts = [], q = t => { const u = 1 - t; return { x: u * u * A.a.x + 2 * u * t * A.c.x + t * t * A.b.x, y: u * u * A.a.y + 2 * u * t * A.c.y + t * t * A.b.y }; };
+      const approx = Math.hypot(A.c.x - A.a.x, A.c.y - A.a.y) + Math.hypot(A.b.x - A.c.x, A.b.y - A.c.y), n = Math.max(12, Math.min(160, Math.ceil(approx / 3)));
+      for (let i = 0; i <= n; i++) pts.push(q(i / n));
+      const w = (A.width || 2) / 2, dash = A.dash, period = dash ? dash[0] + dash[1] : 0, pos = [], tmp = new THREE.Vector3();
+      let len = 0;
+      for (let i = 0; i < n; i++) {
+        const p0 = pts[i], p1 = pts[i + 1], sl = Math.hypot(p1.x - p0.x, p1.y - p0.y) || 1e-6, mid = len + sl / 2; len += sl;
+        if (dash && (mid % period) > dash[0]) continue;
+        const nx = -(p1.y - p0.y) / sl * w, ny = (p1.x - p0.x) / sl * w;
+        const v = [[p0.x + nx, p0.y + ny], [p0.x - nx, p0.y - ny], [p1.x + nx, p1.y + ny], [p1.x - nx, p1.y - ny]].map(([x, y]) => screenToWorld(x, y, r, tmp).toArray());
+        pos.push(...v[0], ...v[1], ...v[2], ...v[1], ...v[3], ...v[2]);
+      }
+      if (!pos.length) continue;
+      let m = arrowMeshes[used];
+      if (!m) { m = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ depthTest: false, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+        m.renderOrder = 1; m.frustumCulled = false; arrowMeshes.push(m); arrowRoot.add(m); }
+      m.geometry.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      m.material.color.set(A.color || "#ffffff").lerp(arrowBg, 1 - (A.alpha == null ? 1 : A.alpha)); m.visible = true; used++;
+    }
+    for (let i = used; i < arrowMeshes.length; i++) arrowMeshes[i].visible = false;
+    debug.arrows = used;
+  }
+  /* 캐릭터는 화살표 다음에 그린다(불투명 메시만, 투명한 그림자·고리는 원래대로) */
+  const inFront = obj => obj.traverse(n => { if (n.isMesh && !(n.material && n.material.transparent) && !n.renderOrder) n.renderOrder = 2; });
+
   /* 120Hz 휴대폰에서 두 배로 그리지 않게: 앞 장면에서 10ms 안이면 건너뛴다(120Hz→60, 60·90Hz 는 그대로). 배터리·발열 */
   const MIN_FRAME_MS = 10;
   function frame(now) {
@@ -203,7 +243,7 @@ export async function createStage(canvas) {
     for (const { L, base, i } of flicker) L.intensity = (base + Math.sin(now / 170 + i * 2) * 0.12 + Math.sin(now / 53 + i) * 0.05) * lit;
     if (dust) { dust.rotation.y = Math.sin(now / 20000) * 0.15;   /* 크게 돌면 뒤쪽 입자가 카메라 앞으로 온다 */ dust.position.y = Math.sin(now / 3000) * 0.1; }
     camShake.amp *= 0.86;
-    placeCamera(now);
+    placeCamera(now); buildArrows();
     renderer.render(scene, cam); debug.frames++;
     if (!document.hidden && !debug.contextLost) raf = requestAnimationFrame(frame);
   }
@@ -237,7 +277,7 @@ export async function createStage(canvas) {
         const look = lookOf(u, guest), F = makeFigure(look);
         F.obj.scale.setScalar(look.scale);                    /* 뒷줄을 따로 줄이지 않는다(원근으로 충분) */
         F.obj.position.set(x * slotSpread, 0, z); F.obj.rotation.y = side === "ally" ? FACE : -FACE;
-        F.act("Idle"); unitsRoot.add(F.obj);
+        F.act("Idle"); unitsRoot.add(F.obj); inFront(F.obj);
         const R = side === "ally" ? RING.ally : u.leader ? RING.leader : RING.enemy, ringM = sideRing(R);
         F.obj.add(ringM);
         F.look = look; figures.set(u.id, { F, home: F.obj.position.clone(), homeRy: F.obj.rotation.y, slot: [x, z], side, unit: u, look, dead: u.hp <= 0, ring: ringM, ringR: R.r });
@@ -264,7 +304,7 @@ export async function createStage(canvas) {
     const u = { id: "lib:" + debug.librarian, side: "ally", libId: debug.librarian, hp: 1 };
     const look = lookOf(u, null), F = makeFigure(look);
     F.obj.scale.setScalar(look.scale); F.obj.position.set(LIB_POSE.tallX, 0, LIB_POSE.z); F.obj.rotation.y = LIB_POSE.ry;
-    F.act("Idle"); unitsRoot.add(F.obj);
+    F.act("Idle"); unitsRoot.add(F.obj); inFront(F.obj);
     const ringM = sideRing(RING.ally); ringM.visible = false; F.obj.add(ringM);   /* 편 고리는 전투에서만 */
     F.look = look; figures.set(u.id, { F, home: F.obj.position.clone(), homeRy: F.obj.rotation.y, side: "ally", unit: u, look, dead: false, ring: ringM, ringR: RING.ally.r });
     placeLibrarian();
@@ -531,7 +571,7 @@ export async function createStage(canvas) {
   const S = {
     ok: true, three: THREE, scene, camera: cam, renderer, debug, camShake, tickers,
     setFloor, resize,
-    setUnits, showLibrarian, cheer, unitPoint, ring: ringInfo, figure: id => (figures.get(id) || {}).F || null, figures,
+    setUnits, showLibrarian, cheer, unitPoint, setArrows, ring: ringInfo, figure: id => (figures.get(id) || {}).F || null, figures,
     play, finishNow, sceneEnd, burnBook, wrongBonk, setStaggered, syncUnits, fx,
     onFrame(f) { tickers.add(f); return () => tickers.delete(f); },
     dispose() { cancelAnimationFrame(raf); ro.disconnect(); document.removeEventListener("visibilitychange", wake); if (world) disposeTree(world); renderer.dispose(); },
