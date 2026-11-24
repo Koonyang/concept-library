@@ -643,7 +643,8 @@ function mbFinish(){
 }
 
 
-function todaySeoul(){ return new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Seoul"}); }
+/* 계시와 같은 날짜(서울 오전 6시에 바뀜) — MoonCore 가 없을 때만 직접 계산 */
+function todaySeoul(){ if(typeof MoonCore!=="undefined") return MoonCore.today(); return new Date(Date.now()-6*3600e3).toLocaleDateString("en-CA",{timeZone:"Asia/Seoul"}); }
 function moonBonus(s, todayStr){
   const m=s&&s.moon;
   if(!m||typeof m!=="object"||m.used===true) return {ratio:0,active:false};

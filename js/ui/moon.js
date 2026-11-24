@@ -87,9 +87,9 @@ export function renderMoon(root, stage, nav, o = {}) {
     const fresh = M.state && M.state.newShards;
     root.innerHTML = head("오늘의 계시를 마쳤어") + `<div id="moon-result" class="moon-card">
       <div class="scores"><div><span>계시</span><b class="num">${m.reveal}${last.total ? `<small>/${last.total}</small>` : ""}</b></div><div><span>재현시</span><b class="num">${m.replay}${last.replayTotal ? `<small>/${last.replayTotal}</small>` : ""}</b></div></div>
-      <p>${b.active ? `오늘 첫 접대에서 기프트가 떨어질 확률이 <b>최대 +${Math.round(40 * b.ratio)}%p</b> 올라.` : m.used ? "오늘의 보너스는 이미 첫 접대에 썼어." : "보너스는 내일 다시."}</p>
+      <p>${b.active ? `오늘 첫 접대에서 기프트가 떨어질 확률이 <b>최대 +${Math.round(40 * b.ratio)}%p</b> 올라.` : m.used ? "오늘의 보너스는 이미 첫 접대에 썼어." : "보너스는 내일 오전 6시에 다시."}</p>
       ${fresh ? `<p>오늘 못 맞힌 단어 <b class="num">${fresh}</b>개가 <b>서고의 편린</b>이 됐어. 정화하기 전까진 계시에 안 나와.</p>` : ""}
-      <p class="muted">내일 새 단어가 열려.</p>${M.shards().length ? `<div class="acts">${shardBtn()}</div>` : ""}</div>`;
+      <p class="muted">내일 오전 6시에 새 단어가 열려.</p>${M.shards().length ? `<div class="acts">${shardBtn()}</div>` : ""}</div>`;
     bindShardBtn(); chrome(true);
   }
 

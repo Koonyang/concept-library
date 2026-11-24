@@ -10,14 +10,16 @@
  * 흐름: start("reveal") → answer(i)… → endRound() → (phase "bridge" 면) start("replay") 또는 skipReplay() → phase "result"
  */
 const MOON_PER_DAY=30;          // 하루 단어 수 — 여기 하나만 바꾸면 된다
+const MOON_RESET_HOUR=6;       // 매일 서울 시각 이 시(時)에 새 계시가 열린다
 const MOON_SEC_PER_WORD=2.5;    // 단어당 제한 시간(초)
 const MOON_OK_MS=170, MOON_BAD_MS=650;  // (화면용 참고값) 정답/오답 표시 시간
 const MOON_POS={v:"동사",n:"명사",adj:"형용사",adv:"부사",prep:"전치사",conj:"접속사",phr:"숙어"};
 const MoonCore=(()=>{
   let nowFn=()=>new Date();
   const fmt=(()=>{ try{ return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}); }catch(e){ return null; } })();
+  /* 하루는 서울 시각 오전 6시에 바뀐다(MOON_RESET_HOUR) — 0~6시는 아직 '어제' */
   function today(){
-    const d=nowFn();
+    const d=new Date(nowFn().getTime()-MOON_RESET_HOUR*3600e3);
     if(fmt){ const p={}; fmt.formatToParts(d).forEach(x=>p[x.type]=x.value); return `${p.year}-${p.month}-${p.day}`; }
     const k=new Date(d.getTime()+9*3600e3); return k.toISOString().slice(0,10);
   }
