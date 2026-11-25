@@ -402,6 +402,20 @@ ok(pp.barTop!=null&&pp.barTop<=pp.H+0.5&&pp.barTop>pp.H,"조종 막대: 머리 �
 ok(pp.nStr>=3&&pp.nStr<=5&&pp.moved,"실 3~5줄, 몸을 따라 끝점이 움직임",pp);
 ok(pp.nBead>=6,"관절 구슬 6개 이상",pp.nBead);
 ok(pp.hitMs<2500&&pp.skel,"꼭두각시 동작·해골 꼭두각시",pp);
+/* ---------- 종류별 타격 이펙트(2026-11-25): 참격=베기, 관통=찌르기, 타격=치기, 방어=막기, 회피=흘리기 ---------- */
+await goStage();
+const tf=await p.evaluate(async()=>{ Game.battle.leave(); Game.battle.begin("beccaria"); const U=Game.battle.state.units, a=U.find(u=>u.side==="ally").id, e=U.find(u=>u.side==="enemy").id;
+  const S=await __stageMod.createStage(document.getElementById("stage")); S.setFloor(Game.data.floorStage("crime")); await S.setUnits(U, Game.data.GUEST_BY.beccaria);
+  const hit=(t,w)=>({aDie:{type:t},winner:"a",dmg:{unit:e,hp:1,stagger:1}});
+  await S.play({kind:"one",a:{unit:a},target:e,steps:[hit("참격"),hit("관통"),hit("타격")]},{fast:true});
+  const one=S.debug.typeFx.slice();
+  await S.play({kind:"clash",a:{unit:a},b:{unit:e},target:e,steps:[{aDie:{type:"참격"},bDie:{type:"방어"},winner:"b",bResult:"block"},{aDie:{type:"타격"},bDie:{type:"회피"},winner:"b",bResult:"evade"},{aDie:{type:"관통"},bDie:{type:"관통"},winner:"tie",aResult:"draw",bResult:"draw"}]},{fast:true});
+  const two=S.debug.typeFx.slice(one.length);
+  const t0=performance.now(); while(S.debug.typeFxLive>0&&performance.now()-t0<6000) await new Promise(r=>setTimeout(r,50));   /* 느린 swiftshader 는 프레임이 띄엄띄엄 → 시간 상한만 */
+  return {one,two,live:S.debug.typeFxLive}; });
+ok(JSON.stringify(tf.one)==='["참격","관통","타격"]',"맞을 때 공격 종류별 이펙트",tf);
+ok(JSON.stringify(tf.two)==='["방어","회피"]',"막기·흘리기 이펙트, 비김엔 없음",tf);
+ok(tf.live===0,"이펙트가 끝나면 남지 않음",tf.live);
 /* @@NEXT@@ */
 ok(errs.filter(e=>!/Error creating WebGL context/.test(e)).length===0,"오류 없음 (nogl 페이지의 WebGL 생성 실패 로그는 의도)",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

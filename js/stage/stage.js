@@ -15,7 +15,7 @@ import { MOODS, DEFAULT_MOOD } from "./moods.js";
 import { buildProp } from "./props.js";
 import { loadCharacters, loadMonsters, makeFigure } from "./characters.js";
 import { lookOf, MAGIC_MODELS } from "./looks.js";
-import { CUSTOM_FX, registerFx, TIERS, tierRank, burst, flash, ring, fragments, dropBook, burnBook as burnBookFx, bonkBook, BONK_HIT_AT } from "./fx.js";
+import { CUSTOM_FX, registerFx, TIERS, tierRank, burst, flash, ring, fragments, dropBook, burnBook as burnBookFx, bonkBook, BONK_HIT_AT, typeFx } from "./fx.js";
 export { registerFx };
 
 const PIXEL_RATIO_MAX = 1.5;
@@ -409,6 +409,20 @@ export async function createStage(canvas) {
     await sleep(tok, fast ? 150 : (isFinal ? 1100 : 600));
   }
 
+  /* 종류별 로우폴리 타격 이펙트(fx.js typeFx): 맞은 쪽 몸에 이긴 주사위 종류(참격·관통·타격), 막거나 흘린 쪽엔 방어·회피. 비김엔 없음 */
+  debug.typeFx = []; debug.typeFxLive = 0;
+  /* 첫 타격 때 셰이더를 만드느라 멈칫하지 않게, 무대를 만들 때 종류별 이펙트를 한 번 보이지 않게 그려 둔다 */
+  try { const warm = new THREE.Group(); fxRoot.add(warm);
+    for (const k of ["참격", "관통", "타격", "방어", "회피"]) typeFx({ add: obj => warm.add(obj) }, k, new THREE.Vector3(0, -50, 0));
+    renderer.compile(scene, cam); fxRoot.remove(warm); warm.traverse(n => { if (n.material) n.material.dispose(); }); } catch (e) { /* WebGL 없음 등 — 그냥 넘어감 */ }
+  const bodyPos = f => { const o = f.F.obj; return o.position.clone().add(new THREE.Vector3(0, f.F.height * o.scale.y * 0.55, 0.3)); };
+  function typeFxStep(st, A, B, T) {
+    const side = w => w === "a" ? A : w === "b" ? B : null, other = f => f === A ? (B || T) : A;
+    const shot = (kind, f, from) => { if (!f || f.dead) return; const dir = from ? Math.sign(f.F.obj.position.x - from.F.obj.position.x) || 1 : 1;
+      if (typeFx(fx, kind, bodyPos(f), dir, () => debug.typeFxLive--)) { debug.typeFx.push(kind); debug.typeFxLive++; } };
+    if (st.dmg) { const w = st.winner === "b" ? "b" : "a", t = dieType(st, w), hitF = figures.get(st.dmg.unit); if (/^(참격|관통|타격)$/.test(t || "")) shot(t, hitF, side(w)); }
+    for (const [w, r] of [["a", st.aResult], ["b", st.bResult]]) { if (r === "block") shot("방어", side(w), other(side(w))); else if (r === "evade") shot("회피", side(w), other(side(w))); }
+  }
   async function playDefault(tok, ev, o) {
     const A = figures.get(ev.a.unit), B = ev.b ? figures.get(ev.b.unit) : null, T = figures.get(ev.target) || B;
     if (!A || !T) return;
@@ -460,6 +474,7 @@ export async function createStage(canvas) {
       if (st.dmg && who(st.dmg.unit) && !(ev.result && ev.result.dead || []).includes(st.dmg.unit)) who(st.dmg.unit).F.act(i % 2 ? "Hit_B" : "Hit_A", { once: true, speed: fast ? 2 : 1.2, fadeMs: 50 });
       if (st.aResult === "block" || st.bResult === "block") { const d = st.aResult === "block" ? A : B; d && d.F.act("Block_Hit", { once: true, fadeMs: 50 }); }
       if (st.aResult === "evade" || st.bResult === "evade") { const d = st.aResult === "evade" ? A : B; d && d.F.act("Dodge_Backward", { once: true, fadeMs: 50 }); }
+      typeFxStep(st, A, B, T);
       if (st.dmg && o.onHit) { try { o.onHit(i); } catch (e) { console.warn(e); } }
       if (i < steps.length - 1) await sleep(tok, left(hitMs + hitSpan * (i + 1)));
     }

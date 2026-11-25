@@ -7,6 +7,7 @@
      aim                                 내 주사위 전부를 첫 적의 주사위 하나에 놓은 뒤(합 하나 + 나머지 일방 공격 화살표)
      outfit:<장서복 id>                  사서(kyu)가 그 장서복을 입은 모습, tests/stage.html  예) outfit:archivist
      monsters · monsters-assign          괴물 적 확인: 손님(--guest) 적에 model 을 넣고(우두머리 dragon, 나머지 slime_pink·puppet_mage·robot_large) battle·assign 과 같은 화면
+     fx:<참격|관통|타격|방어|회피>         그 종류 로우폴리 타격 이펙트를 첫 적 몸에 멈춰 세운 모습(가로만)
      faces                               다섯 모델 얼굴 가까이(정면·비스듬히·옆), 실제 게임과 같은 입 메우기 적용
      deploy                              = floors library moon battle assign resolve (배포 전 확인용)
    크기: land=844×390, port=390×844, both(기본). faces·outfit 은 land 만.
@@ -31,7 +32,7 @@ await new Promise(r => server.listen(0, "127.0.0.1", r)); const BASE = "http://1
 const browser = await launchBrowser(chromium, { args: ["--no-sandbox", "--use-gl=swiftshader", "--enable-webgl", "--ignore-gpu-blocklist", "--enable-unsafe-swiftshader"] });
 const errs = [], saved = [];
 const SIZES = { land: [844, 390], port: [390, 844] };
-const sizesFor = s => (/^(faces|outfit:)/.test(s) || SIZE === "land") ? [SIZES.land] : SIZE === "port" ? [SIZES.port] : [SIZES.land, SIZES.port];
+const sizesFor = s => (/^(faces|outfit:|fx:)/.test(s) || SIZE === "land") ? [SIZES.land] : SIZE === "port" ? [SIZES.port] : [SIZES.land, SIZES.port];
 
 /* monsters 장면: 적 차례대로 이 모델(우두머리가 첫 적) — 겹침 검사 --monsters 와 같음 */
 const MONSTER_MODELS = ["dragon", "slime_pink", "puppet_mage", "robot_large"];
@@ -84,6 +85,15 @@ async function run(scene, w, h) {
         const S = await __stageMod.createStage(document.getElementById("stage")); S.setFloor(Game.data.floorStage("crime")); await S.showLibrarian("kyu"); return true; }, id);
       if (!ok) { errs.push(`${scene}: 그런 장서복 id 없음`); return; }
       await p.waitForTimeout(1500);
+    } else if (scene.startsWith("fx:")) {   /* fx:<참격|관통|타격|방어|회피> 그 종류 로우폴리 타격 이펙트를 첫 적 몸에 멈춰 세운 모습(3:3). swiftshader 는 느려서 실제 재생 순간을 못 잡으므로 고정 */
+      const kind = scene.slice(3);
+      await p.goto(BASE + "tests/stage.html"); await p.waitForFunction(() => window.__stageMod);
+      await p.evaluate(async kind => { Game.battle.leave(); Game.battle.begin("beccaria"); const U = Game.battle.state.units, e = U.find(u => u.side === "enemy").id, a = U.find(u => u.side === "ally").id;
+        const S = await __stageMod.createStage(document.getElementById("stage")); S.setFloor(Game.data.floorStage("crime")); await S.setUnits(U, Game.data.GUEST_BY.beccaria);
+        const FX = await import("/js/stage/fx.js"), THREE = await import("three"), F = S.figure(e), o = F.obj;
+        const pos = o.position.clone().add(new THREE.Vector3(0, F.height * o.scale.y * 0.55, 0.3));
+        FX.typeFx({ add: (obj, ms, step) => { S.scene.add(obj); step(0.25, 0, 0); } }, kind, pos, 1); }, kind);
+      await p.waitForTimeout(600);
     } else if (scene === "faces") {
       await p.goto(BASE + "tests/stage.html"); await p.waitForFunction(() => window.__stageMod);
       await p.evaluate(async ([W, H]) => {

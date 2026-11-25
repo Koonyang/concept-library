@@ -186,3 +186,73 @@ export function bonkBook(fx, head, i = 0) {
   set(0);
   return { group: g, set, end() { fx.kill(entry); } };
 }
+
+/* ---------- 종류별 타격 이펙트(2026-11-25 큐 양: 도트는 괴리감이 커서 로우폴리 파티클로) ----------
+   typeFx(fx, kind, pos, dir, onEnd) — kind: 참격(베기)·관통(찌르기)·타격(치기)·방어(막기)·회피(흘리기).
+   pos = 맞는 쪽 몸 가운데, dir = 공격이 오는 방향(±1, 화면 x). 지오메트리는 처음 한 번 만들어 공유, 재질만 이펙트마다 만들고 지운다 */
+const TYPE_MS = 420;
+const TCOL = {
+  참격: [0xffffff, 0xffd98a, 0xf08a3a], 관통: [0xffffff, 0xaef0ff, 0x3aa8d8], 타격: [0xfff2c8, 0xffb43a, 0xe0502a],
+  방어: [0xf0f8ff, 0x8cc8ff, 0x3a6ad0], 회피: [0xffffff, 0xcfe0f2, 0x7f98b4],
+};
+let TG = null;
+function typeGeos() {
+  if (TG) return TG;
+  /* 초승달 띠: 반지름 0.55~0.72, 150° 를 9칸 삼각형 띠로 */
+  const arc = new THREE.BufferGeometry(), v = [], N = 9, A0 = -0.35 * Math.PI, A1 = 0.48 * Math.PI;
+  for (let i = 0; i < N; i++) { const a = A0 + (A1 - A0) * i / N, b = A0 + (A1 - A0) * (i + 1) / N, w = Math.sin(Math.PI * (i + 0.5) / N);
+    const r0 = 0.62 - 0.1 * w, r1 = 0.62 + 0.1 * w, q = (r, t) => [Math.cos(t) * r, Math.sin(t) * r, 0];
+    v.push(...q(r0, a), ...q(r1, a), ...q(r1, b), ...q(r0, a), ...q(r1, b), ...q(r0, b)); }
+  arc.setAttribute("position", new THREE.Float32BufferAttribute(v, 3));
+  TG = {
+    arc,
+    spike: new THREE.ConeGeometry(0.07, 1.3, 4, 1).rotateZ(-Math.PI / 2),   /* +x 쪽이 뾰족 */
+    ring: new THREE.RingGeometry(0.18, 0.3, 7, 1),
+    hex: new THREE.CircleGeometry(0.42, 6),
+    hexRim: new THREE.RingGeometry(0.42, 0.5, 6, 1),
+    shard: new THREE.TetrahedronGeometry(0.07, 0),
+    chunk: new THREE.OctahedronGeometry(0.08, 0),
+    wedge: new THREE.ConeGeometry(0.05, 0.7, 3, 1).rotateZ(Math.PI / 2),   /* -x 쪽이 뾰족(지나간 자리) */
+  };
+  return TG;
+}
+const rnd = (a, b) => a + Math.random() * (b - a);
+export const TYPE_FX = Object.keys(TCOL);
+export function typeFx(fx, kind, pos, dir = 1, onEnd) {
+  const C = TCOL[kind]; if (!C) return false;
+  const G = typeGeos(), g = new THREE.Group(); g.position.copy(pos); g.scale.x = dir < 0 ? -1 : 1;   /* 오른쪽에서 오는 공격은 거울 */
+  const mats = [], mat = c => { const m = new THREE.MeshBasicMaterial({ color: c, transparent: true, depthTest: false, depthWrite: false, toneMapped: false, fog: false, side: THREE.DoubleSide }); mats.push(m); return m; };
+  const mesh = (geo, c) => { const m = new THREE.Mesh(geo, mat(c)); m.renderOrder = 10; g.add(m); return m; };
+  const parts = [];   /* 파편: {m, v(속도), r(회전 속도)} */
+  const spray = (geo, n, c, vfn) => { for (let i = 0; i < n; i++) { const m = mesh(geo, c[i % c.length]); parts.push({ m, v: vfn(i), r: new THREE.Vector3(rnd(-12, 12), rnd(-12, 12), rnd(-12, 12)) }); } };
+  let anim;
+  if (kind === "참격") {
+    const a1 = mesh(G.arc, C[1]), a2 = mesh(G.arc, C[0]); a2.scale.setScalar(0.86); const grp = [a1, a2];
+    grp.forEach(m => { m.rotation.z = 0.9; });
+    spray(G.shard, 7, C, i => new THREE.Vector3(rnd(0.6, 1.6), rnd(-1.4, -0.3), rnd(-0.3, 0.3)));
+    anim = k => { const sw = Math.min(1, k * 2.2); grp.forEach((m, i) => { m.rotation.z = 0.9 - 1.6 * sw; m.scale.setScalar((i ? 0.86 : 1) * (0.8 + 0.5 * sw)); m.material.opacity = k < 0.5 ? 1 : (1 - k) * 2; }); };
+  } else if (kind === "관통") {
+    const sp = mesh(G.spike, C[1]), core = mesh(G.spike, C[0]); core.scale.set(1, 0.5, 0.5);
+    spray(G.shard, 8, C, i => new THREE.Vector3(rnd(0.8, 2.2), rnd(-0.5, 0.5), rnd(-0.4, 0.4)));
+    anim = k => { const t = Math.min(1, k * 3); [sp, core].forEach(m => { m.position.x = -0.9 + 1.2 * t; m.material.opacity = k < 0.45 ? 1 : Math.max(0, (1 - k) / 0.55); }); };
+  } else if (kind === "타격") {
+    const r1 = mesh(G.ring, C[1]), r2 = mesh(G.ring, C[2]); r2.rotation.z = 0.4;
+    const core = mesh(G.chunk, C[0]); core.scale.setScalar(2.2);
+    spray(G.chunk, 9, C, i => { const a = i / 9 * Math.PI * 2; return new THREE.Vector3(Math.cos(a) * rnd(1, 1.8), Math.sin(a) * rnd(1, 1.8), rnd(-0.4, 0.4)); });
+    anim = k => { r1.scale.setScalar(1 + k * 4); r2.scale.setScalar(1 + k * 2.6); r1.material.opacity = 1 - k; r2.material.opacity = (1 - k) * 0.8;
+      core.scale.setScalar(2.2 * (1 - k)); core.rotation.set(k * 5, k * 3, 0); };
+  } else if (kind === "방어") {
+    const plate = mesh(G.hex, C[1]), rim = mesh(G.hexRim, C[0]); plate.rotation.z = rim.rotation.z = Math.PI / 6; plate.position.x = rim.position.x = -0.25;
+    spray(G.shard, 6, C, i => new THREE.Vector3(rnd(-1.6, -0.6), rnd(-0.9, 1.1), rnd(-0.3, 0.3)));
+    anim = k => { const p = k < 0.15 ? k / 0.15 : 1; plate.scale.setScalar(0.6 + 0.4 * p); rim.scale.setScalar(0.6 + 0.5 * p);
+      plate.material.opacity = (k < 0.2 ? 0.7 : 0.7 * (1 - k) / 0.8); rim.material.opacity = 1 - k; };
+  } else {   /* 회피 */
+    const w = [0, 1, 2].map(i => { const m = mesh(G.wedge, C[i]); m.position.y = (i - 1) * 0.28; return m; });
+    anim = k => { w.forEach((m, i) => { m.position.x = -0.2 + k * (1.1 + i * 0.25); m.scale.x = 0.6 + k * 1.2; m.material.opacity = 1 - k; }); };
+  }
+  fx.add(g, TYPE_MS, (k, dt) => {
+    anim(k);
+    for (const q of parts) { q.m.position.copy(q.v).multiplyScalar(k * 0.9); q.m.position.y -= k * k * 0.6; q.m.rotation.set(q.r.x * k, q.r.y * k, q.r.z * k); q.m.material.opacity = 1 - k; }
+  }, () => { mats.forEach(m => m.dispose()); onEnd && onEnd(); });
+  return true;
+}

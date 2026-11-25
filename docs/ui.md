@@ -104,6 +104,10 @@ assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/bui
 - 로딩: `setUnits` 가 그 전투에 나오는 몬스터만 `loadMonsters` 로 받고, 못 받으면 사람 모델.
 - 확인: `node tools/shot.mjs monsters monsters-assign`, 겹침 `node tests/overlap-check.mjs --monsters`, 카탈로그 그림 `node tools/assets/catalog.mjs` → `docs/monsters/`.
 
+## 7-2. 종류별 타격 이펙트 (2026-11-25)
+- `fx.js` `typeFx(fx, kind, pos, dir)`: 참격·관통·타격·방어·회피 로우폴리 파티클(공유 지오메트리, 재질만 매번). `stage.js` `typeFxStep` 이 교환 단계마다 맞은 쪽(이긴 주사위 종류)·막은/흘린 쪽에 붙인다. 비김엔 없음.
+- 처음 쓸 때 멈칫하지 않게 무대 생성 때 `renderer.compile` 로 미리 데운다. 확인: `node tools/shot.mjs fx:참격` (가로, 멈춰 세운 모습).
+
 ## 8. 남은 일
 - 장서복 복장 6벌(`KEY_PAGES[].look`, novice 는 기본 모습) 첫 판. 등 소품은 정면에서 잘 안 보여 조정 필요(9절).
 - 덱 프리셋은 하나만 쓴다(여러 개는 큐 양에게 물어볼 것).
