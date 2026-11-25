@@ -8,6 +8,7 @@ export const MOODS = {
     books: [0x8a3b2e, 0x2e5a5a, 0xb08a3e, 0x3e4a6a, 0x6b4a2e],
     amb: [0x2c4048, 0.9], key: [0xffb36b, 1.6], rim: [0x4fa3a3, 0.7],
     spark: 0xffd28a, dust: 0xffc98a, lamps: true,
+    curtain: 0x7a1a24, column: 0x5e3f2a, foot: 0xffd9a0, spot: 0xffc684,   /* 무대(theater.js): 진홍 벨벳 커튼, 짙은 나무 기둥, 따뜻한 풋라이트·핀 조명 */
   },
   /* 달빛 열람실: 대리석 바닥, 차가운 달빛, 옅은 안개 */
   moon: {
@@ -16,6 +17,7 @@ export const MOODS = {
     books: [0x5a6f9a, 0xa8b8d8, 0x34445f, 0xd5ddeb, 0x7a88b0],
     amb: [0x2a3b5c, 0.85], key: [0xc6dcff, 1.05], rim: [0x9fe8ff, 0.9],
     spark: 0x9fe8ff, dust: 0xcfe6ff, lamps: false,
+    curtain: 0x24306a, column: 0x7d89a6, foot: 0xd8ecff, spot: 0x9fc8ff,   /* 무대: 남색 커튼, 대리석 기둥, 차가운 풋라이트·핀 조명 */
   },
 };
 export const DEFAULT_MOOD = "lamp";

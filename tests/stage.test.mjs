@@ -445,6 +445,23 @@ ok(fin.normal.n===0&&fin.normal.waveFrames===0,"보통 쓰러짐엔 최후의 �
 ok(fin.final.n===1&&fin.final.waveFrames>0&&fin.final.minScale<=0.25,"최후의 일격: 슬로우(≤0.25배) + 충격파 셰이더",fin.final);
 ok(!fin.final.waveAfter&&fin.final.scaleAfter===1,"끝나면 충격파·슬로우 정리",fin.final);
 ok(fin.fastN===2&&fin.fastMin>=0.99&&fin.fastMs<2500,"빨리 감기: 충격파만 짧게, 슬로우 없음",fin);
+/* ---------- 서고 = 극이 펼쳐지는 무대(2026-11-26): 책장 디테일 + 프로시니엄(기둥·커튼·휘장) + 마루·풋라이트·조명 웅덩이 ---------- */
+await goStage();
+const th=await p.evaluate(async()=>{ const S=await __stageMod.createStage(document.getElementById("stage")); const o={};
+  for(const f of ["crime","memory"]){ S.setFloor(Game.data.floorStage(f)); const w=S.scene.getObjectByName("world"), n=k=>w.getObjectByName(k);
+    S.renderer.info.autoReset=true; S.renderer.render(S.scene,S.camera);
+    const foot=n("footlights"), parts=n("shelfParts"), cur=[n("curtainL"),n("curtainR")];
+    o[f]={theater:!!n("theater"), curtains:cur.filter(Boolean).length, curtainCol:cur[0]&&cur[0].material.color.getHexString(), valance:!!n("valance"), columns:!!n("columns"),
+      planks:!!n("planks"), foot:foot?foot.count:0, pool:!!n("spotPool"), parts:parts?parts.count:0, calls:S.renderer.info.render.calls, tris:S.renderer.info.render.triangles}; }
+  /* 층을 여러 번 바꿔도 지오메트리가 쌓이지 않음 */
+  S.setFloor(Game.data.floorStage("crime")); S.renderer.render(S.scene,S.camera); const g0=S.renderer.info.memory.geometries; for(let i=0;i<4;i++) S.setFloor(Game.data.floorStage(i%2?"crime":"memory")); S.renderer.render(S.scene,S.camera); o.geoGrow=S.renderer.info.memory.geometries-g0;
+  return o; });
+for(const f of ["crime","memory"]){ const t=th[f];
+  ok(t.theater&&t.curtains===2&&t.valance&&t.columns&&t.planks&&t.pool,`${f}: 무대(커튼 둘·휘장·기둥·마루·조명 웅덩이)`,t);
+  ok(t.foot>=12&&t.parts>=9*7,`${f}: 풋라이트 ${t.foot}개·책장 부품 ${t.parts}개(한 번에 그림)`,t);
+  ok(t.calls<=45&&t.tris<=30000,`${f}: 그리기 호출 ≤45, 삼각형 ≤3만`,t); }
+ok(th.crime.curtainCol!==th.memory.curtainCol,"분위기마다 커튼 색이 다름",[th.crime.curtainCol,th.memory.curtainCol]);
+ok(th.geoGrow<=2,"층을 바꿔도 지오메트리가 쌓이지 않음",th.geoGrow);
 /* @@NEXT@@ */
 ok(errs.filter(e=>!/Error creating WebGL context/.test(e)).length===0,"오류 없음 (nogl 페이지의 WebGL 생성 실패 로그는 의도)",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

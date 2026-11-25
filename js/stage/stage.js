@@ -14,6 +14,7 @@ import * as THREE from "three";
 import { MOODS, DEFAULT_MOOD } from "./moods.js";
 import { buildProp } from "./props.js";
 import { loadCharacters, loadMonsters, makeFigure } from "./characters.js";
+import { buildTheater } from "./theater.js";
 import { lookOf, MAGIC_MODELS } from "./looks.js";
 import { CUSTOM_FX, registerFx, TIERS, tierRank, burst, flash, ring, fragments, dropBook, burnBook as burnBookFx, bonkBook, BONK_HIT_AT, typeFx } from "./fx.js";
 export { registerFx };
@@ -118,7 +119,7 @@ export async function createStage(canvas) {
   let sway = 0.3, unitsReady = false;   /* unitsReady: 유닛 표(figures)가 만들어진 뒤에만 resize 가 자리를 다시 잡는다 */
   let lightBase = { hemi: 1, key: 1, rim: 0 };
 
-  function disposeTree(o) { o.traverse(n => { if (n.geometry) n.geometry.dispose(); if (n.material) [].concat(n.material).forEach(m => m.dispose()); }); }
+  function disposeTree(o) { o.traverse(n => { if (n.geometry && !n.geometry.userData.keep) n.geometry.dispose(); if (n.material) [].concat(n.material).forEach(m => m.dispose()); }); }
 
   function setFloor(cfg) {
     cfg = cfg || {};
@@ -140,7 +141,7 @@ export async function createStage(canvas) {
     /* 뒤쪽 호를 따라 책장 9개. 책 색 = 분위기 색 + 층 포인트 색 */
     /* 책 수백 권은 InstancedMesh 하나로 그린다(그리기 호출 ~400 → 1) */
     const R = rnd(7919), palette = [...T.books, accent.getHex()].map(c => new THREE.Color(c));
-    const shelfGeo = new THREE.BoxGeometry(2.1, 4.8, 0.5), shelfMat = mat(T.shelf), books = [], tmp = new THREE.Object3D();
+    const shelfGeo = new THREE.BoxGeometry(2.1, 4.8, 0.5), shelfMat = mat(T.shelf), books = [], tmp = new THREE.Object3D(), shelves = [];
     for (let k = -4; k <= 4; k++) {
       const a = k * 0.2, sh = new THREE.Group(); sh.position.set(Math.sin(a) * 10, 0, -Math.cos(a) * 10 + 1.4); sh.rotation.y = -a; sh.updateMatrix();
       const frame = new THREE.Mesh(shelfGeo, shelfMat); frame.position.y = 2.4; sh.add(frame);
@@ -148,10 +149,12 @@ export async function createStage(canvas) {
         while (bx < 0.86) { const w = 0.1 + R() * 0.12, h = 0.55 + R() * 0.3, c = palette[Math.floor(R() * palette.length)];
           tmp.scale.set(w, h, 1); tmp.position.set(bx + w / 2, 0.47 + row * 1.12 + h / 2, 0.12); tmp.rotation.set(0, 0, R() < 0.12 ? (R() - 0.5) * 0.4 : 0); tmp.updateMatrix();
           books.push({ m: sh.matrix.clone().multiply(tmp.matrix), c }); bx += w + 0.015; } }
-      world.add(sh);
+      world.add(sh); shelves.push(sh);
     }
     const bookInst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 0.3), mat(0xffffff), books.length);
     books.forEach((b, i) => { bookInst.setMatrixAt(i, b.m); bookInst.setColorAt(i, b.c); }); bookInst.name = "books"; world.add(bookInst);
+    /* 극이 펼쳐지는 무대: 책장 부품·마루·풋라이트·조명 웅덩이·기둥·커튼·휘장(theater.js) */
+    buildTheater(world, T, accent, shelves);
     /* 등불 */
     if (T.lamps) [[-3.8, 3.4, -2.8], [3.8, 3.4, -2.8], [0, 4.4, -5.4]].forEach((p, i) => {
       const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.16, 0), new THREE.MeshBasicMaterial({ color: 0xffd28a })); m.position.set(...p); world.add(m);
