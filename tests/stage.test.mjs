@@ -295,7 +295,7 @@ const mf=await p.evaluate(async()=>{ const o={};
   try{
   const M=await import("/js/stage/monsters.js"), C=await import("/js/stage/characters.js"), L=await import("/js/stage/looks.js"), THREE=await import("three");
   o.n=Object.values(M.MONSTERS).filter(m=>m.kind!=="puppet").length; o.np=Object.values(M.MONSTERS).filter(m=>m.kind==="puppet").length; o.badH=Object.entries(M.MONSTERS).filter(([,m])=>!(m.h>0&&m.h<=1.9)).map(([k])=>k); o.badKind=Object.entries(M.MONSTERS).filter(([,m])=>!M.MONSTER_KINDS.includes(m.kind)).map(([k])=>k);
-  await C.loadCharacters(); await C.loadMonsters(["slime_pink","dragon","skeleton_warrior","pug","slime_horned","triceratops"]);
+  await C.loadCharacters(); await C.loadMonsters(["slime_pink","dragon","skeleton_warrior","pug","slime_horned","triceratops","demon"]);
   o.ready=["slime_pink","dragon","skeleton_warrior","pug"].map(C.monsterReady);
   const box=F=>{ F.obj.updateMatrixWorld(true); const b=new THREE.Box3(); F.obj.traverse(n=>{ if(n.isMesh&&n.userData.fromModel) b.expandByObject(n); }); return b; };
   o.fig={}; o.maxW=Object.fromEntries(Object.entries(M.MONSTERS).filter(([,m])=>m.maxW).map(([k,m])=>[k,m.maxW]));
@@ -313,6 +313,8 @@ const mf=await p.evaluate(async()=>{ const o={};
   o.c1=col(C.makeFigure({monster:"slime_pink",model:"Rogue",palette:L.PALETTES.crimson,scale:1})); o.c2=col(C.makeFigure({monster:"slime_pink",model:"Rogue",palette:L.PALETTES.teal,scale:1}));
   { const byName={}; C.makeFigure({monster:"slime_horned",model:"Rogue",palette:L.PALETTES.crimson,scale:1}).obj.traverse(n=>{ if(n.isMesh&&n.userData.fromModel) [].concat(n.material).forEach(m=>{ byName[m.name]=m.color.getHexString(); }); }); o.slimeNames=byName; }
   { const T=C.makeFigure({monster:"triceratops",model:"Rogue",palette:L.PALETTES.crimson,scale:1}); T.act("Idle"); T.update(0); o.floor=+box(T).min.y.toFixed(3); }
+  { const Dm=C.makeFigure({monster:"demon",model:"Rogue",palette:L.PALETTES.crimson,scale:1}); Dm.act("Idle"); Dm.act("Block",{once:true}); Dm.update(0.05); o.blockClip=Dm.debugClip();
+    const Pg=C.makeFigure({monster:"pug",model:"Rogue",palette:L.PALETTES.crimson,scale:1}); Pg.act("Idle"); const t0=performance.now(); let rz=0; const tk=setInterval(()=>{ Pg.update(0.05); rz=Math.max(rz,Math.abs(Pg.obj.children[0].rotation.z)); },50); await Promise.race([Pg.act("Block",{once:true}),new Promise(r=>setTimeout(r,3000))]); clearInterval(tk); o.blockFake={ms:performance.now()-t0,rz}; }
   /* 해골은 입 메우기 안 함 */
   let mouth=false; C.makeFigure({monster:"skeleton_warrior",model:"Rogue",palette:L.PALETTES.steel,scale:1}).obj.traverse(n=>{ if(n.isMesh&&n.geometry.userData.mouthless) mouth=true; }); o.mouth=mouth;
   /* 장신구가 몸에 안 묻힘 */
@@ -331,6 +333,8 @@ ok(/^Attack2?$/.test(mf.atkClip||"")&&/^Attack2?$/.test(mf.atkClip2||"")&&mf.atk
 ok(mf.c1&&mf.c2&&mf.c1!==mf.c2,"슬라임은 손님 팔레트로 색이 바뀜",[mf.c1,mf.c2]);
 ok(mf.slimeNames&&mf.slimeNames.Main&&mf.slimeNames.Eyes&&mf.slimeNames.Main!==mf.slimeNames.Eyes&&mf.slimeNames.Horns!==mf.slimeNames.Main,"슬라임: 몸(Main)만 손님 색, 눈·뿔은 원래 색",mf.slimeNames);
 ok(Math.abs(mf.floor)<0.03,"몬스터 발이 바닥(y≈0)에 닿음(Idle 첫 순간)",mf.floor);
+ok(mf.blockClip==="Block","방어 주사위(Block): Block 클립 있는 몬스터는 그 클립",mf.blockClip);
+ok(mf.blockFake&&mf.blockFake.ms<800&&mf.blockFake.rz>0.02,"Block 클립 없으면 흔들기로 대신",mf.blockFake);
 ok(mf.mouth===false,"해골 머리엔 입 메우기 안 함",mf.mouth);
 ok(mf.acc&&mf.acc.x>=mf.acc.half,"몬스터 장신구는 몸 밖 옆자리",mf.acc);
 /* ---------- 적 데이터 model → 무대 ---------- */
@@ -355,6 +359,15 @@ ok(ml.d.monster==="dragon"&&ml.d.model==="Knight"&&ml.d.scale===1.1&&ml.d.acc===
 ok(!ml.u.monster&&ml.u.same&&ml.warns===1,"모르는 model 은 경고 1번, 지금 방식 그대로",ml);
 ok(ml.f0.mon==="dragon"&&!ml.f0.ph&&!ml.f1.mon&&!ml.f1.ph,"setUnits: model 적은 몬스터, 모르는 건 사람",ml);
 ok(ml.race.every(x=>x===null||x==="dragon"),"setUnits 연달아: 나중 호출(B) 유닛만",ml.race);
+/* 몬스터 파일이 응답하지 않아도(멈춘 요청) setUnits 는 제한 시간 안에 끝나고 사람 모델로 선다 */
+{ const ctx=await b.newContext({viewport:{width:844,height:390}}), q=await ctx.newPage();
+  await q.route("**/assets/models/monsters/**",()=>{ /* 응답 안 함 */ });
+  await q.goto(BASE+"tests/stage.html"); await q.waitForFunction(()=>window.__stageMod,null,{timeout:15000});
+  const r=await q.evaluate(async()=>{ Game.battle.leave(); Game.battle.begin("beccaria"); const es=Game.battle.state.units.filter(u=>u.side==="enemy"); es.forEach(e=>e.model="yeti");
+    const S=await __stageMod.createStage(document.getElementById("stage")); S.setFloor(Game.data.floorStage("crime")); await (await import("/js/stage/characters.js")).loadCharacters();   /* 사람 모델은 미리(로비에서 받아 둠) — 몬스터 기다림만 잰다 */
+    const t=performance.now(); await Promise.race([S.setUnits(Game.battle.state.units, Game.data.GUEST_BY.beccaria),new Promise(r=>setTimeout(r,8000))]);
+    return {ms:performance.now()-t, figs:es.map(e=>{ const F=S.figure(e.id); return F?{mon:F.monster||null,ph:F.placeholder}:null; })}; });
+  ok(r.ms<3500&&r.figs.every(f=>f&&!f.mon&&!f.ph),"몬스터 받기가 멈춰도 3.5초 안에 사람 모델로 섬",r); await ctx.close(); }
 /* 몬스터 파일을 못 받으면 사람 모델로, 전투 연출도 끝까지 */
 { const ctx=await b.newContext({viewport:{width:844,height:390}}), q=await ctx.newPage(); const qe=[]; q.on("pageerror",e=>qe.push(e.message));
   await q.route("**/assets/models/monsters/**",r=>r.fulfill({status:404,body:""}));

@@ -263,9 +263,9 @@ export function loadMonsters(ids) {
 export const monsterReady = id => mons.has(id);
 
 /* 무대가 부르는 동작 이름 → 몬스터 표준 클립(빌드가 바꿔 둔 이름). 배열은 앞에서부터 있는 것 */
-const MON_ACT = { Idle: ["Idle"], Running_A: ["Run"], Hit_A: ["Hit"], Hit_B: ["Hit"], Block_Hit: ["Block", "Hit"], Dodge_Backward: ["Dodge", "Hit"], Death_A: ["Death"], Cheer: ["Cheer"] };
+const MON_ACT = { Idle: ["Idle"], Running_A: ["Run"], Hit_A: ["Hit"], Hit_B: ["Hit"], Block: ["Block", "Hit"], Block_Hit: ["Block", "Hit"], Dodge_Backward: ["Dodge", "Hit"], Death_A: ["Death"], Cheer: ["Cheer"] };
 /* 클립이 없을 때 대신하는 코드 동작(rig 그룹을 움직임). 공격=앞으로 들이받기, 맞음·막기·피하기=흔들기, 쓰러짐=옆으로 눕기, 환호=통통 */
-const FAKE = { attack: "lunge", Hit_A: "shake", Hit_B: "shake", Block_Hit: "shake", Dodge_Backward: "back", Death_A: "fall", Cheer: "hop" };
+const FAKE = { attack: "lunge", Hit_A: "shake", Hit_B: "shake", Block: "shake", Block_Hit: "shake", Dodge_Backward: "back", Death_A: "fall", Cheer: "hop" };
 const FAKE_S = 0.45;
 
 function monsterFigure(look) {

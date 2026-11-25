@@ -45,6 +45,7 @@ export const SLOW_MS = 150, SLOW_SCALE = 0.25;   /* 맞는 순간 슬로우(실�
 export const BURN_MS = 1400, BURN_FAST_MS = 400;
 /* 오답 연출 시간(ms): 책이 떨어져 맞고 튕겨 사라질 때까지 */
 export const BONK_MS = 600;
+export const MON_WAIT_MS = 2500;   /* 전투 시작 때 몬스터 모델을 기다리는 최대 시간 */
 const ATTACK_ANIM = { 참격: "1H_Melee_Attack_Slice_Diagonal", 관통: "1H_Melee_Attack_Stab", 타격: "2H_Melee_Attack_Chop" };
 
 function nullStage() {
@@ -284,7 +285,8 @@ export async function createStage(canvas) {
     const my = ++unitsSeq; await loadCharacters(); if (my !== unitsSeq) return;   /* 그새 다른 setUnits/showLibrarian 이 불렸으면 그쪽이 이김 */
     /* 이 전투에 나오는 몬스터 모델만 받는다(못 받으면 그 적은 사람 모델로) */
     const monIds = (units || []).filter(u => u.side === "enemy").map(u => lookOf(u, guest).monster).filter(Boolean);
-    if (monIds.length) { await loadMonsters(monIds); if (my !== unitsSeq) return; }
+    /* 느린 회선·멈춘 요청에도 전투가 기다리지 않게 MON_WAIT_MS 까지만 기다린다. 그때 못 받은 적은 사람 모델(받기는 뒤에서 계속 → 다음 전투엔 몬스터) */
+    if (monIds.length) { await Promise.race([loadMonsters(monIds), new Promise(r => setTimeout(r, MON_WAIT_MS))]); if (my !== unitsSeq) return; }
     resetUnits(); guestNow = guest || null; debug.librarian = null; sway = (units || []).length ? 0 : 0.3; focus.target = 0; focus.k = 0;
     for (const side of ["ally", "enemy"]) {
       /* 우두머리를 가운데 줄(첫 자리)에 */
