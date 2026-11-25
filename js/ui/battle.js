@@ -299,11 +299,10 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
       if (!row) continue; row.classList.add("shown"); if (d) row.querySelector(".val").textContent = d.value;
       const rs = row.querySelector(".res"); if (rs) rs.hidden = !r || !RES[r];
       if (r === "win") row.classList.add("win"); else if (r === "lose") row.classList.add("lose");
-      if (loud) { row.classList.remove("pop"); void row.offsetWidth; row.classList.add("pop"); }
-      /* 책장 이름 옆 큰 숫자 = 지금 합 중인 주사위 값 */
+      /* 책장 이름 옆 큰 숫자 = 지금 합 중인 주사위 값 (튀어 오름은 줄과 같은 한 번의 reflow 로) */
       const big = p.querySelector(".cp-big");
-      if (big) { big.textContent = d ? d.value : "—"; big.className = "cp-big num" + (r === "win" ? " win" : r === "lose" ? " lose" : "");
-        if (loud) { void big.offsetWidth; big.classList.add("pop"); } }
+      if (big) { big.textContent = d ? d.value : "—"; big.className = "cp-big num" + (r === "win" ? " win" : r === "lose" ? " lose" : ""); }
+      if (loud) { row.classList.remove("pop"); void row.offsetWidth; row.classList.add("pop"); if (big) big.classList.add("pop"); }
     }
     /* 피해 문구는 피해 받은 쪽 판에(없으면 이긴 쪽 판에) */
     const parts = []; let hurtUnit = null;
