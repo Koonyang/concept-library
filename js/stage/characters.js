@@ -9,6 +9,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import { WEAPONS, LIB_BOOK, OUTFIT_BONES } from "./looks.js";
 import { buildProp } from "./props.js";
+import { MONSTERS, isMonster } from "./monsters.js";
 
 const BASE = new URL("../../assets/models/characters/", import.meta.url).href;
 const MODELS = ["Knight", "Barbarian", "Mage", "Rogue", "Rogue_Hooded"];
@@ -141,11 +142,11 @@ function attachProp(parent, q, unit, accent, anchor) {
   p.scale.setScalar(sc / unit); p.userData.outfit = q.bone; parent.add(p); return p;
 }
 
-function realFigure(look) {
-  const src = models[look.model] || models.Rogue_Hooded;
+function realFigure(look, srcOver, targetH) {
+  const src = srcOver || models[look.model] || models.Rogue_Hooded, TH = targetH || TARGET_H;
   const obj = SkeletonUtils.clone(src);
   const box = new THREE.Box3().setFromObject(src), h = box.max.y - box.min.y || 1;
-  const k = TARGET_H / h;
+  const k = TH / h;
   const holder = new THREE.Group(); obj.scale.setScalar(k); holder.add(obj);
   /* 장서복 복장(look.outfit): show/hide 가 기본 무기 규칙보다 우선. "book" 은 사서의 책(모델 책·코드 책) */
   const O = look.outfit || null, show = new Set(O ? O.show : []), hide = new Set(O ? O.hide : []);
@@ -184,8 +185,9 @@ function realFigure(look) {
   const mixer = new THREE.AnimationMixer(obj), actions = {};
   let cur = null;
   const F = {
-    obj: holder, placeholder: false, current: null, height: TARGET_H,
+    obj: holder, placeholder: false, current: null, height: TH,
     hand: side => side === "l" ? handL : handR,
+    debugClip: () => cur && cur.getClip().name,
     update(dt) { mixer.update(dt); },
     dispose() { mixer.stopAllAction(); mixer.uncacheRoot(obj); obj.traverse(n => { if (n.isSkinnedMesh && n.skeleton) n.skeleton.dispose(); }); },
     act(name, o = {}) {
@@ -223,13 +225,121 @@ function placeholderFigure(look) {
 }
 
 export function makeFigure(look) {
-  const F = models ? realFigure(look) : placeholderFigure(look);
-  /* 손님 장신구: 등 뒤 허리께에 작게 */
-  if (look.accessory) { const acc = buildProp(look.accessory, new THREE.Color(look.palette.accent)); if (acc) { acc.scale.setScalar(0.55); acc.position.set(0.32, 0.55, -0.25); F.obj.add(acc); } }
+  const F = look.monster && models && monsterReady(look.monster) ? monsterFigure(look) : models ? realFigure(look) : placeholderFigure(look);
+  /* 손님 장신구: 등 뒤 허리께에 작게. 몬스터는 키·폭에 맞춰 몸 밖 옆자리 */
+  if (look.accessory) { const acc = buildProp(look.accessory, new THREE.Color(look.palette.accent)); if (acc) { acc.scale.setScalar(0.55); acc.userData.accessory = true;
+    if (F.monster) acc.position.set(Math.max(0.32, (F.halfW || 0) + 0.05), 0.55 * F.height / TARGET_H, -0.25); else acc.position.set(0.32, 0.55, -0.25); F.obj.add(acc); } }
   /* 발밑 둥근 그림자 판 */
   F.obj.add(shadowDisc());
   /* 이 figure 가 따로 만든 지오메트리·재질(소품·그림자·자리표시 도형)은 정리할 때 지운다. 모델 지오메트리는 원본과 공유라 남긴다 */
   F.obj.traverse(n => { if (n.isMesh && !n.isSkinnedMesh && !n.userData.fromModel) n.userData.own = true; });
+  return F;
+}
+
+/* ---------- 몬스터(적 모델 다양화, js/stage/monsters.js) ---------- */
+const MBASE = new URL("../../assets/models/monsters/", import.meta.url).href;
+const MAX_W = 1.4;                          /* 몬스터 폭(x·z 중 큰 값) 상한 = 사람 적 자리 폭 */
+const mons = new Map(), monLoading = new Map();   /* id → { scene, clips } / 받는 중 promise */
+/* 처음 보는 id 만 받는다. 실패해도 reject 하지 않는다(그 적은 사람 모델로) */
+export function loadMonsters(ids) {
+  const want = [...new Set((ids || []).filter(isMonster))];
+  return Promise.all(want.map(id => {
+    if (mons.has(id)) return null; if (monLoading.has(id)) return monLoading.get(id);
+    const m = MONSTERS[id], L = new GLTFLoader();
+    const pr = (m.kaykit ? loadCharacters() : Promise.resolve()).then(() => L.loadAsync(MBASE + m.file))
+      .then(g => { if (m.kaykit && !clips) throw new Error("anims.glb 없음"); mons.set(id, { scene: g.scene, clips: m.kaykit ? clips : g.animations }); })
+      .catch(e => console.warn("[stage] 몬스터 모델을 못 받음 — 사람 모델로", id, e && e.message))
+      .finally(() => monLoading.delete(id));
+    monLoading.set(id, pr); return pr;
+  })).then(() => {});
+}
+export const monsterReady = id => mons.has(id);
+
+/* 무대가 부르는 동작 이름 → 몬스터 표준 클립(빌드가 바꿔 둔 이름). 배열은 앞에서부터 있는 것 */
+const MON_ACT = { Idle: ["Idle"], Running_A: ["Run"], Hit_A: ["Hit"], Hit_B: ["Hit"], Block_Hit: ["Block", "Hit"], Dodge_Backward: ["Dodge", "Hit"], Death_A: ["Death"], Cheer: ["Cheer"] };
+/* 클립이 없을 때 대신하는 코드 동작(rig 그룹을 움직임). 공격=앞으로 들이받기, 맞음·막기·피하기=흔들기, 쓰러짐=옆으로 눕기, 환호=통통 */
+const FAKE = { attack: "lunge", Hit_A: "shake", Hit_B: "shake", Block_Hit: "shake", Dodge_Backward: "back", Death_A: "fall", Cheer: "hop" };
+const FAKE_S = 0.45;
+
+function monsterFigure(look) {
+  const id = look.monster, M = MONSTERS[id], src = mons.get(id);
+  if (M.kaykit) { const F = realFigure(look, src.scene, M.h); F.monster = id; F.halfW = 0.35; return F; }
+  const obj = SkeletonUtils.clone(src.scene), rig = new THREE.Group(), holder = new THREE.Group();
+  rig.add(obj); holder.add(rig);
+  const accent = new THREE.Color(look.palette.accent), bodyCol = accent.clone().lerp(new THREE.Color(0xffffff), 0.25);
+  obj.traverse(n => {
+    if (!n.isMesh) return;
+    n.userData.fromModel = true; n.frustumCulled = false;
+    n.material = [].concat(n.material).map(m0 => { const m = phongOf(m0).clone(); if (!m0.isMeshStandardMaterial && !m0.isMeshPhongMaterial) return m0;
+      if (M.tint === "body") m.color.copy(bodyCol); else if (typeof M.tint === "number") m.color.lerp(accent, M.tint);
+      if (!n.geometry.attributes.normal) m.flatShading = true;
+      return m; });
+    if (n.material.length === 1) n.material = n.material[0];
+    n.userData.ownMat = true;
+  });
+  const mixer = new THREE.AnimationMixer(obj), clipsM = src.clips, has = n => !!THREE.AnimationClip.findByName(clipsM, n);
+  /* 키 맞추기: Idle 첫 자세에서 잰다(나는 것은 떠 있는 자세라 바닥에 내린다) */
+  const idle = THREE.AnimationClip.findByName(clipsM, "Idle");
+  /* 날갯짓처럼 Idle 중에 크기가 바뀌므로 여러 순간의 상자를 합친다 */
+  if (M.rotY) obj.rotation.y = M.rotY;
+  const box = new THREE.Box3(), a0 = idle && mixer.clipAction(idle);
+  if (a0) a0.play();
+  for (let i = 0; i < (a0 ? 12 : 1); i++) {
+    if (a0) { a0.time = idle.duration * i / 12; mixer.update(0); }
+    obj.updateMatrixWorld(true);
+    obj.traverse(n => { if (n.isMesh) { if (n.isSkinnedMesh) n.computeBoundingBox(); box.expandByObject(n); } });
+  }
+  const sz = box.getSize(new THREE.Vector3()), w = Math.max(sz.x, sz.z) || 1;
+  const k = Math.min(M.h / (sz.y || 1), MAX_W * 0.95 / w);   /* 표본 사이 순간이 조금 더 클 수 있어 5% 여유 */
+  obj.scale.multiplyScalar(k);
+  obj.position.set(-(box.min.x + box.max.x) / 2 * k, -box.min.y * k, -(box.min.z + box.max.z) / 2 * k);
+  obj.traverse(n => { if (n.isSkinnedMesh) n.boundingBox = null; });
+  mixer.stopAllAction();
+  const handPt = new THREE.Object3D(); handPt.position.set(0, sz.y * k * 0.5, sz.z * k * 0.5); holder.add(handPt);
+  const actions = {}; let cur = null, atkN = 0, fake = null;
+  const resetRig = () => { rig.position.set(0, 0, 0); rig.rotation.set(0, 0, 0); };
+  const F = {
+    obj: holder, placeholder: false, current: null, height: sz.y * k, halfW: sz.x * k / 2, monster: id,
+    hand: () => handPt,
+    debugClip: () => cur && cur.getClip().name,
+    update(dt) {
+      mixer.update(dt);
+      if (!fake) return;
+      fake.t += dt * fake.speed; const x = Math.min(1, fake.t / FAKE_S), s = Math.sin(Math.PI * x);
+      if (fake.kind === "lunge") rig.position.z = s * 0.35;
+      else if (fake.kind === "shake") rig.rotation.z = Math.sin(x * Math.PI * 4) * 0.14 * (1 - x);
+      else if (fake.kind === "back") rig.position.z = -s * 0.3;
+      else if (fake.kind === "hop") rig.position.y = s * 0.25;
+      else if (fake.kind === "fall") { rig.rotation.z = -x * 1.35; rig.position.y = -x * 0.1; }
+      if (x >= 1) { const r = fake.res; if (fake.kind !== "fall") resetRig(); fake = null; r && r(); }
+    },
+    dispose() { mixer.stopAllAction(); mixer.uncacheRoot(obj); obj.traverse(n => { if (n.isSkinnedMesh && n.skeleton) n.skeleton.dispose(); }); },
+    act(name, o = {}) {
+      if (fake) { const r = fake.res; fake = null; r && r(); }
+      resetRig(); F.current = name;
+      const isAtk = /Attack|Spellcast/.test(name);
+      let want = isAtk ? ((atkN++ % 2 && has("Attack2")) ? ["Attack2", "Attack"] : ["Attack", "Attack2"]) : (MON_ACT[name] || ["Idle"]);
+      const clipName = want.find(has);
+      if (!clipName || (clipName === "Idle" && name !== "Idle")) {
+        const kind = FAKE[isAtk ? "attack" : name];
+        play("Idle", {}, false);
+        if (!o.once || !kind) return Promise.resolve();
+        return new Promise(res => { fake = { kind, t: 0, speed: o.speed || 1, res }; });
+      }
+      return play(clipName, o, true);
+    },
+  };
+  function play(clipName, o, ret) {
+    const clip = THREE.AnimationClip.findByName(clipsM, clipName); if (!clip) return Promise.resolve();
+    const a = actions[clipName] || (actions[clipName] = mixer.clipAction(clip));
+    if (a === cur && !o.once) return Promise.resolve();
+    a.reset(); a.setEffectiveTimeScale(o.speed || 1); a.setEffectiveWeight(1);
+    a.setLoop(o.once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity); a.clampWhenFinished = !!o.once;
+    if (cur && cur !== a) a.crossFadeFrom(cur, (o.fadeMs ?? 120) / 1000, false);
+    a.play(); cur = a;
+    if (!o.once || !ret) return Promise.resolve();
+    return new Promise(res => { const done = e => { if (e.action === a) { mixer.removeEventListener("finished", done); res(); } }; mixer.addEventListener("finished", done); });
+  }
   return F;
 }
 

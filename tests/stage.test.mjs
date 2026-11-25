@@ -289,6 +289,45 @@ ok(wb.cur&&wb.cur.every(c=>c==="Idle"),"wrongBonk 뒤 사서는 Idle 로",wb&&wb
 await goStage("?nogl");
 const wbn=await p.evaluate(async()=>{ const S=await __stageMod.createStage(document.getElementById("stage")); const t=performance.now(); await S.wrongBonk(); await S.wrongBonk(["x"]); return {ok:S.ok,ms:performance.now()-t}; });
 ok(wbn.ok===false&&wbn.ms<50,"WebGL 없으면 wrongBonk 즉시 끝",wbn);
+/* ---------- 몬스터 figure (적 모델 다양화) ---------- */
+await goStage();
+const mf=await p.evaluate(async()=>{ const o={};
+  try{
+  const M=await import("/js/stage/monsters.js"), C=await import("/js/stage/characters.js"), L=await import("/js/stage/looks.js"), THREE=await import("three");
+  o.n=Object.keys(M.MONSTERS).length; o.badH=Object.entries(M.MONSTERS).filter(([,m])=>!(m.h>0&&m.h<=1.9)).map(([k])=>k); o.badKind=Object.entries(M.MONSTERS).filter(([,m])=>!M.MONSTER_KINDS.includes(m.kind)).map(([k])=>k);
+  await C.loadCharacters(); await C.loadMonsters(["slime_pink","dragon","skeleton_warrior","pug"]);
+  o.ready=["slime_pink","dragon","skeleton_warrior","pug"].map(C.monsterReady);
+  const box=F=>{ F.obj.updateMatrixWorld(true); const b=new THREE.Box3(); F.obj.traverse(n=>{ if(n.isMesh&&n.userData.fromModel) b.expandByObject(n); }); return b; };
+  o.fig={};
+  for(const id of ["slime_pink","dragon","skeleton_warrior"]){ const F=C.makeFigure({monster:id,model:"Rogue",palette:L.PALETTES.crimson,accessory:null,scale:1}); F.act("Idle"); F.update(0.1);
+    const b=box(F), sz=b.getSize(new THREE.Vector3()); o.fig[id]={ph:F.placeholder, mon:F.monster, h:+sz.y.toFixed(2), w:+Math.max(sz.x,sz.z).toFixed(2), H:+F.height.toFixed(2), want:M.MONSTERS[id].h}; }
+  /* 짝 없는 동작도 제때 끝남 */
+  const P=C.makeFigure({monster:"pug",model:"Rogue",palette:L.PALETTES.crimson,scale:1}); P.act("Idle");
+  const tick=setInterval(()=>P.update(0.05),50), t=async n=>{ const t0=performance.now(); await Promise.race([P.act(n,{once:true}),new Promise(r=>setTimeout(r,3000))]); return [n,Math.round(performance.now()-t0),P.current]; };
+  o.missing=[]; for(const n of ["Block_Hit","Cheer","Dodge_Backward","Hit_A","Death_A","1H_Melee_Attack_Stab"]) o.missing.push(await t(n)); clearInterval(tick);
+  /* 공격은 Attack/Attack2 */
+  const D=C.makeFigure({monster:"dragon",model:"Rogue",palette:L.PALETTES.crimson,scale:1}); D.act("1H_Melee_Attack_Stab",{once:true}); D.update(0.05); o.atkClip=D.debugClip&&D.debugClip();
+  D.act("2H_Melee_Attack_Chop",{once:true}); D.update(0.05); o.atkClip2=D.debugClip&&D.debugClip();
+  /* 슬라임 색 바꾸기 */
+  const col=F=>{ let c=null; F.obj.traverse(n=>{ if(!c&&n.isMesh&&n.userData.fromModel) c=n.material.color.getHexString(); }); return c; };
+  o.c1=col(C.makeFigure({monster:"slime_pink",model:"Rogue",palette:L.PALETTES.crimson,scale:1})); o.c2=col(C.makeFigure({monster:"slime_pink",model:"Rogue",palette:L.PALETTES.teal,scale:1}));
+  /* 해골은 입 메우기 안 함 */
+  let mouth=false; C.makeFigure({monster:"skeleton_warrior",model:"Rogue",palette:L.PALETTES.steel,scale:1}).obj.traverse(n=>{ if(n.isMesh&&n.geometry.userData.mouthless) mouth=true; }); o.mouth=mouth;
+  /* 장신구가 몸에 안 묻힘 */
+  const A=C.makeFigure({monster:"dragon",model:"Rogue",palette:L.PALETTES.crimson,accessory:"quill",scale:1}); const ab=box(A), acc=A.obj.children.find(c=>c.userData.accessory);
+  o.acc=acc?{x:+acc.position.x.toFixed(2),half:+((ab.max.x-ab.min.x)/2).toFixed(2)}:null;
+  }catch(e){ o.err=String(e&&e.stack||e); }
+  return o; });
+ok(!mf.err,"몬스터 모듈 로드",mf.err);
+ok(mf.n===63&&!(mf.badH||[]).length&&!(mf.badKind||[]).length,"MONSTERS 63종, 키 ≤ 1.9, 분류 정상",mf);
+ok(mf.ready&&mf.ready.every(Boolean),"loadMonsters 뒤 monsterReady",mf.ready);
+ok(mf.fig&&Object.values(mf.fig).every(f=>!f.ph&&f.mon&&Math.abs(f.h-f.H)<0.06&&f.H<=f.want+0.01&&f.w<=1.41),"몬스터 figure: 실제 키 = F.height ≤ 표 키, 폭 ≤ 1.4",mf.fig);
+ok(mf.fig&&Math.abs(mf.fig.slime_pink.h-mf.fig.slime_pink.want)<0.06,"폭이 안 넘치면 표 키 그대로",mf.fig&&mf.fig.slime_pink);
+ok(mf.missing&&mf.missing.every(([n,ms,cur])=>ms<=800&&cur===n),"짝 없는 동작도 0.8초 안에 끝나고 current = 요청 이름",mf.missing);
+ok(/^Attack2?$/.test(mf.atkClip||"")&&/^Attack2?$/.test(mf.atkClip2||"")&&mf.atkClip!==mf.atkClip2,"공격은 Attack/Attack2 번갈아",[mf.atkClip,mf.atkClip2]);
+ok(mf.c1&&mf.c2&&mf.c1!==mf.c2,"슬라임은 손님 팔레트로 색이 바뀜",[mf.c1,mf.c2]);
+ok(mf.mouth===false,"해골 머리엔 입 메우기 안 함",mf.mouth);
+ok(mf.acc&&mf.acc.x>=mf.acc.half,"몬스터 장신구는 몸 밖 옆자리",mf.acc);
 /* @@NEXT@@ */
 ok(errs.filter(e=>!/Error creating WebGL context/.test(e)).length===0,"오류 없음 (nogl 페이지의 WebGL 생성 실패 로그는 의도)",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);
