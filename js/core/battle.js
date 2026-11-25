@@ -373,6 +373,8 @@ function mbIsClash(uid,i){
   const tu=mbUnit(d.target.unit), td=tu&&tu.dice[d.target.die];
   return !!(td&&td.target&&td.target.unit===uid&&td.target.die===i);
 }
+/* 흐트러진 적에게는 공격 주사위가 하나도 없는 책장(방어·회피만)을 댈 수 없다(2026-11-25 큐 양: 의미 없으니 간소화) */
+const mbNoUseOnStaggered=(page,tu)=>!!(page&&tu&&tu.side==="enemy"&&mb.x[tu.id]&&mb.x[tu.id].cu.stag>0&&!(page.dice||[]).some(d=>isAttack(d.type)));
 function mbAssign(unitId,dieIdx,cardId,target){
   const B=mb&&mb.battle; if(!B||B.phase!=="assign") return {ok:false,reason:"phase"};
   const u=mbUnit(unitId); if(!u||u.side!=="ally"||u.hp<=0) return {ok:false,reason:"unit"};
@@ -386,6 +388,7 @@ function mbAssign(unitId,dieIdx,cardId,target){
   /* target 없이(null) 놓으면 책장만 끼운다(대상은 나중에 mbTarget). 그런 주사위가 남아 있으면 mbReady() 가 false */
   const tu=target?mbUnit(target.unit):null;
   if(target&&(!tu||tu.side!=="enemy"||tu.hp<=0)) return {ok:false,reason:"target"};
+  if(target&&!page.counter&&mbNoUseOnStaggered(page,tu)) return {ok:false,reason:"staggered"};
   const tdie=!target||target.die==null?null:+target.die;
   if(tdie!=null&&!tu.dice[tdie]) return {ok:false,reason:"target-die"};
   if(prev){ X.handIds.push(prev); u.light+=refund; }
@@ -405,6 +408,7 @@ function mbTarget(unitId,dieIdx,target){
   if(target&&PAGE_BY[d.card]&&PAGE_BY[d.card].counter) return {ok:false,reason:"counter"};   /* 반격 책장은 대상을 정하지 않는다 */
   if(!target){ d.target=null; mb.x[u.id].seq[dieIdx]=0; mbRelink(); mbEmit("onAssign",{unit:u.id,die:dieIdx,card:d.card,target:null,prev:d.card,clash:false}); return {ok:true,clash:false}; }
   const tu=mbUnit(target.unit); if(!tu||tu.side!=="enemy"||tu.hp<=0) return {ok:false,reason:"target"};
+  if(mbNoUseOnStaggered(PAGE_BY[d.card],tu)) return {ok:false,reason:"staggered"};
   const tdie=target.die==null?null:+target.die; if(tdie!=null&&!tu.dice[tdie]) return {ok:false,reason:"target-die"};
   d.target={unit:tu.id,die:tdie}; mb.x[u.id].seq[dieIdx]=++mb.seq; mbRelink();
   const res={ok:true,clash:mbIsClash(u.id,dieIdx)};
@@ -575,7 +579,7 @@ function mbResolveNext(R){
     { const mulP=1+((AX.mods&&AX.mods.dmgPct)||0), mulG=(!qc.correct&&MB.WRONG&&MB.WRONG.hp)||1;
       const tierHp=(cu,type)=>TIER[(cu.resist&&cu.resist.hp&&cu.resist.hp[type])||"보통"];
       const dmgOf=(k,type,v)=>{ const def=k==="pd"?EX.cu:AX.cu, rh=tierHp(def,type); return v>0&&rh>0?Math.max(1,Math.floor(v*rh*(k==="pd"?mulP:mulG))):0; };
-      const dieOf=(s,k)=>{ const d=s[k]; if(!d) return null; const r=k==="pd"?s.pRange:s.gRange; return {type:d.type,min:r?r[0]:d.roll,max:r?r[1]:d.roll,value:d.roll,idx:k==="pd"?s.pIdx:s.gIdx,reused:!!d.reused}; };
+      const dieOf=(s,k)=>{ const d=s[k]; if(!d) return null; const r=k==="pd"?s.pRange:s.gRange; return {type:d.type,min:r?r[0]:d.roll,max:r?r[1]:d.roll,value:d.roll,idx:k==="pd"?s.pIdx:s.gIdx,reused:!!d.reused,retry:!!s.retry}; };   /* retry: 비겨서 다시 굴린 줄 */
       steps.forEach(s=>{
         const res={pd:"none",gd:"none"}; let blocked=0, recovered=0;
         const pd=s.pd, gd=s.gd;

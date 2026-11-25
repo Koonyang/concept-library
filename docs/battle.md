@@ -23,7 +23,7 @@
 ### 1:1 (기존 접대)
 - 한 막 = `runScene(o)` → 합 풀기는 `resolveScene(o)`. 화면은 `renderBattle`, 결과는 `showWin`/`showLose`.
 - `resolveScene({P,G,pDice,gDice,correct,isKey,rng,mods,emotion, dmgScale?,pScale?,pTaken?,stMul?,pRangeFn?,gRangeFn?})` → `steps[]`.
-  두 쪽 주사위를 포인터로 맞붙인다. 공격 대 공격은 큰 쪽이 그 값만큼 때림, 방어는 차이만큼 줄여 받거나(지면) 상대 흐트러짐(이기면), 회피는 공격 주사위를 상대로 이기면 흐트러짐 회복, 이기거나 **비기면 주사위가 남아** 다음 상대 주사위와 다시 합(`keeps`, 다음 단계 `reused`), 지면 깨진다.
+  두 쪽 주사위를 포인터로 맞붙인다. 공격 대 공격은 큰 쪽이 그 값만큼 때림, 방어는 차이만큼 줄여 받거나(지면) 상대 흐트러짐(이기면), 회피는 공격 주사위를 상대로 이기면 흐트러짐 회복, 이기거나 **비기면 주사위가 남아** 다음 상대 주사위와 다시 합(`keeps`, 다음 단계 `reused`), 지면 깨진다. 그 밖의 비김(공격이 낀 합)은 **같은 두 주사위를 다시 굴린다**(`st.reroll`, 다음 단계 `st.retry`, 최대 `TIE_REROLLS`=3번, 그다음 비기면 둘 다 소모 · 2026-11-25).
   상대 주사위가 떨어질 때 남아 있던 회피는 `steps.heldP`/`steps.heldG`(책장 안 주사위 번호, 없으면 null)로 돌려준다. `o.pHeld`/`o.gHeld`(번호)를 주면 그쪽은 그 회피 주사위 하나만으로 처음부터 `reused` 로 맞선다(책장의 다른 주사위는 안 굴림).
   각 step: `{pd:{type,roll,reused,keeps}|null, gd:{…}|null, outcome:"P"|"G"|"tie"|"none", events:[{kind:"hit"|"stag"|"recover",target:"P"|"G",hp,st,newStag,…}], newStag:[], pRange, gRange, pIdx, gIdx, snap}`.
   `pTaken` 은 다대다 오답 막만 넘긴다. `dmgScale`/`pScale` 은 옵션으로만 남아 있고 지금은 아무도 안 넘긴다(=1).
@@ -36,6 +36,7 @@
 |---|---|
 | 설정값 | `MB` (`HP`, `DICE`, `PACE`, `WRONG`, `ENEMY_MAX`, 속도 등), 기믹 훅 `MB_HOOKS` |
 | 체력 | `mbQuestionCount`, `mbEnemyHpTotal`, `mbEnemyQ`, `mbEnemyCtx`, `mbAllyStats`, `enemyStats` |
+| 대상 제한 | 흐트러진 적에게 공격 주사위 없는 책장(방어·회피만)은 `mbAssign`/`mbTarget` 이 `reason:"staggered"` 로 거부(`mbNoUseOnStaggered`) |
 | 만들기 | `mbCreate`(사서·적 유닛, 적 수 상한 `mbEnemyCap`, 몸 `enemyBody`/`ENEMY_BODY`), `mbQuestionPool`, 적 유닛 `model`(= `enemies[i].model`, 겉모습 전용, 없으면 null) |
 | 막 시작 | `mbStartScene`(주사위 굴림 `mbRollDice`, 적 목표 `mbRelink`, 문제 `mbPickQuestion`/`mbNextQid`/`mbPrepQ`) |
 | 문제 | `mbAnswer`(정답이면 감정 `mbCharge`), 화면 쪽 `mbAnswerUI`, `mbShowQuestion` |

@@ -348,4 +348,30 @@ ok(gm.counter.ok&&gm.counter.tgt===null&&gm.counter.ready&&gm.counter.counterEv>
 ok(gm.para.n>=1&&gm.para.flat,"기믹 마비: 그 막 주사위가 최솟값",gm.para);
 ok(gm.prot.a-gm.prot.b===2,"기믹 보호: 맞을 때 체력 피해 −2",gm.prot);
 ok(errs.length===0,"no errors",errs);
+/* 2026-11-25 큐 양: 같은 눈(비김)이면 그 합을 다시 굴린다(회피의 비김 남음 규칙은 그대로). 3번 연속 비기면 둘 다 소모 */
+{ const tie=await p.evaluate(()=>{ const E=__studyGame.engine, o={};
+    const seq=a=>{ let i=0; return ()=>a[i++%a.length]; };
+    const run=(pd,gd,vals)=>{ const P=E.mkUnit(1000,1000), G=E.mkUnit(1000,1000); const st=E.resolveScene({P,G,pDice:pd,gDice:gd,correct:true,isKey:false,rng:seq(vals),pRangeFn:d=>[d.min,d.max],gRangeFn:d=>[d.min,d.max]});
+      return {n:st.length,out:st.map(x=>x.outcome),idx:st.map(x=>[x.pIdx,x.gIdx]),retry:st.map(x=>!!x.retry),gHp:1000-G.hp,pHp:1000-P.hp}; };
+    const A=[{type:"참격",min:1,max:2}], D=[{type:"방어",min:1,max:2}], V=[{type:"회피",min:1,max:2}];
+    o.aa=run(A,A,[0.1,0.1,0.9,0.1]);          /* 1:1 비김 → 다시 2:1 → 사서 승 */
+    o.ad=run(A,D,[0.1,0.1,0.1,0.9]);          /* 공격 대 방어 비김 → 다시 1:2 → 방어 승 */
+    o.cap=run(A,A,[0.1]);                     /* 계속 비기면 처음 + 다시 3번 = 4단계 뒤 둘 다 소모 */
+    o.ev=run(A,V,[0.1,0.1]);                  /* 회피 비김: 예전대로 회피가 남고 공격 주사위만 소모(다시 굴리지 않음) */
+    return o; });
+  ok(tie.aa.n===2&&tie.aa.out.join()==="tie,P"&&tie.aa.idx[1].join()==="0,0"&&tie.aa.retry[1]&&tie.aa.gHp>0,"비김 → 같은 주사위로 다시 굴려 승패",tie.aa);
+  ok(tie.ad.n===2&&tie.ad.out.join()==="tie,G"&&tie.ad.retry[1],"공격 대 방어 비김도 다시",tie.ad);
+  ok(tie.cap.n===4&&tie.cap.out.every(x=>x==="tie")&&tie.cap.gHp===0&&tie.cap.pHp===0,"3번 다시 비기면 둘 다 소모(무한 반복 없음)",tie.cap);
+  ok(tie.ev.n===1&&tie.ev.out[0]==="tie"&&!tie.ev.retry[0],"회피 비김은 예전대로(다시 굴리지 않음)",tie.ev); }
+/* 2026-11-25 큐 양: 흐트러진 적에게는 방어·회피만 있는 책장을 댈 수 없다(공격 주사위가 섞인 책장은 됨) */
+{ const sg=await p.evaluate(()=>{ const G=__studyGame, A=G.battleApi, o={};
+    A.begin("beccaria"); A.setRng(()=>0.5); A.answer(true); const B=G.battle, U=id=>B.units.find(u=>u.id===id), X=A.internals();
+    X.e1.cu.stag=1; U("e1").staggered=true; U("a1").light=9; U("a1").emotion=5; X.a1.handIds.splice(0,X.a1.handIds.length,"silence","margin-guard","turn-page","proportion-scale");
+    o.def=A.assign("a1",0,"silence",{unit:"e1",die:null}); o.defOther=A.assign("a1",0,"silence",{unit:"e2",die:null});
+    o.retarget=A.target("a1",0,{unit:"e1",die:null});
+    o.atk=A.assign("a1",1,"turn-page",{unit:"e1",die:null}); o.mixed=A.assign("a1",1,"proportion-scale",{unit:"e1",die:null});
+    o.info=G.battle.cardInfo?null:null; return o; });
+  ok(sg.def.ok===false&&sg.def.reason==="staggered","흐트러진 적에게 방어·회피만 책장 → 거부(reason staggered)",sg);
+  ok(sg.defOther.ok&&sg.retarget.ok===false&&sg.retarget.reason==="staggered","다른 적엔 되고, 대상만 흐트러진 적으로 바꾸는 것도 거부",sg);
+  ok(sg.atk.ok&&(sg.mixed.ok||sg.mixed.reason!=="staggered"),"공격(섞인) 책장은 흐트러진 적에게 됨",sg); }
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

@@ -2,7 +2,7 @@
 /* ===== Library-of-Ruina-style combat engine (pure functions, no DOM) =====
    · HP + 흐트러짐 저항 gauge on BOTH sides; the gauge DEPLETES, 0 => staggered
    · 3 attack types 참격/관통/타격, per-type HP resist and stagger resist (tiers below)
-   · clash = both roll real page dice; higher wins; tie = nothing; loser takes the winner's die
+   · clash = both roll real page dice; higher wins; tie = roll the same two dice again (up to TIE_REROLLS, then both spent); loser takes the winner's die
    · the quiz result is only a modifier on dice (correct: me +, guest -; wrong: me -)            */
 const TIER={치명:2,취약:1.5,보통:1,견딤:.5,내성:.25,면역:0};
 const TIER_ORDER=["치명","취약","보통","견딤","내성","면역"];
@@ -32,6 +32,7 @@ function stagOnly(u,v,mul){
 }
 function recoverSt(u,v){ if(u.stag>0) return {kind:"recover",st:0}; const b=u.st; u.st=Math.min(u.stMax,u.st+v); return {kind:"recover",st:u.st-b}; }
 const randInt=(rng,a,b)=>a+Math.floor(rng()*(b-a+1));
+const TIE_REROLLS=3;   /* 비김 다시 굴리기 최대 횟수(2026-11-25) */
 /* dice modifiers from the quiz */
 /* 한 끝 값 v 를 비율 p 만큼 (p>0 늘림, p<0 줄임). 반올림, 변동 최소 1, 하한 1 */
 function pctEnd(v,p){ if(!p) return v; let n=Math.round(v*(1+p)); if(n===v) n=v+(p>0?1:-1); return Math.max(1,n); }
@@ -60,7 +61,7 @@ function resolveScene(o){
      o.pHeld / o.gHeld (번호): 그 쪽은 이미 남아 있던 회피 주사위 하나(pDice[o.pHeld])만으로, 처음부터 reused 로 맞선다. */
   const pH=o.pHeld!=null&&pDice&&pDice[o.pHeld]?o.pHeld:null, gH=o.gHeld!=null&&gDice&&gDice[o.gHeld]?o.gHeld:null;
   const pEnd=pH!=null?pH+1:pn, gEnd=gH!=null?gH+1:gn;
-  let i=pH!=null?pH:0, j=gH!=null?gH:0, heldP=pH!=null, heldG=gH!=null, carryP=null, carryG=null, guard=0;
+  let i=pH!=null?pH:0, j=gH!=null?gH:0, heldP=pH!=null, heldG=gH!=null, carryP=null, carryG=null, guard=0, ties=0, retry=false;
   while((i<pEnd||j<gEnd)&&guard++<64){
     if(P.hp<=0||G.hp<=0) break;
     const pd=(pDice&&i<pEnd&&P.stag===0)?pDice[i]:null, gd=(gDice&&j<gEnd&&G.stag===0)?gDice[j]:null;
@@ -101,9 +102,14 @@ function resolveScene(o){
     const keepP=!!(pd&&gd&&pd.type==="회피"&&isAttack(gd.type)&&(st.outcome==="P"||st.outcome==="tie"));
     const keepG=!!(pd&&gd&&gd.type==="회피"&&isAttack(pd.type)&&(st.outcome==="G"||st.outcome==="tie"));
     if(st.pd) st.pd.keeps=keepP; if(st.gd) st.gd.keeps=keepG;
+    /* 같은 눈(비김)이면 그 두 주사위로 다시 굴린다(2026-11-25 큐 양). 회피가 남는 비김은 예전 규칙 그대로, 공격이 없는 맞붙음(방어·회피끼리)은 다시 안 함.
+       TIE_REROLLS 번 연속 비기면 둘 다 소모(무한 반복 방지). st.reroll = 이 단계 뒤 다시 굴림, st.retry = 다시 굴린 단계 */
+    const reroll=st.outcome==="tie"&&!keepP&&!keepG&&pd&&gd&&(isAttack(pd.type)||isAttack(gd.type))&&ties<TIE_REROLLS;
+    st.reroll=!!reroll; st.retry=retry; retry=!!reroll;
     st.pRange=pRange; st.gRange=gRange; st.pIdx=pd?i:null; st.gIdx=gd?j:null;   /* 책장 안 몇 번째 주사위(0부터) — 읽기 전용, 결과에 영향 없음 */
     st.snap={pHp:P.hp,pSt:P.st,pStag:P.stag,gHp:G.hp,gSt:G.st,gStag:G.stag};
     steps.push(st);
+    if(reroll){ ties++; continue; } ties=0;
     if(keepP) heldP=true; else { heldP=false; i++; }
     if(keepG) heldG=true; else { heldG=false; j++; }
     if(keepP&&keepG){ heldP=heldG=false; i++; j++; }

@@ -267,7 +267,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     const L = clashL = allyFirst ? "a" : "b", Rk = clashR = allyFirst ? "b" : "a";
     clashEv = ev; clashFast = !!isFast; clashShown = -1;
     const tgt = st.units.find(u => u.id === ev.target);
-    const die = (d, r, i) => `<div class="cp-die" data-i="${i}">${d ? `<span class="ty t-${d.type}">${d.type}${d.reused ? `<small class="reuse">재사용</small>` : ""}</span><span class="rng num">${d.min}~${d.max}</span><b class="val num">?</b><i class="res${r ? " r-" + r : ""}" hidden>${RES[r] || ""}</i>` : `<span class="muted">—</span>`}</div>`;
+    const die = (d, r, i) => `<div class="cp-die" data-i="${i}">${d ? `<span class="ty t-${d.type}">${d.type}${d.reused ? `<small class="reuse">재사용</small>` : ""}${d.retry ? `<small class="reuse">다시</small>` : ""}</span><span class="rng num">${d.min}~${d.max}</span><b class="val num">?</b><i class="res${r ? " r-" + r : ""}" hidden>${RES[r] || ""}</i>` : `<span class="muted">—</span>`}</div>`;
     const panel = (k, cls) => {
       const x = ev[k];
       if (!x) return `<div class="cp-side ${cls} none" data-unit="${tgt ? tgt.id : ""}"><span class="who">${esc(tgt ? tgt.name : "")}</span><b class="cp-card">대응 없음</b><p class="cp-out" hidden></p></div>`;
@@ -372,7 +372,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   /* ---------- 배정 ---------- */
   function firstEmptyDie() { for (const u of liveAllies()) { const i = u.dice.findIndex(d => !d.card); if (i >= 0) return { unit: u.id, die: i }; } return null; }
   const dieOf = (uid, i) => { const u = B().units.find(x => x.id === uid); return u && u.dice[i]; };
-  const failMsg = r => setMsg(r.reason === "light" ? "빛이 모자라" : r.reason === "emotion" ? "감정 단계가 모자라" : "놓을 수 없어", "bad", 1800);
+  const failMsg = r => setMsg(r.reason === "light" ? "빛이 모자라" : r.reason === "emotion" ? "감정 단계가 모자라" : r.reason === "staggered" ? "흐트러진 적에겐 공격 책장만" : "놓을 수 없어", "bad", 1800);
   /* 책장 끼운 내 주사위(uid,i)의 대상을 정한다: 적 주사위면 그 주사위, 몸이면 일방 공격 */
   function aim(uid, i, target) {
     const r = G.battle.target(uid, i, target); if (!r.ok) { failMsg(r); return false; }
