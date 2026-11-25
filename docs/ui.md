@@ -93,6 +93,17 @@ assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/bui
 
 서로 맞춰야 하는 곳: 교환 이벤트 `ev`(전투가 만들고 무대가 연출하고 UI가 넘김), 층 무대 이름(학습내용이 값을 정하고 무대가 이름 목록을 관리), `data.js`(전투·학습내용이 같이 씀).
 
+## 7-1. 적 모델 (괴물·동물·로봇·유령·슬라임·해골·꼭두각시, 2026-11-25)
+- 적 데이터 `enemies[i].model` → 코어 유닛 `model` → `lookOf` 가 `look.monster` 로. 없거나 모르는 id 면 지금처럼 사람 모델(모르는 id 는 콘솔 경고 1번).
+- 표: `js/stage/monsters.js`(순수 데이터, `tools/content/check.mjs` 도 읽음). 파일: `assets/models/monsters/`(만들기 `npm run assets:monsters`, Quaternius CC0 npm 사본 + KayKit 해골).
+  빌드가 동작 이름을 Idle·Run·Attack·Attack2·Hit·Death·Block·Dodge·Cheer 로 바꿔 둔다. 꼭 있는 건 Idle 뿐.
+- figure(`characters.js` `monsterFigure`): 무대가 부르는 이름(`Hit_A`, `Cheer`…)을 표준 클립으로 짝짓고, 없으면 코드 동작(공격=들이받기, 맞음=흔들기, 쓰러짐=옆으로 눕기, 환호=통통)으로 대신해 연출이 멈추지 않는다. `F.current` 는 무대가 부른 이름 그대로.
+- 크기: 표의 키 `h`(≤ 1.9) 에 맞추고, Idle 여러 순간을 합친 폭이 `maxW`(기본 1.9, 길쭉한 짐승 2.2, 공룡 2.6)를 넘으면 더 줄인다. 우두머리 1.1·따르는 적 0.9 배는 사람과 같음.
+- 색: 슬라임은 `Main` 재질만 손님 색(눈·이빨 그대로), 나머지는 원래 색을 손님 색으로 15% 물들임. 손님 장신구는 몸 밖 옆자리.
+- 꼭두각시(`puppet.js`): 사람·해골 모델(같은 뼈대)에 나무색·머리 위 십자 막대(키+0.35)·실 4줄(머리·두 손·가슴을 따라감)·관절 구슬 6개.
+- 로딩: `setUnits` 가 그 전투에 나오는 몬스터만 `loadMonsters` 로 받고, 못 받으면 사람 모델.
+- 확인: `node tools/shot.mjs monsters monsters-assign`, 겹침 `node tests/overlap-check.mjs --monsters`, 카탈로그 그림 `node tools/assets/catalog.mjs` → `docs/monsters/`.
+
 ## 8. 남은 일
 - 장서복 복장 6벌(`KEY_PAGES[].look`, novice 는 기본 모습) 첫 판. 등 소품은 정면에서 잘 안 보여 조정 필요(9절).
 - 덱 프리셋은 하나만 쓴다(여러 개는 큐 양에게 물어볼 것).

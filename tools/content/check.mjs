@@ -14,6 +14,8 @@ const ctx = { console, Math, Date, JSON,
 ctx.window = ctx; ctx.self = ctx; vm.createContext(ctx);
 for (const f of ["assets/data/moon-words.sample.js", "js/core/data.js", "js/core/engine.js", "js/core/save.js", "js/core/battle.js", "js/core/moon.js", "js/core/api.js"])
   vm.runInContext(readFileSync(join(root, f), "utf8"), ctx, { filename: f });
+/* 적 겉모습 model 목록(순수 데이터 ES 모듈). package.json 에 type 이 없어 경고가 나므로 data URL 로 읽는다 */
+const { isMonster } = await import("data:text/javascript;charset=utf-8," + encodeURIComponent(readFileSync(join(root, "js/stage/monsters.js"), "utf8")));
 const D = vm.runInContext(`({FLOORS,WEAK_POINTS,KEY_QUESTIONS,COMBAT_PAGES,KEY_PAGES,BOOK_POOLS,EGO_GIFTS,EGO_GIFT_RULES,GUEST_COMBAT,ENEMY_BODY,MB,acqAudit,checkShort,keyQsOf})`, ctx);
 
 /* 허용 값 (js/stage/looks.js, js/stage/props.js 와 맞춘다) */
@@ -85,9 +87,11 @@ for (const g of guests) {
     if (!e.key || !e.name || !e.topic) bad(E, "key·name·topic 중 빠진 것");
     if (!BODIES.includes(e.body) && !BODIES.includes(D.ENEMY_BODY[e.key])) bad(E, "ENEMY_BODY(js/core/battle.js)에 몸 등록 안 됨");
     if (!(e.q || []).length) bad(E, "맡은 문항(q) 없음");
+    if (e.model != null && !isMonster(e.model)) bad(E, `없는 적 모델 "${e.model}" (js/stage/monsters.js, 그림 docs/monsters/)`);
     for (const id of e.q || []) { if (!all.includes(id)) bad(E, `없는 문항 "${id}"`); if (owner[id]) bad(E, `문항 "${id}"가 ${owner[id]}에도 있음`); owner[id] = e.key; }
   }
   all.filter(id => !owner[id]).forEach(id => bad(W, `문항 "${id}"를 맡은 적이 없음`));
+  { const n = {}; en.forEach(e => { if (e.model) n[e.model] = (n[e.model] || 0) + 1; }); Object.entries(n).filter(([, c]) => c > 2).forEach(([m, c]) => warn(W, `적 모델 "${m}"를 ${c}명이 씀(한 무리에서 겹치지 않게)`)); }
 
   /* 적 책장 */
   const gc = g.combat || D.GUEST_COMBAT[g.id];

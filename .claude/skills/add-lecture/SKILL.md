@@ -56,7 +56,7 @@ description: 큐 양이 준 인강·강의 노트(텍스트, 사진, PDF)를 읽
   ],
   enemies:[
     { key:"<guest>-<who>", name:"…", topic:"<소주제>", leader:true, q:["<guest>-q0","<guest>-k0","<guest>-k1"] },
-    { key:"<guest>-<who2>", name:"…", topic:"<소주제>", q:["<guest>-q1","<guest>-q2"] }
+    { key:"<guest>-<who2>", name:"…", topic:"<소주제>", model:"slime_pink", q:["<guest>-q1","<guest>-q2"] }   // model 은 선택: 아래 "적 모델 고르기"
   ]
 },
 
@@ -82,6 +82,15 @@ description: 큐 양이 준 인강·강의 노트(텍스트, 사진, PDF)를 읽
 // 9) BOOK_POOLS — 책장 w 6–10, 장서복 w 4
 "<guest>":[ {k:"page",id:"<page>",w:10}, {k:"page",id:"<page2>",w:6}, {k:"key",id:"<key>",w:4} ],
 ```
+
+### 적 모델 고르기 (`enemies[].model`, 선택 · 2026-11-25)
+적은 사람이 아니어도 된다. `model` 을 적으면 그 모델로, 안 적으면 지금처럼 사람(archetype·몸으로 고름). **기존 손님 적에는 넣지 않는다**(큐 양: 앞으로 만드는 적만).
+- 그림 보고 고르기: `docs/monsters/<분류>.png` (slime·monster·undead·robot·ghost·animal·puppet). id 목록은 `js/stage/monsters.js` `MONSTERS`.
+- 기준: 이름·소주제 뜻과 어울리게(예: "벼락치기의 밤"→zombie, "끼어드는 알림"→bee, "원형 감옥의 간수"→외눈 robot_large) /
+  우두머리는 크고 눈에 띄는 것 / 한 무리 안에서 겹치지 않게(같은 model 3명 이상이면 검사 경고) / 실존 인물·사람이어야 말이 되는 적은 `model` 생략.
+- 슬라임(slime_*, blob_*)은 몸이 손님 `palette` 색으로 바뀐다 → 같은 모델도 손님마다 다르게 보인다.
+- 꼭두각시(puppet_knight·barbarian·mage·rogue·hooded·skeleton): 착각·환상·조종당하는 개념에 어울린다.
+- `npm run check:content <손님id>` 가 없는 model id 를 잡는다.
 
 ## 4. 문제 쓰는 규칙
 - **판례 O/X**: O = 유죄·성립(피고인에게 불리), X = 무죄·불성립·조각(유리). 프롬프트를 `판례: `로 시작.

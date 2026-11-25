@@ -228,6 +228,8 @@ enemies:[
 - 적 한 명 = 노트 소주제 하나(`topic`). 그 적이 맡은 문항이 `q`입니다.
 - 적 체력은 그 적이 맡은 문제 수(`e.q.length`)에 비례합니다. 공식은 전투 엔진 몫이니 [docs/battle.md](battle.md)를 보세요.
 
+겉모습 `model`(선택, 2026-11-25): 적을 괴물·동물·로봇·유령·슬라임·해골·꼭두각시 모델로 보이게 한다. 값은 `js/stage/monsters.js` `MONSTERS` 의 id(그림 `docs/monsters/`), 없으면 지금처럼 사람 모델. 규칙(체력·주사위)에는 영향 없음. 고르는 기준은 `/add-lecture` 스킬.
+
 몸(`body`)은 `human`(사람), `machine`(장치·계산), `puppet`(착각·환상·함정)입니다. `enemyBody()` 우선순위: `e.body` → `ENEMY_BODY[e.key]` → 손님 `archetype==="puppet"`이면 `puppet` → `MB_FLOOR_BODY`(crime·criminal-law → `human`, cognition → `machine`, memory → `puppet`) → 손님 `id` 해시. 새 적은 `ENEMY_BODY` 표에 `key`를 꼭 넣으세요. 표는 `index.html`의 `const ENEMY_BODY`입니다.
 
 ```js
