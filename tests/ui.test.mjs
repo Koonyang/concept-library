@@ -41,7 +41,7 @@ while(!(await p.evaluate(()=>window.__end))&&scenes<40){
   if(scenes===2){ /* 개막 직후 화면 길게 누르기 → 건너뛰기 (연출이 길게 누르기 전에 끝났으면 검사할 것이 없음) */
     await p.waitForSelector("#skip-layer.on",{timeout:3000}).catch(()=>{});   /* 층이 켜진 뒤 눌러야 길게 누르기가 잡힌다(느린 환경 경쟁 방지) */
     await p.mouse.move(422,200); await p.mouse.down(); await p.waitForTimeout(470);
-    const layerOn=await p.evaluate(()=>!!document.querySelector("#skip-layer.on")); await p.waitForTimeout(130); await p.mouse.up();
+    const layerOn=await p.evaluate(()=>!!document.querySelector("#skip-layer.on")); await p.waitForTimeout(430); await p.mouse.up();   /* 느린 환경에서 450ms 타이머가 늦게 돌아도 잡히게 넉넉히 */
     await p.waitForFunction(()=>window.__end||document.querySelector("#question.on"),null,{timeout:8000}).catch(()=>{});
     skipChecked=await p.evaluate(l=>({layerOn:l,held:window.__held,playsAfter:window.__plays}),layerOn);
   }

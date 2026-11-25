@@ -426,6 +426,25 @@ const ls=await p.evaluate(async()=>{ const C=await import("/js/stage/characters.
 ok(ls.kyu&&Math.abs(ls.lib2-ls.kyu)<0.02&&Math.abs(ls.lib3-ls.kyu)<0.02,"사서 셋의 머리 높이가 같음",ls);
 ok(Math.abs(ls.kyu-ls.mageRaw)<0.005,"큐 양 크기는 그대로",ls);
 ok(Math.abs(ls.knightRaw-ls.lib2)>0.02||ls.knightRaw===ls.kyu,"적(사서 아님)은 예전 크기 그대로(기사 기준)",ls);
+/* ---------- 최후의 일격(2026-11-26): 전투를 끝내는 한 방에 슬로우 + 화면 충격파 셰이더 ---------- */
+await goStage();
+const fin=await p.evaluate(async()=>{ Game.battle.leave(); Game.battle.begin("beccaria"); const U=Game.battle.state.units, a=U.find(u=>u.side==="ally").id, es=U.filter(u=>u.side==="enemy").map(u=>u.id);
+  const S=await __stageMod.createStage(document.getElementById("stage")); S.setFloor(Game.data.floorStage("crime")); await S.setUnits(U, Game.data.GUEST_BY.beccaria);
+  const ev=e=>({kind:"one-sided",a:{unit:a},target:e,steps:[{aDie:{type:"타격"},winner:"a",dmg:{unit:e,hp:99,stagger:0}}],result:{dead:[e],staggered:[]}});
+  const o={};
+  await S.play(ev(es[0]),{}); o.normal={n:S.debug.finisher.n,waveFrames:S.debug.finisher.waveFrames};
+  let minScale=1, waveSeen=false; const watch=setInterval(()=>{ minScale=Math.min(minScale,S.timeScale()); if(S.debug.finisher.wave) waveSeen=true; },16);
+  const t0=performance.now(); await S.play(ev(es[1]),{final:true}); o.ms=performance.now()-t0; clearInterval(watch);
+  await new Promise(r=>setTimeout(r,400));
+  o.final={n:S.debug.finisher.n,waveFrames:S.debug.finisher.waveFrames,minScale,waveSeen,waveAfter:!!S.debug.finisher.wave,scaleAfter:S.timeScale()};
+  /* 빨리 감기: 슬로우 없이 짧게 */
+  await S.setUnits(U, Game.data.GUEST_BY.beccaria); minScale=1; const w2=setInterval(()=>{ minScale=Math.min(minScale,S.timeScale()); },16);
+  const t1=performance.now(); await S.play(ev(es[2]),{final:true,fast:true}); o.fastMs=performance.now()-t1; clearInterval(w2); o.fastMin=minScale; o.fastN=S.debug.finisher.n;
+  return o; });
+ok(fin.normal.n===0&&fin.normal.waveFrames===0,"보통 쓰러짐엔 최후의 일격 연출 없음",fin);
+ok(fin.final.n===1&&fin.final.waveFrames>0&&fin.final.minScale<=0.25,"최후의 일격: 슬로우(≤0.25배) + 충격파 셰이더",fin.final);
+ok(!fin.final.waveAfter&&fin.final.scaleAfter===1,"끝나면 충격파·슬로우 정리",fin.final);
+ok(fin.fastN===2&&fin.fastMin>=0.99&&fin.fastMs<2500,"빨리 감기: 충격파만 짧게, 슬로우 없음",fin);
 /* @@NEXT@@ */
 ok(errs.filter(e=>!/Error creating WebGL context/.test(e)).length===0,"오류 없음 (nogl 페이지의 WebGL 생성 실패 로그는 의도)",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

@@ -45,12 +45,13 @@ export const SLOW_MS = 150, SLOW_SCALE = 0.25;   /* 맞는 순간 슬로우(실�
 export const BURN_MS = 1400, BURN_FAST_MS = 400;
 /* 오답 연출 시간(ms): 책이 떨어져 맞고 튕겨 사라질 때까지 */
 export const BONK_MS = 600;
-export const MON_WAIT_MS = 2500;   /* 전투 시작 때 몬스터 모델을 기다리는 최대 시간 */
+export const MON_WAIT_MS = 2500;
+export const FINISH_SLOW = 0.2, FINISH_HOLD_MS = 700, FINISH_WAVE_S = 0.9;   /* 최후의 일격: 슬로우 배율·유지(실제 ms)·충격파 길이(실제 초) */   /* 전투 시작 때 몬스터 모델을 기다리는 최대 시간 */
 const ATTACK_ANIM = { 참격: "1H_Melee_Attack_Slice_Diagonal", 관통: "1H_Melee_Attack_Stab", 타격: "2H_Melee_Attack_Chop" };
 
 function nullStage() {
   const done = () => Promise.resolve();
-  return { ok: false, setFloor() {}, resize() {}, setUnits: done, sceneEnd: done, showLibrarian: done, cheer: done, play: done, burnBook: done, wrongBonk: done, finishNow() {}, syncUnits() {}, setStaggered() {}, unitPoint: () => null, setArrows() {}, flashUnit: () => false, figure: () => null,
+  return { ok: false, setFloor() {}, resize() {}, setUnits: done, sceneEnd: done, showLibrarian: done, cheer: done, play: done, burnBook: done, wrongBonk: done, finishNow() {}, syncUnits() {}, setStaggered() {}, unitPoint: () => null, setArrows() {}, flashUnit: () => false, figure: () => null, timeScale: () => 1,
     ring: () => null, onFrame() {}, dispose() {}, debug: { mood: null, props: [], frames: 0 } };
 }
 
@@ -244,6 +245,53 @@ export async function createStage(canvas) {
   /* 캐릭터는 화살표 다음에 그린다(불투명 메시만, 투명한 그림자·고리는 원래대로) */
   const inFront = obj => obj.traverse(n => { if (n.isMesh && !(n.material && n.material.transparent) && !n.renderOrder) n.renderOrder = 2; });
 
+  /* ---------- 최후의 일격 충격파(2026-11-26 큐 양): 그 연출이 도는 동안만 장면을 한 번 렌더 타깃에 그리고,
+     맞은 자리(화면 uv)에서 퍼지는 고리 둘레를 바깥으로 밀어 굴절처럼 + 가장자리 색 갈라짐 + 살짝 밝게. 평소엔 그대로 화면에 그린다 ---------- */
+  const waveState = { on: null }, waveRT = { rt: null };
+  const waveMat = new THREE.ShaderMaterial({ depthTest: false, depthWrite: false,
+    uniforms: { tDiffuse: { value: null }, center: { value: new THREE.Vector2(0.5, 0.5) }, radius: { value: 0 }, width: { value: 0.08 }, strength: { value: 0 }, aspect: { value: 1 } },
+    vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }",
+    fragmentShader: `uniform sampler2D tDiffuse; uniform vec2 center; uniform float radius, width, strength, aspect; varying vec2 vUv;
+      void main(){
+        vec2 d = vUv - center; d.x *= aspect; float r = length(d);
+        float x = (r - radius) / width; float ring = exp(-x * x * 4.0);          /* 고리 둘레에서만 1 근처 */
+        vec2 dir = r > 0.0001 ? d / r : vec2(0.0); dir.x /= aspect;
+        vec2 off = dir * ring * strength;
+        vec3 c = vec3(texture2D(tDiffuse, vUv - off * 1.25).r, texture2D(tDiffuse, vUv - off).g, texture2D(tDiffuse, vUv - off * 0.75).b);
+        c += ring * strength * 2.5;                                              /* 둘레가 살짝 밝게 */
+        gl_FragColor = vec4(c, 1.0);
+        #include <colorspace_fragment>
+      }` });
+  const waveQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), waveMat), waveScene = new THREE.Scene(), waveCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  waveQuad.frustumCulled = false; waveScene.add(waveQuad);
+  debug.finisher = { n: 0, waveFrames: 0, wave: false };
+  const vSize = new THREE.Vector2();
+  function renderOut(realDt) {
+    const W = waveState.on;
+    if (!W) { renderer.render(scene, cam); return; }
+    const k = Math.min(1, (performance.now() - W.t0) / 1000 / W.dur);   /* 실제 시간 기준: 느린 기기(프레임 띄엄띄엄)에서도 제때 끝남 */
+    renderer.getDrawingBufferSize(vSize);
+    if (!waveRT.rt) waveRT.rt = new THREE.WebGLRenderTarget(vSize.x, vSize.y, { samples: 0 });
+    else if (waveRT.rt.width !== vSize.x || waveRT.rt.height !== vSize.y) waveRT.rt.setSize(vSize.x, vSize.y);
+    waveRT.rt.texture.colorSpace = THREE.LinearSRGBColorSpace;
+    renderer.setRenderTarget(waveRT.rt); renderer.render(scene, cam); renderer.setRenderTarget(null);
+    const u = waveMat.uniforms; u.tDiffuse.value = waveRT.rt.texture; u.center.value.copy(W.center); u.aspect.value = vSize.x / Math.max(1, vSize.y);
+    u.radius.value = 0.02 + W.max * (1 - Math.pow(1 - k, 2.2)); u.width.value = 0.05 + 0.06 * k; u.strength.value = W.str * (1 - k);
+    renderer.render(waveScene, waveCam); debug.finisher.waveFrames++;
+    if (k >= 1) { waveState.on = null; debug.finisher.wave = false; }
+  }
+  /* 최후의 일격: pos(월드)에서 충격파, 빨리 감기가 아니면 슬로우 FINISH_SLOW 배를 FINISH_HOLD_MS 동안 → 0.5배 200ms → 원래대로 */
+  let slowHoldUntil = 0;
+  function finisher(pos, fast) {
+    debug.finisher.n++;
+    const v = pos.clone().project(cam);
+    waveState.on = { t0: performance.now(), dur: fast ? 0.35 : FINISH_WAVE_S, center: new THREE.Vector2((v.x + 1) / 2, (v.y + 1) / 2), max: fast ? 0.22 : 0.34, str: fast ? 0.012 : 0.02 };
+    debug.finisher.wave = true; camShake.amp = Math.max(camShake.amp, fast ? 0.1 : 0.25);
+    if (fast) return;
+    time.scale = FINISH_SLOW; debug.slow.minScale = Math.min(debug.slow.minScale, FINISH_SLOW); slowHoldUntil = performance.now() + FINISH_HOLD_MS;
+    setTimeout(() => { time.scale = 0.5; setTimeout(() => { if (performance.now() >= slowHoldUntil) time.scale = 1; }, 200); }, FINISH_HOLD_MS);
+  }
+
   /* 120Hz 휴대폰에서 두 배로 그리지 않게: 앞 장면에서 10ms 안이면 건너뛴다(120Hz→60, 60·90Hz 는 그대로). 배터리·발열 */
   const MIN_FRAME_MS = 10;
   function frame(now) {
@@ -260,7 +308,7 @@ export async function createStage(canvas) {
     if (dust) { dust.rotation.y = Math.sin(now / 20000) * 0.15;   /* 크게 돌면 뒤쪽 입자가 카메라 앞으로 온다 */ dust.position.y = Math.sin(now / 3000) * 0.1; }
     camShake.amp *= 0.86;
     placeCamera(now); buildArrows();
-    renderer.render(scene, cam); debug.frames++;
+    renderOut(rawMs / 1000); debug.frames++;
     if (!document.hidden && !debug.contextLost) raf = requestAnimationFrame(frame);
   }
   const wake = () => { if (!raf && !document.hidden && !debug.contextLost) { last = performance.now(); raf = requestAnimationFrame(frame); } };
@@ -456,7 +504,7 @@ export async function createStage(canvas) {
     if (ev.kind === "clash" && B) B.F.act(attackClip(B, dieType(st0, "b")), { once: true, speed: fast ? 2.2 : 1.3, fadeMs: 60 });
     await sleep(tok, left(hitMs));
     /* 맞는 순간들: 40%~80% 사이에 단계마다 */
-    const hitSpan = steps.length > 1 ? (dur * 0.4) / (steps.length - 1) : 0, hp = mid.clone().setY(1.35);
+    const hitSpan = steps.length > 1 ? (dur * 0.4) / (steps.length - 1) : 0, hp = mid.clone().setY(1.35), deadNow = (ev.result && ev.result.dead) || [];
     const spark = new THREE.Color(debug.spark || 0xffd28a).getHex();
     for (let i = 0; i < Math.max(1, steps.length); i++) {
       if (tok.abort) break;
@@ -466,7 +514,7 @@ export async function createStage(canvas) {
       camShake.amp = Math.max(camShake.amp, fast ? 0.06 : (rank >= 2 ? 0.2 : 0.12));
       if (!fast) {   /* 찰나의 슬로우: 실제 SLOW_MS 동안 SLOW_SCALE 배, 그다음 SSR 은 0.4배 300ms 더 */
         time.scale = SLOW_SCALE; debug.slow.n++; debug.slow.minScale = Math.min(debug.slow.minScale, SLOW_SCALE);
-        setTimeout(() => { time.scale = rank >= 3 ? 0.4 : 1; setTimeout(() => { time.scale = 1; }, 300); }, SLOW_MS);
+        setTimeout(() => { if (performance.now() < slowHoldUntil) return; time.scale = rank >= 3 ? 0.4 : 1; setTimeout(() => { if (performance.now() >= slowHoldUntil) time.scale = 1; }, 300); }, SLOW_MS);
       }
       if (o.onStep) { try { o.onStep(i); } catch (e) { console.warn(e); } }
       /* 반응 */
@@ -475,6 +523,9 @@ export async function createStage(canvas) {
       if (st.aResult === "block" || st.bResult === "block") { const d = st.aResult === "block" ? A : B; d && d.F.act("Block_Hit", { once: true, fadeMs: 50 }); }
       if (st.aResult === "evade" || st.bResult === "evade") { const d = st.aResult === "evade" ? A : B; d && d.F.act("Dodge_Backward", { once: true, fadeMs: 50 }); }
       typeFxStep(st, A, B, T);
+      /* 최후의 일격: 전투를 끝내는 교환(o.final)에서 쓰러질 적에게 들어가는 마지막 한 방 */
+      if (o.final && st.dmg && deadNow.includes(st.dmg.unit) && !steps.slice(i + 1).some(x => x && x.dmg && x.dmg.unit === st.dmg.unit) && figures.get(st.dmg.unit)) {
+        const f = figures.get(st.dmg.unit), q = f.F.obj; finisher(q.position.clone().add(new THREE.Vector3(0, f.F.height * q.scale.y * 0.55, 0)), fast); }
       if (st.dmg && o.onHit) { try { o.onHit(i); } catch (e) { console.warn(e); } }
       if (i < steps.length - 1) await sleep(tok, left(hitMs + hitSpan * (i + 1)));
     }
@@ -615,6 +666,7 @@ export async function createStage(canvas) {
   const S = {
     ok: true, three: THREE, scene, camera: cam, renderer, debug, camShake, tickers,
     setFloor, resize,
+    timeScale: () => time.scale,
     setUnits, showLibrarian, cheer, unitPoint, setArrows, flashUnit, ring: ringInfo, figure: id => (figures.get(id) || {}).F || null, figures,
     play, finishNow, sceneEnd, burnBook, wrongBonk, setStaggered, syncUnits, fx,
     onFrame(f) { tickers.add(f); return () => tickers.delete(f); },

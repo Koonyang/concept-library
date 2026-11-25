@@ -108,6 +108,10 @@ assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/bui
 - `fx.js` `typeFx(fx, kind, pos, dir)`: 참격·관통·타격·방어·회피 로우폴리 파티클(공유 지오메트리, 재질만 매번). `stage.js` `typeFxStep` 이 교환 단계마다 맞은 쪽(이긴 주사위 종류)·막은/흘린 쪽에 붙인다. 비김엔 없음.
 - 처음 쓸 때 멈칫하지 않게 무대 생성 때 `renderer.compile` 로 미리 데운다. 확인: `node tools/shot.mjs fx:참격` (가로, 멈춰 세운 모습).
 
+## 7-3. 최후의 일격 (2026-11-26)
+- `stage.js` `finisher(pos, fast)`: `o.final` 교환에서 쓰러질 적에게 들어가는 마지막 한 방에. 슬로우 `FINISH_SLOW`(0.2) × `FINISH_HOLD_MS`(700ms) → 0.5배 200ms → 1. 충격파는 `renderOut` 이 그동안만 장면을 렌더 타깃에 그린 뒤 고리 둘레를 굴절·색 갈라짐 셰이더로(`FINISH_WAVE_S` 0.9초, 실제 시간). 빨리 감기는 0.35초 충격파만.
+- 확인: `node tools/shot.mjs finisher`, 테스트 `stage`(최후의 일격 묶음).
+
 ## 8. 남은 일
 - 장서복 복장 6벌(`KEY_PAGES[].look`, novice 는 기본 모습) 첫 판. 등 소품은 정면에서 잘 안 보여 조정 필요(9절).
 - 덱 프리셋은 하나만 쓴다(여러 개는 큐 양에게 물어볼 것).
