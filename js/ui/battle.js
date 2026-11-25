@@ -273,9 +273,10 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
       if (!x) return `<div class="cp-side ${cls} none" data-unit="${tgt ? tgt.id : ""}"><span class="who">${esc(tgt ? tgt.name : "")}</span><b class="cp-card">대응 없음</b><p class="cp-out" hidden></p></div>`;
       const u = st.units.find(q => q.id === x.unit), c = G.battle.cardInfo(x.card, x.unit) || {};
       const rows = (ev.steps || []).map((s, i) => die(s[k + "Die"], s[k + "Result"], i)).join("");
-      return `<div class="cp-side ${cls}" data-unit="${x.unit}"><span class="who">${esc(u ? u.name : "")}${c.big ? `<em>큰 일격</em>` : ""}</span><b class="cp-card">${esc(c.name || "?")}</b><div class="cp-dice">${rows}</div><p class="cp-out" hidden></p></div>`;
+      return `<div class="cp-side ${cls}" data-unit="${x.unit}"><div class="cp-head"><div class="cp-name"><span class="who">${esc(u ? u.name : "")}${c.big ? `<em>큰 일격</em>` : ""}</span><b class="cp-card">${esc(c.name || "?")}</b></div><b class="cp-big num">?</b></div><div class="cp-dice">${rows}</div><p class="cp-out" hidden></p></div>`;
     };
     el.clash.innerHTML = panel(L, "l") + panel(Rk, "r");
+    markCur(0);
     el.clash.classList.add("on"); el.dice.hidden = true;
     clashDirty = true; placeClash();
   }
@@ -287,8 +288,11 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
     clashDirty = true;
     clashShown = Math.max(clashShown, last);
   }
+  /* 지금 합 중인 줄(양쪽 k번 주사위)을 밝게 칠한다 */
+  function markCur(k) { for (const r of el.clash.querySelectorAll(".cp-die")) r.classList.toggle("cur", +r.dataset.i === k); }
   function revealStep(k, loud) {
     const s = clashEv.steps[k], st = B();
+    markCur(k);
     const sideOf = key => el.clash.querySelector(`.cp-side.${key === clashL ? "l" : "r"}`);
     for (const key of [clashL, clashR]) {
       const p = sideOf(key); if (!p) continue; const row = p.querySelector(`.cp-die[data-i="${k}"]`), d = s[key + "Die"], r = s[key + "Result"];
@@ -296,6 +300,10 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
       const rs = row.querySelector(".res"); if (rs) rs.hidden = !r || !RES[r];
       if (r === "win") row.classList.add("win"); else if (r === "lose") row.classList.add("lose");
       if (loud) { row.classList.remove("pop"); void row.offsetWidth; row.classList.add("pop"); }
+      /* 책장 이름 옆 큰 숫자 = 지금 합 중인 주사위 값 */
+      const big = p.querySelector(".cp-big");
+      if (big) { big.textContent = d ? d.value : "—"; big.className = "cp-big num" + (r === "win" ? " win" : r === "lose" ? " lose" : "");
+        if (loud) { void big.offsetWidth; big.classList.add("pop"); } }
     }
     /* 피해 문구는 피해 받은 쪽 판에(없으면 이긴 쪽 판에) */
     const parts = []; let hurtUnit = null;
