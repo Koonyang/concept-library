@@ -126,4 +126,12 @@ ok(evr.s2.o[0]==="G"&&evr.s2.held===null,"회피: 지면 깨짐(heldP null)",evr
 ok(evr.s3.n===1&&evr.s3.t==="회피"&&evr.s3.r===true&&evr.s3.idx===1&&evr.s3.held===1,"pHeld: 남은 회피 하나만으로 reused 로 시작, 책장의 다른 주사위는 다시 안 굴림",evr.s3);
 ok(evr.s4.held===0,"적 회피도 같은 규칙(heldG)",evr.s4);
 ok(errs.length===0,"오류 없음",errs);
+/* 적 모델 다양화: enemies[i].model 은 유닛에 실려 무대로 간다(규칙은 안 씀). 기존 적은 model=null */
+{ const m=await p.evaluate(()=>{ const G=Game, g=Game.data.GUEST_BY["beccaria"], o={};
+    G.battle.leave(); G.battle.begin("beccaria"); o.before=G.battle.state.units.filter(u=>u.side==="enemy").map(u=>u.model);
+    const keep=g.enemies.map(e=>e.model); g.enemies[0].model="slime_pink";
+    G.battle.leave(); G.battle.begin("beccaria"); const es=G.battle.state.units.filter(u=>u.side==="enemy"); o.first=es[0].model; o.rest=es.slice(1).map(u=>u.model);
+    g.enemies.forEach((e,i)=>{ if(keep[i]===undefined) delete e.model; else e.model=keep[i]; }); G.battle.leave(); return o; });
+  ok(m.before.length&&m.before.every(x=>x===null),"기존 손님 적은 model=null",m);
+  ok(m.first==="slime_pink"&&m.rest.every(x=>x===null),"enemies[i].model 이 유닛에 실림",m); }
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

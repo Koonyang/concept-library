@@ -13,7 +13,7 @@
 import * as THREE from "three";
 import { MOODS, DEFAULT_MOOD } from "./moods.js";
 import { buildProp } from "./props.js";
-import { loadCharacters, makeFigure } from "./characters.js";
+import { loadCharacters, loadMonsters, makeFigure } from "./characters.js";
 import { lookOf, MAGIC_MODELS } from "./looks.js";
 import { CUSTOM_FX, registerFx, TIERS, tierRank, burst, flash, ring, fragments, dropBook, burnBook as burnBookFx, bonkBook, BONK_HIT_AT } from "./fx.js";
 export { registerFx };
@@ -282,6 +282,9 @@ export async function createStage(canvas) {
   }
   async function setUnits(units, guest) {
     const my = ++unitsSeq; await loadCharacters(); if (my !== unitsSeq) return;   /* 그새 다른 setUnits/showLibrarian 이 불렸으면 그쪽이 이김 */
+    /* 이 전투에 나오는 몬스터 모델만 받는다(못 받으면 그 적은 사람 모델로) */
+    const monIds = (units || []).filter(u => u.side === "enemy").map(u => lookOf(u, guest).monster).filter(Boolean);
+    if (monIds.length) { await loadMonsters(monIds); if (my !== unitsSeq) return; }
     resetUnits(); guestNow = guest || null; debug.librarian = null; sway = (units || []).length ? 0 : 0.3; focus.target = 0; focus.k = 0;
     for (const side of ["ally", "enemy"]) {
       /* 우두머리를 가운데 줄(첫 자리)에 */

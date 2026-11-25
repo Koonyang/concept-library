@@ -212,7 +212,7 @@ function mbCreate(guestId,o){
   ordered.forEach((e,i)=>{
     const S=enemyStats(guest,e,i,ectx), id="e"+(i+1);
     units.push({id,side:"enemy",slot:i,key:e.key,topic:e.topic,name:e.name,hp:S.maxHp,maxHp:S.maxHp,stagger:S.maxStagger,maxStagger:S.maxStagger,staggered:false,
-      light:0,maxLight:0,emotion:0,status:[],dice:[],leader:!!S.leader,body:enemyBody(guest,e),form:enemyForm(guest,e,S),expr:"idle"});
+      light:0,maxLight:0,emotion:0,status:[],dice:[],leader:!!S.leader,body:enemyBody(guest,e),form:enemyForm(guest,e,S),model:(e&&typeof e.model==="string")?e.model:null,expr:"idle"});   /* model: 겉모습만(무대 js/stage/monsters.js), 규칙은 안 씀 */
     x[id]={cu:mkUnit(S.maxHp,S.maxStagger,S.resist),S,e,pageIdx:0,qIdx:Math.floor(rng()*Math.max(1,(e.q||[]).length)),diePages:[],orig:[]};
   });
   const m={pace:{Q:mbQuestionCount(guest),minScene:Math.ceil(MB.PACE.minRatio*mbQuestionCount(guest)),held:0,drains:0,last:null},droppedEnemies:dropped,guestId,guest,isRecall:save.conqueredIds.includes(guest.id),rng,x,qpool:mbQuestionPool(guest),bonus:0,cur:null,log:[],events:[],

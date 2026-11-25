@@ -36,7 +36,7 @@
 |---|---|
 | 설정값 | `MB` (`HP`, `DICE`, `PACE`, `WRONG`, `ENEMY_MAX`, 속도 등), 기믹 훅 `MB_HOOKS` |
 | 체력 | `mbQuestionCount`, `mbEnemyHpTotal`, `mbEnemyQ`, `mbEnemyCtx`, `mbAllyStats`, `enemyStats` |
-| 만들기 | `mbCreate`(사서·적 유닛, 적 수 상한 `mbEnemyCap`, 몸 `enemyBody`/`ENEMY_BODY`), `mbQuestionPool` |
+| 만들기 | `mbCreate`(사서·적 유닛, 적 수 상한 `mbEnemyCap`, 몸 `enemyBody`/`ENEMY_BODY`), `mbQuestionPool`, 적 유닛 `model`(= `enemies[i].model`, 겉모습 전용, 없으면 null) |
 | 막 시작 | `mbStartScene`(주사위 굴림 `mbRollDice`, 적 목표 `mbRelink`, 문제 `mbPickQuestion`/`mbNextQid`/`mbPrepQ`) |
 | 문제 | `mbAnswer`(정답이면 감정 `mbCharge`), 화면 쪽 `mbAnswerUI`, `mbShowQuestion` |
 | 배치 | `mbAssign`, `mbUnassign`, `mbIsClash`, `mbUsable`, `mbCardInfo`, `mbQState` |

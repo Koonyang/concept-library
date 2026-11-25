@@ -328,6 +328,37 @@ ok(/^Attack2?$/.test(mf.atkClip||"")&&/^Attack2?$/.test(mf.atkClip2||"")&&mf.atk
 ok(mf.c1&&mf.c2&&mf.c1!==mf.c2,"슬라임은 손님 팔레트로 색이 바뀜",[mf.c1,mf.c2]);
 ok(mf.mouth===false,"해골 머리엔 입 메우기 안 함",mf.mouth);
 ok(mf.acc&&mf.acc.x>=mf.acc.half,"몬스터 장신구는 몸 밖 옆자리",mf.acc);
+/* ---------- 적 데이터 model → 무대 ---------- */
+await goStage();
+const ml=await p.evaluate(async()=>{ const o={}; const L=await import("/js/stage/looks.js"); const warns=[]; const cw=console.warn; console.warn=(...a)=>{warns.push(a.join(" ")); };
+  const base={side:"enemy",leader:true,body:"human"}, g={archetype:"knight",palette:"steel",accessory:"watch"};
+  o.plain=JSON.stringify(L.lookOf(base,g)); o.plainWithNull=JSON.stringify(L.lookOf({...base,model:null},g));
+  const d=L.lookOf({...base,model:"dragon"},g); o.d={monster:d.monster,model:d.model,scale:d.scale,acc:d.accessory};
+  const u=L.lookOf({...base,model:"없는것"},g); L.lookOf({...base,model:"없는것"},g); o.u={monster:u.monster,same:JSON.stringify(u)===o.plain}; o.warns=warns.filter(w=>/없는것/.test(w)).length; console.warn=cw;
+  /* setUnits: model 넣은 적이 몬스터로 */
+  Game.battle.leave(); Game.battle.begin("beccaria"); const es=Game.battle.state.units.filter(u=>u.side==="enemy"); es[0].model="dragon"; es[1].model="puppet_없는"; 
+  const S=await __stageMod.createStage(document.getElementById("stage")); window.__S=S; S.setFloor(Game.data.floorStage("crime"));
+  await S.setUnits(Game.battle.state.units, Game.data.GUEST_BY.beccaria);
+  o.f0={mon:S.figure(es[0].id).monster,ph:S.figure(es[0].id).placeholder}; o.f1={mon:S.figure(es[1].id).monster||null,ph:S.figure(es[1].id).placeholder};
+  /* 연달아 부르면 나중 것이 이김 */
+  const U=Game.battle.state.units; const A=U.map(x=>({...x})); A.filter(x=>x.side==="enemy").forEach(x=>x.model="mech");
+  const pA=S.setUnits(A, Game.data.GUEST_BY.beccaria), pB=S.setUnits(U, Game.data.GUEST_BY.beccaria); await Promise.all([pA,pB]);
+  o.race=U.filter(x=>x.side==="enemy").map(x=>S.figure(x.id).monster||null);
+  Game.battle.leave(); return o; });
+ok(ml.plain===ml.plainWithNull,"model 없거나 null 이면 lookOf 결과 그대로",ml);
+ok(ml.d.monster==="dragon"&&ml.d.model==="Knight"&&ml.d.scale===1.1&&ml.d.acc==="watch","model 있으면 monster + 대신할 사람 모델·크기·장신구 유지",ml.d);
+ok(!ml.u.monster&&ml.u.same&&ml.warns===1,"모르는 model 은 경고 1번, 지금 방식 그대로",ml);
+ok(ml.f0.mon==="dragon"&&!ml.f0.ph&&!ml.f1.mon&&!ml.f1.ph,"setUnits: model 적은 몬스터, 모르는 건 사람",ml);
+ok(ml.race.every(x=>x===null||x==="dragon"),"setUnits 연달아: 나중 호출(B) 유닛만",ml.race);
+/* 몬스터 파일을 못 받으면 사람 모델로, 전투 연출도 끝까지 */
+{ const ctx=await b.newContext({viewport:{width:844,height:390}}), q=await ctx.newPage(); const qe=[]; q.on("pageerror",e=>qe.push(e.message));
+  await q.route("**/assets/models/monsters/**",r=>r.fulfill({status:404,body:""}));
+  await q.goto(BASE+"tests/stage.html"); await q.waitForFunction(()=>window.__stageMod,null,{timeout:15000});
+  const r=await q.evaluate(async()=>{ Game.battle.leave(); Game.battle.begin("beccaria"); const es=Game.battle.state.units.filter(u=>u.side==="enemy"); es.forEach(e=>e.model="slime_pink");
+    const S=await __stageMod.createStage(document.getElementById("stage")); S.setFloor(Game.data.floorStage("crime")); await S.setUnits(Game.battle.state.units, Game.data.GUEST_BY.beccaria);
+    const out={figs:es.map(e=>({mon:S.figure(e.id).monster||null,ph:S.figure(e.id).placeholder}))};
+    const t=performance.now(); await Promise.race([S.play({kind:"one",a:{unit:es[0].id},target:Game.battle.state.units[0].id,steps:[{aVal:3,winner:"a",dmg:{unit:Game.battle.state.units[0].id,hp:1,stagger:1}}]},{fast:true}),new Promise(r=>setTimeout(r,5000))]); out.ms=performance.now()-t; return out; });
+  ok(r.figs.every(f=>!f.mon&&!f.ph)&&r.ms<4000,"몬스터 파일 404: 사람 모델로 서고 연출이 끝남",r); await ctx.close(); }
 /* @@NEXT@@ */
 ok(errs.filter(e=>!/Error creating WebGL context/.test(e)).length===0,"오류 없음 (nogl 페이지의 WebGL 생성 실패 로그는 의도)",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

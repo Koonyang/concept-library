@@ -1,3 +1,4 @@
+import { isMonster } from "./monsters.js";
 /* 유닛 → 겉모습(어떤 모델, 무슨 색, 무슨 장신구, 크기). 규칙과 무관한 그림 데이터. */
 /* 손님 palette 8종 (옛 UI GUEST_PALETTES 값 그대로) */
 export const PALETTES = {
@@ -50,6 +51,11 @@ export function lookOf(unit, guest, keyPage) {
   const lead = ARCH_MODEL[g.archetype] || "Rogue_Hooded";
   let model = unit.leader ? lead : (BODY_MODEL[unit.body] || "Rogue");
   if (!unit.leader && model === lead) model = lead === "Barbarian" ? "Rogue" : "Barbarian";
-  return { model, palette: PALETTES[g.palette] || PALETTES.crimson,
+  const look = { model, palette: PALETTES[g.palette] || PALETTES.crimson,
     accessory: g.accessory || null, scale: unit.leader ? 1.1 : 0.9, librarian: false };
+  /* 적 모델 다양화: 적 데이터에 model 이 있으면 그 몬스터(js/stage/monsters.js). model 은 받지 못했을 때 대신할 사람 모델 */
+  if (unit.model != null) { if (isMonster(unit.model)) look.monster = unit.model; else warnOnce(unit.model); }
+  return look;
 }
+const warned = new Set();
+function warnOnce(id) { if (warned.has(id)) return; warned.add(id); console.warn("[stage] 모르는 적 모델:", id); }
