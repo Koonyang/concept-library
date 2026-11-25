@@ -295,10 +295,10 @@ const mf=await p.evaluate(async()=>{ const o={};
   try{
   const M=await import("/js/stage/monsters.js"), C=await import("/js/stage/characters.js"), L=await import("/js/stage/looks.js"), THREE=await import("three");
   o.n=Object.values(M.MONSTERS).filter(m=>m.kind!=="puppet").length; o.np=Object.values(M.MONSTERS).filter(m=>m.kind==="puppet").length; o.badH=Object.entries(M.MONSTERS).filter(([,m])=>!(m.h>0&&m.h<=1.9)).map(([k])=>k); o.badKind=Object.entries(M.MONSTERS).filter(([,m])=>!M.MONSTER_KINDS.includes(m.kind)).map(([k])=>k);
-  await C.loadCharacters(); await C.loadMonsters(["slime_pink","dragon","skeleton_warrior","pug"]);
+  await C.loadCharacters(); await C.loadMonsters(["slime_pink","dragon","skeleton_warrior","pug","slime_horned","triceratops"]);
   o.ready=["slime_pink","dragon","skeleton_warrior","pug"].map(C.monsterReady);
   const box=F=>{ F.obj.updateMatrixWorld(true); const b=new THREE.Box3(); F.obj.traverse(n=>{ if(n.isMesh&&n.userData.fromModel) b.expandByObject(n); }); return b; };
-  o.fig={};
+  o.fig={}; o.maxW=Object.fromEntries(Object.entries(M.MONSTERS).filter(([,m])=>m.maxW).map(([k,m])=>[k,m.maxW]));
   for(const id of ["slime_pink","dragon","skeleton_warrior"]){ const F=C.makeFigure({monster:id,model:"Rogue",palette:L.PALETTES.crimson,accessory:null,scale:1}); F.act("Idle"); F.update(0.1);
     const b=box(F), sz=b.getSize(new THREE.Vector3()); o.fig[id]={ph:F.placeholder, mon:F.monster, h:+sz.y.toFixed(2), w:+Math.max(sz.x,sz.z).toFixed(2), H:+F.height.toFixed(2), want:M.MONSTERS[id].h}; }
   /* 짝 없는 동작도 제때 끝남 */
@@ -309,8 +309,10 @@ const mf=await p.evaluate(async()=>{ const o={};
   const D=C.makeFigure({monster:"dragon",model:"Rogue",palette:L.PALETTES.crimson,scale:1}); D.act("1H_Melee_Attack_Stab",{once:true}); D.update(0.05); o.atkClip=D.debugClip&&D.debugClip();
   D.act("2H_Melee_Attack_Chop",{once:true}); D.update(0.05); o.atkClip2=D.debugClip&&D.debugClip();
   /* 슬라임 색 바꾸기 */
-  const col=F=>{ let c=null; F.obj.traverse(n=>{ if(!c&&n.isMesh&&n.userData.fromModel) c=n.material.color.getHexString(); }); return c; };
+  const col=F=>{ let c=null; F.obj.traverse(n=>{ if(n.isMesh&&n.userData.fromModel) [].concat(n.material).forEach(m=>{ if(!c&&/Main/.test(m.name)) c=m.color.getHexString(); }); }); return c; };
   o.c1=col(C.makeFigure({monster:"slime_pink",model:"Rogue",palette:L.PALETTES.crimson,scale:1})); o.c2=col(C.makeFigure({monster:"slime_pink",model:"Rogue",palette:L.PALETTES.teal,scale:1}));
+  { const byName={}; C.makeFigure({monster:"slime_horned",model:"Rogue",palette:L.PALETTES.crimson,scale:1}).obj.traverse(n=>{ if(n.isMesh&&n.userData.fromModel) [].concat(n.material).forEach(m=>{ byName[m.name]=m.color.getHexString(); }); }); o.slimeNames=byName; }
+  { const T=C.makeFigure({monster:"triceratops",model:"Rogue",palette:L.PALETTES.crimson,scale:1}); T.act("Idle"); T.update(0); o.floor=+box(T).min.y.toFixed(3); }
   /* 해골은 입 메우기 안 함 */
   let mouth=false; C.makeFigure({monster:"skeleton_warrior",model:"Rogue",palette:L.PALETTES.steel,scale:1}).obj.traverse(n=>{ if(n.isMesh&&n.geometry.userData.mouthless) mouth=true; }); o.mouth=mouth;
   /* 장신구가 몸에 안 묻힘 */
@@ -321,11 +323,14 @@ const mf=await p.evaluate(async()=>{ const o={};
 ok(!mf.err,"몬스터 모듈 로드",mf.err);
 ok(mf.n===63&&mf.np===6&&!(mf.badH||[]).length&&!(mf.badKind||[]).length,"MONSTERS 63종, 키 ≤ 1.9, 분류 정상",mf);
 ok(mf.ready&&mf.ready.every(Boolean),"loadMonsters 뒤 monsterReady",mf.ready);
-ok(mf.fig&&Object.values(mf.fig).every(f=>!f.ph&&f.mon&&Math.abs(f.h-f.H)<0.06&&f.H<=f.want+0.01&&f.w<=1.91),"몬스터 figure: 실제 키 = F.height ≤ 표 키, 폭 ≤ 1.9",mf.fig);
+const M_maxW=mf.maxW||{};
+ok(mf.fig&&Object.values(mf.fig).every(f=>!f.ph&&f.mon&&Math.abs(f.h-f.H)<0.06&&f.H<=f.want+0.01&&f.w<=(M_maxW[f.mon]||1.9)+0.01),"몬스터 figure: 실제 키 = F.height ≤ 표 키, 폭 ≤ 상한",mf.fig);
 ok(mf.fig&&Math.abs(mf.fig.slime_pink.h-mf.fig.slime_pink.want)<0.06,"폭이 안 넘치면 표 키 그대로",mf.fig&&mf.fig.slime_pink);
 ok(mf.missing&&mf.missing.every(([n,ms,cur])=>ms<=800&&cur===n),"짝 없는 동작도 0.8초 안에 끝나고 current = 요청 이름",mf.missing);
 ok(/^Attack2?$/.test(mf.atkClip||"")&&/^Attack2?$/.test(mf.atkClip2||"")&&mf.atkClip!==mf.atkClip2,"공격은 Attack/Attack2 번갈아",[mf.atkClip,mf.atkClip2]);
 ok(mf.c1&&mf.c2&&mf.c1!==mf.c2,"슬라임은 손님 팔레트로 색이 바뀜",[mf.c1,mf.c2]);
+ok(mf.slimeNames&&mf.slimeNames.Main&&mf.slimeNames.Eyes&&mf.slimeNames.Main!==mf.slimeNames.Eyes&&mf.slimeNames.Horns!==mf.slimeNames.Main,"슬라임: 몸(Main)만 손님 색, 눈·뿔은 원래 색",mf.slimeNames);
+ok(Math.abs(mf.floor)<0.03,"몬스터 발이 바닥(y≈0)에 닿음(Idle 첫 순간)",mf.floor);
 ok(mf.mouth===false,"해골 머리엔 입 메우기 안 함",mf.mouth);
 ok(mf.acc&&mf.acc.x>=mf.acc.half,"몬스터 장신구는 몸 밖 옆자리",mf.acc);
 /* ---------- 적 데이터 model → 무대 ---------- */

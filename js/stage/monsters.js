@@ -1,6 +1,6 @@
 /* 적 모델 표(2026-11-25 적 모델 다양화). 순수 데이터라 three 를 import 하지 않는다 — node(tools/content/check.mjs)에서도 읽는다.
    새 적 데이터에 guest.enemies[i].model = "<id>" 를 적으면 그 모델로 나온다. 없으면 지금처럼 사람 모델(looks.js lookOf).
-   id → { file: assets/models/monsters/ 안 파일, kind: 분류, h: 기본 키(사람 TARGET_H 1.9 이하), rotY?: 앞 방향 보정(라디안),
+   id → { file: assets/models/monsters/ 안 파일, kind: 분류, h: 기본 키(사람 TARGET_H 1.9 이하), rotY?: 앞 방향 보정(라디안), maxW?: 폭 상한(기본 1.9, 길쭉한 짐승·공룡만 크게),
           tint: "body"(몸 전체를 손님 팔레트 색으로) | 숫자(원래 색을 손님 색 쪽으로 이만큼 물들임),
           kaykit?: true(지금 캐릭터와 같은 뼈대 → characters/anims.glb 동작을 그대로),
           puppet?: { base }(파일 없이 바탕 모델에 꼭두각시 칠·막대·실, js/stage/puppet.js) }
@@ -12,6 +12,7 @@ const T = 0.15;   /* 원래 색을 손님 색으로 물들이는 정도 */
 const q = (kind, h, extra) => Object.assign({ kind, h, tint: T }, extra || {});
 const slime = h => q("slime", h, { tint: "body" });
 const SMALL = 1.3, BEAST = 1.45, DINO = 1.75, BIG = 1.85, MID = 1.6;
+const LONG = { maxW: 2.2 }, DINO_W = { maxW: 2.6 };
 
 const TABLE = {
   /* 슬라임·블롭: 몸색을 손님 팔레트로 바꾼다 */
@@ -32,8 +33,10 @@ const TABLE = {
   /* 로봇·기계 */
   mech: q("robot", BIG), mech_heavy: q("robot", BIG), robot_flyer: q("robot", 1.4), robot_large: q("robot", BIG), robot_walker: q("robot", MID), robot_gunner: q("robot", MID),
   /* 동물 (raptor·trex·triceratops 는 한 단계 크게, 큐 양 검수) */
-  bat: q("animal", SMALL), cat: q("animal", BEAST), deer: q("animal", BEAST), fox: q("animal", BEAST), husky: q("animal", BEAST), pug: q("animal", BEAST),
-  shiba: q("animal", BEAST), stag: q("animal", BEAST), wolf: q("animal", BEAST), raptor: q("animal", DINO), trex: q("animal", DINO), triceratops: q("animal", DINO), dino: q("animal", MID),
+  /* 몸·꼬리가 긴 것은 폭 상한(maxW)을 따로 크게: 안 그러면 키가 너무 작아진다. 이웃 적과 조금 겹쳐도 캐릭터는 배경층 */
+  bat: q("animal", SMALL), cat: q("animal", BEAST, LONG), deer: q("animal", BEAST, LONG), fox: q("animal", BEAST, LONG), husky: q("animal", BEAST, LONG), pug: q("animal", BEAST, LONG),
+  shiba: q("animal", BEAST, LONG), stag: q("animal", BEAST, LONG), wolf: q("animal", BEAST, LONG),
+  raptor: q("animal", DINO, DINO_W), trex: q("animal", DINO, DINO_W), triceratops: q("animal", DINO, DINO_W), dino: q("animal", MID),
   /* 꼭두각시: 파일 없이 코드로 만든다(js/stage/puppet.js). base = 바탕 사람 모델(KayKit) 또는 해골 */
   puppet_knight: q("puppet", 1.75, { puppet: { base: "Knight" } }), puppet_barbarian: q("puppet", 1.75, { puppet: { base: "Barbarian" } }),
   puppet_mage: q("puppet", 1.75, { puppet: { base: "Mage" } }), puppet_rogue: q("puppet", 1.75, { puppet: { base: "Rogue" } }),

@@ -280,12 +280,22 @@ function monsterFigure(look) {
   }
   const obj = SkeletonUtils.clone(src.scene), rig = new THREE.Group(), holder = new THREE.Group();
   rig.add(obj); holder.add(rig);
-  const accent = new THREE.Color(look.palette.accent), bodyCol = accent.clone().lerp(new THREE.Color(0xffffff), 0.25);
+  const accent = new THREE.Color(look.palette.accent), bodyCol = accent.clone().lerp(new THREE.Color(0xffffff), 0.25), bodyDark = accent.clone().multiplyScalar(0.55);
+  /* "body": 몸통 재질만 손님 색(이름이 Main → 밝게, Secondary·Dark → 어둡게). 눈·이빨·뿔·혀는 원래 색.
+     이름으로 못 찾으면 꼭짓점이 가장 많은 재질 하나를 몸통으로 */
+  let bodyMats = null;
+  if (M.tint === "body") {
+    const cnt = new Map(); obj.traverse(n => { if (!n.isMesh) return; const ms = [].concat(n.material), g = n.geometry;
+      const groups = g.groups && g.groups.length ? g.groups : [{ count: g.index ? g.index.count : g.attributes.position.count, materialIndex: 0 }];
+      for (const gr of groups) { const m = ms[gr.materialIndex || 0]; if (m) cnt.set(m, (cnt.get(m) || 0) + gr.count); } });
+    bodyMats = new Map(); for (const m of cnt.keys()) { if (/main/i.test(m.name)) bodyMats.set(m, /dark/i.test(m.name) ? bodyDark : bodyCol); else if (/secondary/i.test(m.name)) bodyMats.set(m, bodyDark); }
+    if (!bodyMats.size) { let best = null, c0 = 0; for (const [m, c] of cnt) if (c > c0) { c0 = c; best = m; } if (best) bodyMats.set(best, bodyCol); }
+  }
   obj.traverse(n => {
     if (!n.isMesh) return;
     n.userData.fromModel = true; n.frustumCulled = false;
     n.material = [].concat(n.material).map(m0 => { const m = phongOf(m0).clone(); if (!m0.isMeshStandardMaterial && !m0.isMeshPhongMaterial) return m0;
-      if (M.tint === "body") m.color.copy(bodyCol); else if (typeof M.tint === "number") m.color.lerp(accent, M.tint);
+      if (bodyMats) { if (bodyMats.has(m0)) m.color.copy(bodyMats.get(m0)); } else if (typeof M.tint === "number") m.color.lerp(accent, M.tint);
       if (!n.geometry.attributes.normal) m.flatShading = true;
       return m; });
     if (n.material.length === 1) n.material = n.material[0];
@@ -296,17 +306,18 @@ function monsterFigure(look) {
   const idle = THREE.AnimationClip.findByName(clipsM, "Idle");
   /* 날갯짓처럼 Idle 중에 크기가 바뀌므로 여러 순간의 상자를 합친다 */
   if (M.rotY) obj.rotation.y = M.rotY;
-  const box = new THREE.Box3(), a0 = idle && mixer.clipAction(idle);
+  const box = new THREE.Box3(), a0 = idle && mixer.clipAction(idle); let floorY = 0;   /* 바닥 = Idle 첫 순간의 발 높이(합친 상자 바닥이면 떠 보임) */
   if (a0) a0.play();
   for (let i = 0; i < (a0 ? 12 : 1); i++) {
     if (a0) { a0.time = idle.duration * i / 12; mixer.update(0); }
     obj.updateMatrixWorld(true);
-    obj.traverse(n => { if (n.isMesh) { if (n.isSkinnedMesh) n.computeBoundingBox(); box.expandByObject(n); } });
+    const b = new THREE.Box3(); obj.traverse(n => { if (n.isMesh) { if (n.isSkinnedMesh) n.computeBoundingBox(); b.expandByObject(n); } });
+    if (i === 0) floorY = b.min.y; box.union(b);
   }
   const sz = box.getSize(new THREE.Vector3()), w = Math.max(sz.x, sz.z) || 1;
-  const k = Math.min(M.h / (sz.y || 1), MAX_W * 0.95 / w);   /* 표본 사이 순간이 조금 더 클 수 있어 5% 여유 */
+  const k = Math.min(M.h / (sz.y || 1), (M.maxW || MAX_W) * 0.95 / w);   /* 표본 사이 순간이 조금 더 클 수 있어 5% 여유 */
   obj.scale.multiplyScalar(k);
-  obj.position.set(-(box.min.x + box.max.x) / 2 * k, -box.min.y * k, -(box.min.z + box.max.z) / 2 * k);
+  obj.position.set(-(box.min.x + box.max.x) / 2 * k, -floorY * k, -(box.min.z + box.max.z) / 2 * k);
   obj.traverse(n => { if (n.isSkinnedMesh) n.boundingBox = null; });
   mixer.stopAllAction();
   const handPt = new THREE.Object3D(); handPt.position.set(0, sz.y * k * 0.5, sz.z * k * 0.5); holder.add(handPt);

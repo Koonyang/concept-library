@@ -6,6 +6,7 @@
      einfo                               적 주사위 하나를 누른 모습(정보창 + 그 주사위의 대상 선만 실선)
      aim                                 내 주사위 전부를 첫 적의 주사위 하나에 놓은 뒤(합 하나 + 나머지 일방 공격 화살표)
      outfit:<장서복 id>                  사서(kyu)가 그 장서복을 입은 모습, tests/stage.html  예) outfit:archivist
+     monsters · monsters-assign          괴물 적 확인: 손님(--guest) 적에 model 을 넣고(우두머리 dragon, 나머지 slime_pink·puppet_mage·robot_large) battle·assign 과 같은 화면
      faces                               다섯 모델 얼굴 가까이(정면·비스듬히·옆), 실제 게임과 같은 입 메우기 적용
      deploy                              = floors library moon battle assign resolve (배포 전 확인용)
    크기: land=844×390, port=390×844, both(기본). faces·outfit 은 land 만.
@@ -32,6 +33,8 @@ const errs = [], saved = [];
 const SIZES = { land: [844, 390], port: [390, 844] };
 const sizesFor = s => (/^(faces|outfit:)/.test(s) || SIZE === "land") ? [SIZES.land] : SIZE === "port" ? [SIZES.port] : [SIZES.land, SIZES.port];
 
+/* monsters 장면: 적 차례대로 이 모델(우두머리가 첫 적) — 겹침 검사 --monsters 와 같음 */
+const MONSTER_MODELS = ["dragon", "slime_pink", "puppet_mage", "robot_large"];
 /* 겹침 검사와 같은 3:3 구성 */
 const party3 = () => { const G = __studyGame, s = G.save; s.unlockedKeyIds = ["novice", "reading-room", "midnight", "archivist", "classical-robe", "panopticon-coat", "truth-robe", "pad8", "pad9", "pad10"]; G.libs.sync(s);
   G.libs.equipKey(s, "lib2", "archivist"); G.libs.equipKey(s, "lib3", "classical-robe"); G.libs.setParty(s, ["kyu", "lib2", "lib3"]); Game.persist(); };
@@ -57,11 +60,13 @@ async function run(scene, w, h) {
       await p.goto(BASE + "index.html"); await p.waitForFunction(() => window.__app, null, { timeout: 30000 });
       if (scene !== "floors") await p.evaluate(s => window.__app.nav[s](), scene);
       await p.waitForTimeout(1500);
-    } else if (["battle", "assign", "aim", "einfo", "gimmick", "resolve"].includes(scene)) {
+    } else if (["battle", "assign", "aim", "einfo", "gimmick", "resolve", "monsters", "monsters-assign"].includes(scene)) {
       await p.goto(BASE + "tests/battle.html?guest=" + (scene === "gimmick" ? "insult" : GUEST)); await p.waitForFunction(() => window.__ready, null, { timeout: 30000 });
-      await p.evaluate(party3); await p.evaluate(async () => { window.__battle.unmount(); Game.battle.leave(); window.__battle = await window.__mount(); });
+      await p.evaluate(party3);
+      if (scene.startsWith("monsters")) await p.evaluate(([gid, ms]) => { ms.forEach((m, i) => { const e = Game.data.GUEST_BY[gid].enemies[i]; if (e) e.model = m; }); }, [GUEST, MONSTER_MODELS]);
+      await p.evaluate(async () => { window.__battle.unmount(); Game.battle.leave(); window.__battle = await window.__mount(); });
       await p.waitForSelector("#question.on");
-      if (scene !== "battle") {
+      if (scene !== "battle" && scene !== "monsters") {
         const ci = await p.evaluate(() => Game.battle.question().correctIndex);
         await p.evaluate(ci => { const b = document.querySelector(`.q-opt[data-i="${ci}"]`); if (b) b.click(); else Game.battle.answer(true); }, ci);
         await p.waitForTimeout(600); if (scene === "gimmick") { await p.evaluate(() => { const A = __studyGame.battleApi, X = A.internals(), B = Game.battle.state;

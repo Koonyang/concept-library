@@ -1,4 +1,5 @@
-/* 겹침 검사(새 UI): 전투 UI끼리(속도 주사위·체력/흐트러짐 막대·화살표·손패·[개막]·상태판·문제) 겹침 0건이어야 통과. 화면별 개수를 출력. node tests/overlap-check.mjs */
+/* 겹침 검사(새 UI): 전투 UI끼리(속도 주사위·체력/흐트러짐 막대·화살표·손패·[개막]·상태판·문제) 겹침 0건이어야 통과. 화면별 개수를 출력. node tests/overlap-check.mjs [--monsters]
+   --monsters: 손님 적에 괴물 모델(dragon·slime_pink·puppet_mage·robot_large, tools/shot.mjs monsters 와 같음)을 넣고 같은 검사 */
 import { chromium } from "playwright-core";
 import { LIB_ROOT, launchBrowser } from "./lib/browser.mjs";
 import { createServer } from "http";
@@ -29,10 +30,13 @@ const measure=`(()=>{ const R=e=>{ const r=e.getBoundingClientRect(); return {x:
     const ox=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x), oy=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y); if(ox>2&&oy>2) hits.push(a.k+" × "+b.k); }
   const W=innerWidth,H=innerHeight, out=boxes.filter(b=>b.g!=="arrow"&&(b.x<-1||b.y<-1||b.x+b.w>W+1||b.y+b.h>H+1)).map(b=>b.k+" 화면 밖");
   return {n:boxes.length,hits:hits.concat(out)}; })()`;
+const MONSTERS=process.argv.includes("--monsters"), MONSTER_MODELS=["dragon","slime_pink","puppet_mage","robot_large"];
 async function scene(gid, setup, phase, fullHand, peek){
   /* 사서 구성은 다시 불러오면 장서복 검사로 줄어들 수 있으니, 같은 페이지에서 설정한 뒤 전투를 새로 띄운다 */
   await p.goto(BASE+"tests/battle.html?guest="+gid); await p.waitForFunction(()=>window.__ready,null,{timeout:20000});
-  await p.evaluate(setup); await p.evaluate(async()=>{ window.__battle.unmount(); Game.battle.leave(); window.__battle=await window.__mount(); });
+  await p.evaluate(setup);
+  if(MONSTERS) await p.evaluate(([gid,ms])=>{ ms.forEach((m,i)=>{ const e=Game.data.GUEST_BY[gid].enemies[i]; if(e) e.model=m; }); },[gid,MONSTER_MODELS]);
+  await p.evaluate(async()=>{ window.__battle.unmount(); Game.battle.leave(); window.__battle=await window.__mount(); });
   await p.waitForSelector("#question.on");
   const nU=await p.evaluate(()=>Game.battle.state.units.length); if(setup===party3&&nU!==6) { fails++; console.log("FAIL 3:3 이 아님",nU); }
   if(phase!=="question"){ /* assign·resolve 공통 준비 */ const ci=await p.evaluate(()=>Game.battle.question().correctIndex); await p.evaluate(ci=>{ const b=document.querySelector(`.q-opt[data-i="${ci}"]`); if(b) b.click(); else Game.battle.answer(true); },ci);
