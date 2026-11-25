@@ -112,6 +112,10 @@ assets/models/characters/  KayKit Adventurers 5종 + anims.glb (tools/assets/bui
 - `stage.js` `finisher(pos, fast)`: `o.final` 교환에서 쓰러질 적에게 들어가는 마지막 한 방에. 슬로우 `FINISH_SLOW`(0.2) × `FINISH_HOLD_MS`(700ms) → 0.5배 200ms → 1. 충격파는 `renderOut` 이 그동안만 장면을 렌더 타깃에 그린 뒤 고리 둘레를 굴절·색 갈라짐 셰이더로(`FINISH_WAVE_S` 0.9초, 실제 시간). 빨리 감기는 0.35초 충격파만.
 - 확인: `node tools/shot.mjs finisher`, 테스트 `stage`(최후의 일격 묶음).
 
+## 7-4. 무대 배경 (2026-11-26, `js/stage/theater.js`)
+- `buildTheater(world, T, accent, shelves)` 를 `setFloor` 가 부른다: 책장 부품(InstancedMesh 1)·마루 이음 줄·풋라이트(각 InstancedMesh)·조명 웅덩이·프로시니엄 기둥 둘·커튼 둘·휘장. 색은 `moods.js` 의 `curtain`·`column`·`foot`·`spot`.
+- 그리기 호출 ≤45, 삼각형 ≤3만(테스트). 공유 단위 상자는 `userData.keep` 이라 층을 바꿀 때 안 지운다.
+
 ## 8. 남은 일
 - 장서복 복장 6벌(`KEY_PAGES[].look`, novice 는 기본 모습) 첫 판. 등 소품은 정면에서 잘 안 보여 조정 필요(9절).
 - 덱 프리셋은 하나만 쓴다(여러 개는 큐 양에게 물어볼 것).
