@@ -8,8 +8,8 @@
 개념과 어울리면 좋지만 필수는 아니다(큐 양: "비효율적이면 다양화만 이뤄내도 됨").
 
 ## 목표 / 하지 않을 것
-- 목표: 적(우두머리 손님 포함)이 사람·해골·슬라임·괴물·로봇·유령·동물로 나온다. 같은 적은 늘 같은 모습.
-- 목표: 이름이 있는 적(`guest.enemies[].key`)은 이름 뜻에 맞는 모델을 고른다(표는 아래, 큐 양 검수).
+- 목표: 앞으로 만드는 적(우두머리 손님 포함)이 사람·해골·슬라임·괴물·로봇·유령·동물 중에서 모델을 고를 수 있다. 같은 적은 늘 같은 모습.
+- 하지 않음: 지금 있는 손님·적의 모습은 바꾸지 않는다.
 - 하지 않음: 사서(아군) 모델은 바꾸지 않는다. 장서복 체계도 그대로.
 - 하지 않음: 전투 규칙·수치·`body`/`form` 코어 분류는 안 바꾼다(무대 층만 바뀜).
 - 실패로 볼 것: 캐릭터가 커져서 전투 UI(주사위·막대·화살표·손패·[개막]·상태판)와 겹침이 생기는 것, 연출이 멈추거나 끊기는 것(동작 없는 모델), 첫 로딩이 눈에 띄게 느려지는 것.
@@ -39,47 +39,15 @@
 - 막기·피하기 ← 없으면 맞음 / 환호 ← `Yes|Wave|Jump|Dance`, 없으면 대기
 - 짝이 없는 동작은 대기 + 살짝 흔들기(코드 tween)로 대신해 **연출이 멈추지 않게** 한다. 빌드 스크립트가 모델별 짝 결과를 출력하고, 테스트가 63종 모두 대기·공격·맞음·쓰러짐 짝이 있는지 확인한다.
 
-## 고르기 (looks.js)
-- `ENEMY_MODEL[key]` 표: 이름 있는 적은 표대로(아래). 표에 없으면
-- 몸(`body`)별 무리에서 `hash(guest.id + key/index)`로 하나: human → 사람 5종 + 해골 4종, machine → 로봇·메카, puppet → 유령·슬라임·꼭두각시류. 새 강의로 생기는 적도 자동으로 다양해진다.
-- 실존 인물이거나 사람이어야 말이 되는 적(베카리아·벤담 계열 일부, 변론인 등)은 사람으로 둔다.
-
-### 이름 있는 적 → 모델 (초안, 큐 양 검수)
-| 적 key | 이름 | 모델 |
-|---|---|---|
-| beccaria-author ★ | 계몽의 집필자 | 사람(지금대로) |
-| beccaria-no-revenge | 복수를 거두는 자 | 사람(지금대로) |
-| beccaria-rack-ghost | 고문대의 망령 | ghost_skull |
-| tc-scale-knight ★ | 세 겹 저울의 기사 | kk_Skeleton_Warrior |
-| tc-harshness | 가혹함의 허상 | demon |
-| tc-fine-collector | 단속 없는 징수원 | robot_gunner |
-| bentham-accountant ★ | 쾌락 장부의 회계사 | 사람(지금대로) |
-| bentham-preacher | 최대 행복의 설교자 | blob_wizard |
-| bentham-warden | 원형 감옥의 간수 | robot_large (외눈 = 파놉티콘) |
-| legality-gatekeeper ★ | 조문의 문지기 | yeti |
-| legality-whim-judge | 재량에 취한 판관 | mushroom_king |
-| deterrence-brakeman ★ | 한계의 제동수 | mech |
-| deterrence-same-price | 같은 값의 유혹자 | imp |
-| deterrence-tracker | 확률의 추적자 | wolf |
-| limits-shadow ★ | 합리의 그림자 | ghost |
-| limits-dim-lobe | 꺼진 이마의 등불 | alien_big |
-| limits-article-ten | 제10조의 감정인 | kk_Skeleton_Mage |
-| pomodoro-clockwork ★ | 태엽 토마토 | slime_pink (빨간 토마토) |
-| pomodoro-intruder | 끼어드는 알림 | bee |
-| recall-echo ★ | 덮인 책의 메아리 | bat (메아리) |
-| recall-reread | 되풀이 읽기의 환영 | slime_drop |
-| spaced-sentinel ★ | 망각 곡선의 파수꾼 | robot_flyer |
-| spaced-cram-night | 벼락치기의 밤 | zombie (밤샘) |
-| meta-mirror ★ | 자기 점검의 거울 | slime_horned |
-| meta-scribe | 모름을 적는 서기 | kk_Skeleton_Minion |
-| defamation-advocate ★ | 제310조의 변론인 | 사람(지금대로) |
-| defamation-rumormonger | 허위의 소문꾼 | blob_bird |
-| defamation-accuser | 공익을 내건 고발자 | shiba |
-| insult-curser ★ | 순화되지 않는 욕설 | blob_yeti (혀 내민 입) |
-| insult-crowd | 익명의 군중 | zombie_grunt |
-| insult-megaphone | 가중의 확성기 | mech_heavy |
-
-★ = 우두머리. 표에 안 쓴 나머지 모델은 위 몸별 무리로 들어가 이름 없는 적·새 강의 적에 쓰인다.
+## 고르기 — 앞으로 만드는 적에만
+**지금 있는 손님·적의 모습은 바꾸지 않는다**(큐 양 2026-11-25). 새 모델은 앞으로 넣을 적이 고를 수 있게만 한다.
+- 적 데이터에 겉모습 필드 하나를 더한다: `guest.enemies[i].model = "slime_pink"` 처럼 모델 id. 코어 규칙은 이 값을 읽지 않고 무대로 넘기기만 한다(`look` 에 실어 보냄).
+- `model` 이 없으면 **지금과 똑같이** 고른다(사람 5종, `ARCH_MODEL`/`BODY_MODEL`). 그래서 기존 적은 한 픽셀도 안 바뀐다.
+- 우두머리(`leader:true`)도 `model` 을 줄 수 있다(큐 양 2번 안: 손님도 섞기).
+- 고를 수 있는 모델 목록 = `js/stage/monsters.js` 의 `MONSTERS` 표(id → 파일·기본 키·회전·색 바꾸기 여부·분류). 모르는 id 면 콘솔 경고 후 지금 방식으로.
+- `/add-lecture` 스킬과 `docs/content.md` 에 "적 모델 고르기" 절을 넣는다: 분류별 목록(슬라임·괴물·해골·로봇·유령·동물·사람)과 고르는 기준(개념·이름 뜻과 어울리게, 한 무리 안에서 겹치지 않게).
+  `npm run check:content` 가 `model` id 가 표에 있는지 검사한다.
+- 검수표 그림(분류별 시트)을 `docs/monsters/`에 두어 새 강의 넣을 때 보고 고르게 한다.
 
 ## 겉모습
 - **크기**: 모델별 기본 키 표(작은 날것 ≈1.3, 보통 ≈1.7, 큰 것 ≈2.0). 지금 사람 적 키(따르는 적 1.9×0.9≈1.7, 우두머리 1.9×1.1≈2.1)를 **넘지 않는다**(규칙 4: 캐릭터를 키우지 않는다). 가로 폭이 넓은 모델(용·메카·트리케라톱스)은 폭도 사람 적 자리 폭 안으로 맞춘다. D10~D12는 다른 네 발 짐승보다 한 단계 크게.
@@ -95,12 +63,11 @@
 
 ## 테스트·확인
 - `tests/stage`(또는 새 `tests/monsters.mjs`): 63종 모두 로드, 필수 동작 짝 있음, 키·폭 상한 안.
-- `node tools/shot.mjs` 에 `monsters` 장면 추가: 모든 층의 적 무리를 844×390·390×844로 찍어 직접 본다.
+- `node tools/shot.mjs` 에 `monsters` 장면 추가: 시험용 무리(우두머리 1 + 따르는 적 여럿, 여러 분류 섞음)를 844×390·390×844로 찍어 직접 본다. 기존 층 장면은 전과 똑같아야 한다.
 - 겹침 검사(`tests/overlap-check.mjs`) 0건 유지.
 - `docs/ui.md`(무대 캐릭터 절)와 `docs/decisions.md`(적 모델 다양화 한 줄)를 고친다.
 
 ## 짓는 사람에게 맡기는 것
 - 동작 이름 규칙의 세부 정규식, 대체 흔들기 tween 모양.
 - 모델별 기본 키·회전 값(위 상한 안에서).
-- 몸별 무리에 어떤 모델을 넣을지 세부(표 밖 모델).
 - 빌드 산출물 압축 수준(meshopt 를 다시 켤지는 three 의 MeshoptDecoder를 vendor 할지에 달림 — 켜면 vendor 에 `meshopt_decoder.module.js` 추가).
