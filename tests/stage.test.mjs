@@ -294,7 +294,7 @@ await goStage();
 const mf=await p.evaluate(async()=>{ const o={};
   try{
   const M=await import("/js/stage/monsters.js"), C=await import("/js/stage/characters.js"), L=await import("/js/stage/looks.js"), THREE=await import("three");
-  o.n=Object.keys(M.MONSTERS).length; o.badH=Object.entries(M.MONSTERS).filter(([,m])=>!(m.h>0&&m.h<=1.9)).map(([k])=>k); o.badKind=Object.entries(M.MONSTERS).filter(([,m])=>!M.MONSTER_KINDS.includes(m.kind)).map(([k])=>k);
+  o.n=Object.values(M.MONSTERS).filter(m=>m.kind!=="puppet").length; o.np=Object.values(M.MONSTERS).filter(m=>m.kind==="puppet").length; o.badH=Object.entries(M.MONSTERS).filter(([,m])=>!(m.h>0&&m.h<=1.9)).map(([k])=>k); o.badKind=Object.entries(M.MONSTERS).filter(([,m])=>!M.MONSTER_KINDS.includes(m.kind)).map(([k])=>k);
   await C.loadCharacters(); await C.loadMonsters(["slime_pink","dragon","skeleton_warrior","pug"]);
   o.ready=["slime_pink","dragon","skeleton_warrior","pug"].map(C.monsterReady);
   const box=F=>{ F.obj.updateMatrixWorld(true); const b=new THREE.Box3(); F.obj.traverse(n=>{ if(n.isMesh&&n.userData.fromModel) b.expandByObject(n); }); return b; };
@@ -319,9 +319,9 @@ const mf=await p.evaluate(async()=>{ const o={};
   }catch(e){ o.err=String(e&&e.stack||e); }
   return o; });
 ok(!mf.err,"몬스터 모듈 로드",mf.err);
-ok(mf.n===63&&!(mf.badH||[]).length&&!(mf.badKind||[]).length,"MONSTERS 63종, 키 ≤ 1.9, 분류 정상",mf);
+ok(mf.n===63&&mf.np===6&&!(mf.badH||[]).length&&!(mf.badKind||[]).length,"MONSTERS 63종, 키 ≤ 1.9, 분류 정상",mf);
 ok(mf.ready&&mf.ready.every(Boolean),"loadMonsters 뒤 monsterReady",mf.ready);
-ok(mf.fig&&Object.values(mf.fig).every(f=>!f.ph&&f.mon&&Math.abs(f.h-f.H)<0.06&&f.H<=f.want+0.01&&f.w<=1.41),"몬스터 figure: 실제 키 = F.height ≤ 표 키, 폭 ≤ 1.4",mf.fig);
+ok(mf.fig&&Object.values(mf.fig).every(f=>!f.ph&&f.mon&&Math.abs(f.h-f.H)<0.06&&f.H<=f.want+0.01&&f.w<=1.91),"몬스터 figure: 실제 키 = F.height ≤ 표 키, 폭 ≤ 1.9",mf.fig);
 ok(mf.fig&&Math.abs(mf.fig.slime_pink.h-mf.fig.slime_pink.want)<0.06,"폭이 안 넘치면 표 키 그대로",mf.fig&&mf.fig.slime_pink);
 ok(mf.missing&&mf.missing.every(([n,ms,cur])=>ms<=800&&cur===n),"짝 없는 동작도 0.8초 안에 끝나고 current = 요청 이름",mf.missing);
 ok(/^Attack2?$/.test(mf.atkClip||"")&&/^Attack2?$/.test(mf.atkClip2||"")&&mf.atkClip!==mf.atkClip2,"공격은 Attack/Attack2 번갈아",[mf.atkClip,mf.atkClip2]);
@@ -359,6 +359,31 @@ ok(ml.race.every(x=>x===null||x==="dragon"),"setUnits 연달아: 나중 호출(B
     const out={figs:es.map(e=>({mon:S.figure(e.id).monster||null,ph:S.figure(e.id).placeholder}))};
     const t=performance.now(); await Promise.race([S.play({kind:"one",a:{unit:es[0].id},target:Game.battle.state.units[0].id,steps:[{aVal:3,winner:"a",dmg:{unit:Game.battle.state.units[0].id,hp:1,stagger:1}}]},{fast:true}),new Promise(r=>setTimeout(r,5000))]); out.ms=performance.now()-t; return out; });
   ok(r.figs.every(f=>!f.mon&&!f.ph)&&r.ms<4000,"몬스터 파일 404: 사람 모델로 서고 연출이 끝남",r); await ctx.close(); }
+/* ---------- 꼭두각시 (코드로 만든 적) ---------- */
+await goStage();
+const pp=await p.evaluate(async()=>{ const o={}; try{
+  const M=await import("/js/stage/monsters.js"), C=await import("/js/stage/characters.js"), L=await import("/js/stage/looks.js"), THREE=await import("three");
+  o.ids=Object.keys(M.MONSTERS).filter(k=>M.MONSTERS[k].kind==="puppet").sort();
+  await C.loadMonsters(o.ids); o.ready=o.ids.every(C.monsterReady);
+  const F=C.makeFigure({monster:"puppet_knight",model:"Rogue",palette:L.PALETTES.crimson,scale:1}); F.act("Idle"); F.update(0.1); F.obj.updateMatrixWorld(true);
+  const wood=[], cloth=[], strings=[], beads=[]; let bar=null;
+  F.obj.traverse(n=>{ if(n.userData.puppetBar) bar=n; if(n.userData.puppetString) strings.push(n); if(n.userData.puppetBead) beads.push(n);
+    if(n.isMesh&&n.userData.fromModel&&n.visible){ const c=n.material.color; (/Cape|Hat|Helmet|Hood/.test(n.name)?cloth:wood).push([c.r,c.g,c.b]); } });
+  const lum=([r,g,b])=>0.2126*r+0.7152*g+0.0722*b;
+  o.woodOk=wood.length>0&&wood.every(c=>c[0]>c[1]&&c[1]>c[2]&&lum(c)>0.35&&lum(c)<0.85); o.wood=wood.slice(0,3);
+  if(bar){ const bb=new THREE.Box3().setFromObject(bar); o.barTop=+bb.max.y.toFixed(2); } o.H=+F.height.toFixed(2);
+  o.nStr=strings.length; o.nBead=beads.length;
+  const ends=()=>strings.map(sx=>{ const a=sx.geometry.attributes.position; return [a.getX(1),a.getY(1),a.getZ(1)].map(v=>+v.toFixed(3)).join(","); }).join("|");
+  const e0=ends(); F.act("1H_Melee_Attack_Slice_Diagonal",{once:true}); for(let i=0;i<6;i++) F.update(0.08); o.moved=ends()!==e0;
+  const t0=performance.now(); const tk=setInterval(()=>F.update(0.05),50); await Promise.race([F.act("Hit_A",{once:true}),new Promise(r=>setTimeout(r,3000))]); clearInterval(tk); o.hitMs=performance.now()-t0;
+  o.skel=!C.makeFigure({monster:"puppet_skeleton",model:"Rogue",palette:L.PALETTES.bone,scale:1}).placeholder;
+  }catch(e){ o.err=String(e&&e.stack||e); } return o; });
+ok(!pp.err&&pp.ids.length===6&&pp.ready,"꼭두각시 6종 로드",pp);
+ok(pp.woodOk,"꼭두각시 몸은 나무색",pp.wood);
+ok(pp.barTop!=null&&pp.barTop<=pp.H+0.5&&pp.barTop>pp.H,"조종 막대: 머리 위, 키+0.5 이하",pp);
+ok(pp.nStr>=3&&pp.nStr<=5&&pp.moved,"실 3~5줄, 몸을 따라 끝점이 움직임",pp);
+ok(pp.nBead>=6,"관절 구슬 6개 이상",pp.nBead);
+ok(pp.hitMs<2500&&pp.skel,"꼭두각시 동작·해골 꼭두각시",pp);
 /* @@NEXT@@ */
 ok(errs.filter(e=>!/Error creating WebGL context/.test(e)).length===0,"오류 없음 (nogl 페이지의 WebGL 생성 실패 로그는 의도)",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

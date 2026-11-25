@@ -2,7 +2,8 @@
    새 적 데이터에 guest.enemies[i].model = "<id>" 를 적으면 그 모델로 나온다. 없으면 지금처럼 사람 모델(looks.js lookOf).
    id → { file: assets/models/monsters/ 안 파일, kind: 분류, h: 기본 키(사람 TARGET_H 1.9 이하), rotY?: 앞 방향 보정(라디안),
           tint: "body"(몸 전체를 손님 팔레트 색으로) | 숫자(원래 색을 손님 색 쪽으로 이만큼 물들임),
-          kaykit?: true(지금 캐릭터와 같은 뼈대 → characters/anims.glb 동작을 그대로) }
+          kaykit?: true(지금 캐릭터와 같은 뼈대 → characters/anims.glb 동작을 그대로),
+          puppet?: { base }(파일 없이 바탕 모델에 꼭두각시 칠·막대·실, js/stage/puppet.js) }
    동작: 빌드(tools/assets/build-monsters.mjs)가 이름을 Idle·Run·Attack·Attack2·Hit·Death·Block·Dodge·Cheer 로 바꿔 둔다. 없는 건 무대가 코드 동작으로 대신.
    그림으로 고르기: docs/monsters/<kind>.png */
 export const MONSTER_KINDS = ["slime", "monster", "undead", "robot", "ghost", "animal", "puppet"];
@@ -10,7 +11,7 @@ export const MONSTER_KINDS = ["slime", "monster", "undead", "robot", "ghost", "a
 const T = 0.15;   /* 원래 색을 손님 색으로 물들이는 정도 */
 const q = (kind, h, extra) => Object.assign({ kind, h, tint: T }, extra || {});
 const slime = h => q("slime", h, { tint: "body" });
-const SMALL = 1.3, BEAST = 1.4, DINO = 1.65, BIG = 1.85, MID = 1.6;
+const SMALL = 1.3, BEAST = 1.45, DINO = 1.75, BIG = 1.85, MID = 1.6;
 
 const TABLE = {
   /* 슬라임·블롭: 몸색을 손님 팔레트로 바꾼다 */
@@ -33,7 +34,11 @@ const TABLE = {
   /* 동물 (raptor·trex·triceratops 는 한 단계 크게, 큐 양 검수) */
   bat: q("animal", SMALL), cat: q("animal", BEAST), deer: q("animal", BEAST), fox: q("animal", BEAST), husky: q("animal", BEAST), pug: q("animal", BEAST),
   shiba: q("animal", BEAST), stag: q("animal", BEAST), wolf: q("animal", BEAST), raptor: q("animal", DINO), trex: q("animal", DINO), triceratops: q("animal", DINO), dino: q("animal", MID),
+  /* 꼭두각시: 파일 없이 코드로 만든다(js/stage/puppet.js). base = 바탕 사람 모델(KayKit) 또는 해골 */
+  puppet_knight: q("puppet", 1.75, { puppet: { base: "Knight" } }), puppet_barbarian: q("puppet", 1.75, { puppet: { base: "Barbarian" } }),
+  puppet_mage: q("puppet", 1.75, { puppet: { base: "Mage" } }), puppet_rogue: q("puppet", 1.75, { puppet: { base: "Rogue" } }),
+  puppet_hooded: q("puppet", 1.75, { puppet: { base: "Rogue_Hooded" } }), puppet_skeleton: q("puppet", 1.7, { puppet: { base: "skeleton_minion" } }),
 };
-for (const [id, m] of Object.entries(TABLE)) if (!m.file) m.file = id + ".glb";
+for (const [id, m] of Object.entries(TABLE)) if (!m.file && !m.puppet) m.file = id + ".glb";
 export const MONSTERS = TABLE;
 export const isMonster = id => typeof id === "string" && Object.prototype.hasOwnProperty.call(MONSTERS, id);

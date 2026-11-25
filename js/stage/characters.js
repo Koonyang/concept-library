@@ -10,6 +10,7 @@ import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import { WEAPONS, LIB_BOOK, OUTFIT_BONES } from "./looks.js";
 import { buildProp } from "./props.js";
 import { MONSTERS, isMonster } from "./monsters.js";
+import { dressPuppet } from "./puppet.js";
 
 const BASE = new URL("../../assets/models/characters/", import.meta.url).href;
 const MODELS = ["Knight", "Barbarian", "Mage", "Rogue", "Rogue_Hooded"];
@@ -238,7 +239,7 @@ export function makeFigure(look) {
 
 /* ---------- 몬스터(적 모델 다양화, js/stage/monsters.js) ---------- */
 const MBASE = new URL("../../assets/models/monsters/", import.meta.url).href;
-const MAX_W = 1.4;                          /* 몬스터 폭(x·z 중 큰 값) 상한 = 사람 적 자리 폭 */
+const MAX_W = 1.9;                          /* 몬스터 폭(x·z 중 큰 값) 상한 = 사람 키. 네 발 짐승·용이 너무 작아지지 않게(옆 자리와 조금 겹쳐도 캐릭터는 배경층) */
 const mons = new Map(), monLoading = new Map();   /* id → { scene, clips } / 받는 중 promise */
 /* 처음 보는 id 만 받는다. 실패해도 reject 하지 않는다(그 적은 사람 모델로) */
 export function loadMonsters(ids) {
@@ -246,6 +247,12 @@ export function loadMonsters(ids) {
   return Promise.all(want.map(id => {
     if (mons.has(id)) return null; if (monLoading.has(id)) return monLoading.get(id);
     const m = MONSTERS[id], L = new GLTFLoader();
+    if (m.puppet) {   /* 꼭두각시: 바탕 모델만 있으면 된다 */
+      const base = m.puppet.base, pr = (isMonster(base) ? loadMonsters([base]) : loadCharacters())
+        .then(() => { if (isMonster(base) ? mons.has(base) : models && models[base]) mons.set(id, { puppet: base }); else console.warn("[stage] 꼭두각시 바탕 모델 없음 — 사람 모델로", id); })
+        .finally(() => monLoading.delete(id));
+      monLoading.set(id, pr); return pr;
+    }
     const pr = (m.kaykit ? loadCharacters() : Promise.resolve()).then(() => L.loadAsync(MBASE + m.file))
       .then(g => { if (m.kaykit && !clips) throw new Error("anims.glb 없음"); mons.set(id, { scene: g.scene, clips: m.kaykit ? clips : g.animations }); })
       .catch(e => console.warn("[stage] 몬스터 모델을 못 받음 — 사람 모델로", id, e && e.message))
@@ -264,6 +271,13 @@ const FAKE_S = 0.45;
 function monsterFigure(look) {
   const id = look.monster, M = MONSTERS[id], src = mons.get(id);
   if (M.kaykit) { const F = realFigure(look, src.scene, M.h); F.monster = id; F.halfW = 0.35; return F; }
+  if (M.puppet) {
+    const base = src.puppet, srcScene = isMonster(base) ? mons.get(base).scene : models[base];
+    const F = realFigure({ ...look, model: isMonster(base) ? "Rogue" : base }, srcScene, M.h); F.monster = id; F.halfW = 0.35;
+    const P = dressPuppet(F.obj, F.obj.children[0], F.height), up = F.update, dp = F.dispose;
+    F.update = dt => { up(dt); P.update(); }; F.dispose = () => { dp(); P.dispose(); };
+    return F;
+  }
   const obj = SkeletonUtils.clone(src.scene), rig = new THREE.Group(), holder = new THREE.Group();
   rig.add(obj); holder.add(rig);
   const accent = new THREE.Color(look.palette.accent), bodyCol = accent.clone().lerp(new THREE.Color(0xffffff), 0.25);
