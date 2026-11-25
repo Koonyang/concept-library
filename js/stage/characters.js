@@ -143,11 +143,23 @@ function attachProp(parent, q, unit, accent, anchor) {
   p.scale.setScalar(sc / unit); p.userData.outfit = q.bone; parent.add(p); return p;
 }
 
+/* 바닥에서 머리 뼈까지 높이(원본 모델 단위) */
+const headCache = new Map();
+function headY(src, box) {
+  if (headCache.has(src)) return headCache.get(src);
+  src.updateMatrixWorld(true); const b = src.getObjectByName("head"), v = new THREE.Vector3();
+  const y = b ? b.getWorldPosition(v).y - box.min.y : (box.max.y - box.min.y) * 0.75; headCache.set(src, y); return y;
+}
+function libScale(src, box) {
+  const ref = models.Mage, rb = new THREE.Box3().setFromObject(ref), refHead = headY(ref, rb) * TARGET_H / ((rb.max.y - rb.min.y) || 1);
+  return refHead / (headY(src, box) || 1);
+}
 function realFigure(look, srcOver, targetH) {
   const src = srcOver || models[look.model] || models.Rogue_Hooded, TH = targetH || TARGET_H;
   const obj = SkeletonUtils.clone(src);
   const box = new THREE.Box3().setFromObject(src), h = box.max.y - box.min.y || 1;
-  const k = TH / h;
+  /* 사서는 모자·투구 높이와 상관없이 머리 높이를 큐 양(Mage, 키 맞춤)과 같게(2026-11-25 큐 양: 사서 크기 통일) */
+  const k = look.librarian && !srcOver ? libScale(src, box) : TH / h;
   const holder = new THREE.Group(); obj.scale.setScalar(k); holder.add(obj);
   /* 장서복 복장(look.outfit): show/hide 가 기본 무기 규칙보다 우선. "book" 은 사서의 책(모델 책·코드 책) */
   const O = look.outfit || null, show = new Set(O ? O.show : []), hide = new Set(O ? O.hide : []);
@@ -186,7 +198,7 @@ function realFigure(look, srcOver, targetH) {
   const mixer = new THREE.AnimationMixer(obj), actions = {};
   let cur = null;
   const F = {
-    obj: holder, placeholder: false, current: null, height: TH,
+    obj: holder, placeholder: false, current: null, height: look.librarian && !srcOver ? h * k : TH,
     hand: side => side === "l" ? handL : handR,
     debugClip: () => cur && cur.getClip().name,
     update(dt) { mixer.update(dt); },

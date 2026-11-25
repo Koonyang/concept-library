@@ -363,15 +363,18 @@ ok(errs.length===0,"no errors",errs);
   ok(tie.ad.n===2&&tie.ad.out.join()==="tie,G"&&tie.ad.retry[1],"공격 대 방어 비김도 다시",tie.ad);
   ok(tie.cap.n===4&&tie.cap.out.every(x=>x==="tie")&&tie.cap.gHp===0&&tie.cap.pHp===0,"3번 다시 비기면 둘 다 소모(무한 반복 없음)",tie.cap);
   ok(tie.ev.n===1&&tie.ev.out[0]==="tie"&&!tie.ev.retry[0],"회피 비김은 예전대로(다시 굴리지 않음)",tie.ev); }
-/* 2026-11-25 큐 양: 흐트러진 적에게는 방어·회피만 있는 책장을 댈 수 없다(공격 주사위가 섞인 책장은 됨) */
+/* 2026-11-25 큐 양: 흐트러진 적에게도 방어·회피 책장은 댈 수 있다(부가효과는 받음). 다만 막 진행 중 흐트러진 적을 상대로
+   방어·회피만 남은 교환은 연출할 게 없으니 ev.idle=true(무대·화면은 연출 없이 넘김) */
 { const sg=await p.evaluate(()=>{ const G=__studyGame, A=G.battleApi, o={};
     A.begin("beccaria"); A.setRng(()=>0.5); A.answer(true); const B=G.battle, U=id=>B.units.find(u=>u.id===id), X=A.internals();
-    X.e1.cu.stag=1; U("e1").staggered=true; U("a1").light=9; U("a1").emotion=5; X.a1.handIds.splice(0,X.a1.handIds.length,"silence","margin-guard","turn-page","proportion-scale");
-    o.def=A.assign("a1",0,"silence",{unit:"e1",die:null}); o.defOther=A.assign("a1",0,"silence",{unit:"e2",die:null});
-    o.retarget=A.target("a1",0,{unit:"e1",die:null});
-    o.atk=A.assign("a1",1,"turn-page",{unit:"e1",die:null}); o.mixed=A.assign("a1",1,"proportion-scale",{unit:"e1",die:null});
-    o.info=G.battle.cardInfo?null:null; return o; });
-  ok(sg.def.ok===false&&sg.def.reason==="staggered","흐트러진 적에게 방어·회피만 책장 → 거부(reason staggered)",sg);
-  ok(sg.defOther.ok&&sg.retarget.ok===false&&sg.retarget.reason==="staggered","다른 적엔 되고, 대상만 흐트러진 적으로 바꾸는 것도 거부",sg);
-  ok(sg.atk.ok&&(sg.mixed.ok||sg.mixed.reason!=="staggered"),"공격(섞인) 책장은 흐트러진 적에게 됨",sg); }
+    X.e1.cu.stag=1; U("e1").staggered=true; U("a1").light=9; U("a1").emotion=5; X.a1.handIds.splice(0,X.a1.handIds.length,"silence","turn-page");
+    B.units.filter(u=>u.side==="enemy").forEach(e=>e.dice.forEach((d,k)=>A.setEnemyTarget(e.id,k,{unit:"a2",die:null})));
+    o.def=A.assign("a1",0,"silence",{unit:"e1",die:null}); o.atk=A.assign("a1",1,"turn-page",{unit:"e1",die:null});
+    const evs=A.resolveOnly(), mine=i=>evs.find(e=>e.by&&e.by.unit==="a1"&&e.by.die===i);
+    o.defEv=mine(0)&&{kind:mine(0).kind,idle:mine(0).idle}; o.atkEv=mine(1)&&{kind:mine(1).kind,idle:!!mine(1).idle};
+    o.others=evs.filter(e=>e.by&&e.by.unit!=="a1").every(e=>!e.idle);
+    return o; });
+  ok(sg.def.ok&&sg.atk.ok,"흐트러진 적에게도 방어·회피·공격 책장을 댈 수 있음",sg);
+  ok(sg.defEv&&sg.defEv.idle===true,"흐트러진 적 상대 방어·회피만 교환 → idle(연출 없이 넘김)",sg);
+  ok(sg.atkEv&&sg.atkEv.idle===false&&sg.others,"공격 교환·다른 교환은 idle 아님",sg); }
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

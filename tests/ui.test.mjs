@@ -167,5 +167,16 @@ await go("beccaria"); await answer(true); await p.waitForTimeout(300);
 for(const [w,h] of [[844,390],[390,844]]){ await p.setViewportSize({width:w,height:h}); await go("beccaria"); await answer(true);
   await p.click(`.speed-die[data-side="ally"]`); await p.waitForTimeout(400); await p.screenshot({path:join(ROOT,`shots/ui-battle-${w}.png`)}); }
 await p.setViewportSize({width:844,height:390}); await go("beccaria"); await p.waitForSelector("#question.on"); await p.screenshot({path:join(ROOT,"shots/ui-question-844.png")});
+/* 2026-11-25: 흐트러진 적 상대 방어·회피만 교환(ev.idle)은 무대 연출 없이 넘긴다 */
+{ await go("beccaria"); await answer(true);
+  const r=await p.evaluate(async()=>{ const A=__studyGame.battleApi, B=Game.battle.state, U=id=>B.units.find(u=>u.id===id), X=A.internals();
+    X.e1.cu.stag=1; U("e1").staggered=true; U("a1").light=9; X.a1.handIds.splice(0,X.a1.handIds.length,"silence");
+    B.units.filter(u=>u.side==="ally").forEach(u=>u.dice.forEach((d,i)=>{ if(d.card) A.unassign(u.id,i); }));
+    A.assign("a1",0,"silence",{unit:"e1",die:null}); window.__battle.render();
+    let idlePlays=0, plays=0; const pl=__stage.play; __stage.play=(ev,o)=>{ plays++; if(ev&&ev.idle) idlePlays++; return pl(ev,o); };
+    const t=performance.now(); document.getElementById("btn-open").click();
+    await new Promise(res=>{ const k=()=>Game.battle.state.phase!=="resolve"&&Game.battle.state.phase!=="assign"||performance.now()-t>20000?res():setTimeout(k,50); setTimeout(k,300); });
+    return {idlePlays,plays}; });
+  ok(r.idlePlays===0,"흐트러진 적 상대 방어·회피만 교환은 무대 연출 안 함",r); }
 ok(errs.length===0,"오류 없음",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

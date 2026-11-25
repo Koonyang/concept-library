@@ -372,7 +372,7 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
   /* ---------- 배정 ---------- */
   function firstEmptyDie() { for (const u of liveAllies()) { const i = u.dice.findIndex(d => !d.card); if (i >= 0) return { unit: u.id, die: i }; } return null; }
   const dieOf = (uid, i) => { const u = B().units.find(x => x.id === uid); return u && u.dice[i]; };
-  const failMsg = r => setMsg(r.reason === "light" ? "빛이 모자라" : r.reason === "emotion" ? "감정 단계가 모자라" : r.reason === "staggered" ? "흐트러진 적에겐 공격 책장만" : "놓을 수 없어", "bad", 1800);
+  const failMsg = r => setMsg(r.reason === "light" ? "빛이 모자라" : r.reason === "emotion" ? "감정 단계가 모자라" : "놓을 수 없어", "bad", 1800);
   /* 책장 끼운 내 주사위(uid,i)의 대상을 정한다: 적 주사위면 그 주사위, 몸이면 일방 공격 */
   function aim(uid, i, target) {
     const r = G.battle.target(uid, i, target); if (!r.ok) { failMsg(r); return false; }
@@ -481,13 +481,14 @@ export async function mountBattle(root, stage, guestId, { onEnd } = {}) {
       /* 바닥 더미에서 지금 교환의 줄을 치운다(남은 줄이 다음 순서) */
       const at = plan.findIndex(r => (r.a.unit === ev.a.unit && r.a.die === ev.a.die) || (r.b && ev.b && r.b.unit === ev.a.unit && r.b.die === ev.a.die));
       if (at >= 0) plan.splice(0, at + 1); renderStack(plan); placeStack();
-      sfx.clash(); showClash(ev, fast);
-      try { await stage.play(ev, { fast: fast || skipAll, final: G.battle.outcome === "win", onStep: i => revealClash(i), onHit: i => {
+      /* 흐트러진 적 상대 방어·회피만 남은 교환(ev.idle): 합 패널·무대 연출 없이 넘긴다. 책장 효과 표시(아래 fx)는 그대로 */
+      if (!ev.idle) { sfx.clash(); showClash(ev, fast); }
+      if (!ev.idle) try { await stage.play(ev, { fast: fast || skipAll, final: G.battle.outcome === "win", onStep: i => revealClash(i), onHit: i => {
         const s = ev.steps[i]; if (!s || !s.dmg) return; const side = (B().units.find(u => u.id === s.dmg.unit) || {}).side;
         sfx.hit(); if (s.dmg.hp) floatNum(s.dmg.unit, "-" + s.dmg.hp, "hp" + (side === "ally" ? " ally" : "")); if (s.dmg.stagger) floatNum(s.dmg.unit, "-" + s.dmg.stagger, "st");
         barSnap = null; renderBars(); } });
       } catch (e) { console.warn("[battle] 연출 오류 — 건너뛰고 계속", e); }
-      revealClash(); barSnap = null; renderBars();
+      if (!ev.idle) revealClash(); barSnap = null; renderBars();
       /* 기믹 발동: 출혈로 잃은 체력, 걸린 상태, 얻은 빛을 머리 위에 잠깐 */
       (ev.fx || []).forEach((f, n) => { const side = (B().units.find(u => u.id === f.unit) || {}).side, txt = f.kind === "bleed" ? `출혈 -${f.hp}` : f.kind === "light" ? `빛 +${f.n}` : `${(ST()[f.status] || {}).name || f.status} ${f.n}`;
         const cls = f.kind === "bleed" ? "hp" + (side === "ally" ? " ally" : "") : "fx" + ((ST()[f.status] || {}).bad ? " bad" : "");

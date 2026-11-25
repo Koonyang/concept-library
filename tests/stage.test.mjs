@@ -416,6 +416,16 @@ const tf=await p.evaluate(async()=>{ Game.battle.leave(); Game.battle.begin("bec
 ok(JSON.stringify(tf.one)==='["참격","관통","타격"]',"맞을 때 공격 종류별 이펙트",tf);
 ok(JSON.stringify(tf.two)==='["방어","회피"]',"막기·흘리기 이펙트, 비김엔 없음",tf);
 ok(tf.live===0,"이펙트가 끝나면 남지 않음",tf.live);
+/* ---------- 사서 크기 통일(2026-11-25 큐 양: 큐 양 지금 크기에 맞춤) — 머리 뼈 높이가 같아야 ---------- */
+await goStage();
+const ls=await p.evaluate(async()=>{ const C=await import("/js/stage/characters.js"), L=await import("/js/stage/looks.js"), THREE=await import("three"); await C.loadCharacters();
+  const headY=F=>{ F.obj.updateMatrixWorld(true); let h=null; F.obj.traverse(n=>{ if(!h&&n.isBone&&n.name==="head") h=n; }); return h?+h.getWorldPosition(new THREE.Vector3()).y.toFixed(3):null; };
+  const lib=id=>{ const F=C.makeFigure(L.lookOf({side:"ally",libId:id},null,null)); return headY(F); };
+  const raw=m=>{ const F=C.makeFigure({model:m,palette:L.PALETTES.teal,scale:1,librarian:false}); return headY(F); };
+  return {kyu:lib("kyu"),lib2:lib("lib2"),lib3:lib("lib3"),mageRaw:raw("Mage"),knightRaw:raw("Knight")}; });
+ok(ls.kyu&&Math.abs(ls.lib2-ls.kyu)<0.02&&Math.abs(ls.lib3-ls.kyu)<0.02,"사서 셋의 머리 높이가 같음",ls);
+ok(Math.abs(ls.kyu-ls.mageRaw)<0.005,"큐 양 크기는 그대로",ls);
+ok(Math.abs(ls.knightRaw-ls.lib2)>0.02||ls.knightRaw===ls.kyu,"적(사서 아님)은 예전 크기 그대로(기사 기준)",ls);
 /* @@NEXT@@ */
 ok(errs.filter(e=>!/Error creating WebGL context/.test(e)).length===0,"오류 없음 (nogl 페이지의 WebGL 생성 실패 로그는 의도)",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

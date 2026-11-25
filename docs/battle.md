@@ -36,7 +36,7 @@
 |---|---|
 | 설정값 | `MB` (`HP`, `DICE`, `PACE`, `WRONG`, `ENEMY_MAX`, 속도 등), 기믹 훅 `MB_HOOKS` |
 | 체력 | `mbQuestionCount`, `mbEnemyHpTotal`, `mbEnemyQ`, `mbEnemyCtx`, `mbAllyStats`, `enemyStats` |
-| 대상 제한 | 흐트러진 적에게 공격 주사위 없는 책장(방어·회피만)은 `mbAssign`/`mbTarget` 이 `reason:"staggered"` 로 거부(`mbNoUseOnStaggered`) |
+| 흐트러진 적 | 방어·회피 책장도 댈 수 있음. 막 진행 중 흐트러진 적 상대로 방어·회피만 남은 교환은 `ev.idle=true` → 화면은 합 패널·무대 연출 없이 넘김(책장 효과는 적용) |
 | 만들기 | `mbCreate`(사서·적 유닛, 적 수 상한 `mbEnemyCap`, 몸 `enemyBody`/`ENEMY_BODY`), `mbQuestionPool`, 적 유닛 `model`(= `enemies[i].model`, 겉모습 전용, 없으면 null) |
 | 막 시작 | `mbStartScene`(주사위 굴림 `mbRollDice`, 적 목표 `mbRelink`, 문제 `mbPickQuestion`/`mbNextQid`/`mbPrepQ`) |
 | 문제 | `mbAnswer`(정답이면 감정 `mbCharge`), 화면 쪽 `mbAnswerUI`, `mbShowQuestion` |
