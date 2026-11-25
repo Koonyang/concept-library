@@ -242,7 +242,7 @@ const bal=await p.evaluate(()=>{ const G=__studyGame, A=G.battleApi, C=G.engine.
   for(const id of ["kyu","lib2","lib3"]){ const L=G.gifts.libOf(s,id); gift0[id]=JSON.stringify(L.gifts); L.gifts.owned=Object.values(GS); L.gifts.equipped={...GS}; }
   out.giftHp=A.libMods("kyu").hp;
   G.libs.setParty(s,["kyu","lib2","lib3"]); { const runL=(acc,seed,H)=>{ const rng=mul(seed), R=[];
-    for(const g of G.data.WEAK_POINTS) for(let i=0;i<12;i++){ A.create(g.id,{rng}); const m=A.mb; let n=0;
+    for(const g of G.data.WEAK_POINTS) for(let i=0;i<36;i++){ A.create(g.id,{rng});   /* 36판×손님: 표본이 작으면 30% 승률이 경계(0.35) 근처에서 흔들림 */ const m=A.mb; let n=0;
       while(!m.outcome&&n<40){ n++; A.answer(rng()<acc); const B=m.battle, en=B.units.filter(u=>u.side==="enemy"&&u.hp>0);
         for(const u of B.units.filter(u=>u.side==="ally"&&u.hp>0)) u.dice.forEach((d,k)=>{ const h=A.hand(u.id).filter(c=>A.usable(u.id,c).usable).sort((x,y)=>score(y)-score(x)); if(!h.length) return;
           let t=null; for(const e of en) e.dice.forEach((ed,j)=>{ if(!t&&ed.target&&ed.target.unit===u.id&&ed.target.die===k) t={unit:e.id,die:j}; }); for(const e of en) e.dice.forEach((ed,j)=>{ if(!t&&ed.target&&ed.target.unit===u.id) t={unit:e.id,die:j}; });
@@ -367,14 +367,15 @@ ok(errs.length===0,"no errors",errs);
    방어·회피만 남은 교환은 연출할 게 없으니 ev.idle=true(무대·화면은 연출 없이 넘김) */
 { const sg=await p.evaluate(()=>{ const G=__studyGame, A=G.battleApi, o={};
     A.begin("beccaria"); A.setRng(()=>0.5); A.answer(true); const B=G.battle, U=id=>B.units.find(u=>u.id===id), X=A.internals();
-    X.e1.cu.stag=1; U("e1").staggered=true; U("a1").light=9; U("a1").emotion=5; X.a1.handIds.splice(0,X.a1.handIds.length,"silence","turn-page");
+    X.e1.cu.stag=1; U("e1").staggered=true; U("e1").dice=[]; X.e1.cu.hp=U("e1").hp=U("e1").maxHp=9999;   /* 공격 책장에 먼저 쓰러지면 방어 주사위가 다른 적으로 옮겨 간다 → 버티게 */ U("a1").light=9; U("a1").emotion=5; X.a1.handIds.splice(0,X.a1.handIds.length,"silence","turn-page");   /* 흐트러진 적은 그 막 주사위가 없다 */
     B.units.filter(u=>u.side==="enemy").forEach(e=>e.dice.forEach((d,k)=>A.setEnemyTarget(e.id,k,{unit:"a2",die:null})));
     o.def=A.assign("a1",0,"silence",{unit:"e1",die:null}); o.atk=A.assign("a1",1,"turn-page",{unit:"e1",die:null});
     const evs=A.resolveOnly(), mine=i=>evs.find(e=>e.by&&e.by.unit==="a1"&&e.by.die===i);
-    o.defEv=mine(0)&&{kind:mine(0).kind,idle:mine(0).idle}; o.atkEv=mine(1)&&{kind:mine(1).kind,idle:!!mine(1).idle};
+    o.defEv=mine(0)&&{kind:mine(0).kind,idle:mine(0).idle,target:mine(0).target};
+    o.atkEv=mine(1)&&{kind:mine(1).kind,idle:!!mine(1).idle};
     o.others=evs.filter(e=>e.by&&e.by.unit!=="a1").every(e=>!e.idle);
     return o; });
   ok(sg.def.ok&&sg.atk.ok,"흐트러진 적에게도 방어·회피·공격 책장을 댈 수 있음",sg);
-  ok(sg.defEv&&sg.defEv.idle===true,"흐트러진 적 상대 방어·회피만 교환 → idle(연출 없이 넘김)",sg);
+  ok(sg.defEv&&sg.defEv.target==="e1"&&sg.defEv.idle===true,"흐트러진 적 상대 방어·회피만 교환 → idle(연출 없이 넘김)",sg);
   ok(sg.atkEv&&sg.atkEv.idle===false&&sg.others,"공격 교환·다른 교환은 idle 아님",sg); }
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);
