@@ -11,7 +11,7 @@ await new Promise(r=>server.listen(0,"127.0.0.1",r)); const BASE="http://127.0.0
 const b=await launchBrowser(chromium,{args:["--no-sandbox"]});
 let fails=0; const ok=(c,n,o)=>{if(!c)fails++;console.log(c?"PASS":"FAIL",n,o===undefined?"":JSON.stringify(o).slice(0,700));};
 const p=await (await b.newContext({viewport:{width:844,height:390}})).newPage(); const errs=[]; p.on("pageerror",e=>errs.push(e.message)); p.on("console",m=>{if(m.type()==="error")errs.push(m.text());});
-import { statSync } from "fs";
+import { statSync, readdirSync } from "fs";
 const DIR=join(ROOT,"assets/models/characters"), CHARS=["Knight","Barbarian","Mage","Rogue","Rogue_Hooded"];
 const ANIMS=["Idle","Running_A","1H_Melee_Attack_Slice_Diagonal","1H_Melee_Attack_Stab","2H_Melee_Attack_Chop","Spellcast_Shoot","Block","Block_Hit","Dodge_Backward","Hit_A","Hit_B","Death_A","Cheer"];
 const files=[...CHARS.map(c=>c+".glb"),"anims.glb"].map(f=>join(DIR,f));
@@ -26,6 +26,31 @@ if(exist.every(Boolean)){
   ok(ca.every(n=>n===0),"캐릭터 파일에 애니메이션 없음",ca);
   const an=(glbJson(join(DIR,"anims.glb")).animations||[]).map(a=>a.name).sort();
   ok(JSON.stringify(an)===JSON.stringify(ANIMS.slice().sort()),"anims.glb 클립 = ANIMS",an);
+}
+
+/* 몬스터(적 모델 다양화): Quaternius 59 + KayKit 해골 4, 동작은 표준 이름으로 */
+{
+  const MD=join(ROOT,"assets/models/monsters"), Q=("slime_drop slime_green slime_horned slime_pink slime_spiky blob_alien blob_bird blob_ninja blob_orc blob_wizard blob_yeti jelly_flyer alien_big demon demon_blue imp goblin orc_brute ninja_brute yeti ghost ghost_skull skull_hopper mushroom_imp mushroom_king monarch fluffy_flyer pebble_flyer bat bee armored_bee crab frog dragon dragon_whelp wyvern skeleton skeleton_crew skeleton_grunt zombie zombie_grunt mech mech_heavy robot_flyer robot_large robot_walker robot_gunner cat deer fox husky pug shiba stag wolf raptor trex triceratops dino").split(" ");
+  const SK=["Skeleton_Minion","Skeleton_Warrior","Skeleton_Mage","Skeleton_Rogue"], STD=["Idle","Run","Attack","Attack2","Hit","Death","Block","Dodge","Cheer"], NEED=["Idle"];
+  const have=existsSync(MD)?readdirSync(MD).filter(f=>f.endsWith(".glb")).map(f=>f.slice(0,-4)).sort():[];
+  ok(Q.length===59&&JSON.stringify(have)===JSON.stringify([...Q,...SK].sort()),"monsters/ 에 63개(wolf_cartoon 없음)",{n:have.length,missing:[...Q,...SK].filter(x=>!have.includes(x))});
+  if(have.length){
+    const J=f=>{ const b=readFileSync(f); const l=b.readUInt32LE(12); return {j:JSON.parse(b.subarray(20,20+l).toString()),b}; };
+    const bad=[], big=[], tex=[], mo=[];
+    for(const n of have){ const f=join(MD,n+".glb"), {j,b:buf}=J(f), an=(j.animations||[]).map(a=>a.name);
+      if(statSync(f).size>300*1024) big.push([n,statSync(f).size]);
+      if((j.extensionsRequired||[]).some(e=>/meshopt/i.test(e))) mo.push(n);
+      if(SK.includes(n)){ if(an.length) bad.push([n,an]); }
+      else if(!NEED.every(x=>an.includes(x))||an.some(x=>!STD.includes(x))) bad.push([n,an]);
+      const binStart=20+buf.readUInt32LE(12)+8;
+      for(const im of j.images||[]){ if(im.bufferView==null) continue; const bv=j.bufferViews[im.bufferView], o=binStart+(bv.byteOffset||0);
+        if(buf.readUInt32BE(o)===0x89504e47){ const w=buf.readUInt32BE(o+16),h=buf.readUInt32BE(o+20); if(w>256||h>256) tex.push([n,w,h]); } }
+    }
+    ok(!bad.length,"몬스터 동작: 필수 Idle, 표준 이름만(해골은 동작 없음)",bad);
+    ok(!big.length,"몬스터 파일 각 ≤ 300KB",big);
+    ok(!tex.length,"몬스터 텍스처 ≤ 256px",tex);
+    ok(!mo.length,"meshopt 압축 안 씀(브라우저에 decoder 없음)",mo);
+  }
 }
 await p.goto(BASE);
 await p.setContent(`<script type="importmap">{"imports":{"three":"./vendor/three/three.module.min.js","three/addons/":"./vendor/three/addons/"}}</script>

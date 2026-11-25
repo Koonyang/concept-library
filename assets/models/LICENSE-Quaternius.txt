@@ -1,0 +1,6 @@
+Quaternius low poly models (Ultimate Monsters, animals, robots, etc.)
+Created by Quaternius (https://quaternius.com)
+License: Creative Commons Zero, CC0 1.0 Universal — http://creativecommons.org/publicdomain/zero/1.0/
+Source used: npm package @netforge/asset-library-files (library/lowpoly, optimized copies of the Poly Pizza uploads by Quaternius; its NOTICE records each as CC0).
+Also: KayKit Character Pack: Skeletons 1.0 by Kay Lousberg, CC0 (https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0).
+Modified for this game: animations renamed/reduced, textures resized to 256x256, meshopt removed, quantized.

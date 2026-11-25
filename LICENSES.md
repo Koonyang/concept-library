@@ -30,6 +30,16 @@ No Library of Ruina / Project Moon assets are included.
 - URL: https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0 (also https://kaylousberg.itch.io/kaykit-adventurers)
 - Used for: 3D characters and animations (`assets/models/characters/`, built by `tools/assets/build-characters.mjs`: animations split into `anims.glb`, textures 256×256). License text: `assets/models/LICENSE-KayKit.txt`
 
+## Kay Lousberg — KayKit Character Pack: Skeletons 1.0
+- License: CC0 1.0 Universal
+- URL: https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0 (also https://kaylousberg.itch.io/kaykit-skeletons)
+- Used for: skeleton enemy models (`assets/models/monsters/Skeleton_*.glb`, built by `tools/assets/build-monsters.mjs`: animations removed — they share `characters/anims.glb` — textures 256×256). License text: `assets/models/LICENSE-Quaternius.txt`
+
+## Quaternius — low poly monsters, animals, robots, slimes
+- License: CC0 1.0 Universal
+- URL: https://quaternius.com (per-model uploads at https://poly.pizza/u/Quaternius); files taken from the npm package `@netforge/asset-library-files` (`library/lowpoly/`), whose NOTICE lists each model as Quaternius / CC0
+- Used for: enemy models (`assets/models/monsters/`, built by `tools/assets/build-monsters.mjs`: animations renamed to the game's names and reduced, meshopt removed, textures 256×256, a few meshes simplified). License text: `assets/models/LICENSE-Quaternius.txt`
+
 ## three.js — three.js authors
 - License: MIT
 - URL: https://github.com/mrdoob/three.js (npm three@0.180.0)

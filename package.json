@@ -8,7 +8,8 @@
     "sim:hp": "node tools/sim/hp.mjs",
     "assets:characters": "node tools/assets/build-characters.mjs",
     "sfx": "NODE_USE_ENV_PROXY=1 node tools/sfx/generate.mjs",
-    "check:content": "node tools/content/check.mjs"
+    "check:content": "node tools/content/check.mjs",
+    "assets:monsters": "node tools/assets/build-monsters.mjs"
   },
   "devDependencies": {
     "@gltf-transform/cli": "^4.5.1",
