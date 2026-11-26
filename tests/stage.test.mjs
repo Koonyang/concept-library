@@ -462,6 +462,16 @@ for(const f of ["crime","memory"]){ const t=th[f];
   ok(t.calls<=45&&t.tris<=30000,`${f}: 그리기 호출 ≤45, 삼각형 ≤3만`,t); }
 ok(th.crime.curtainCol!==th.memory.curtainCol,"분위기마다 커튼 색이 다름",[th.crime.curtainCol,th.memory.curtainCol]);
 ok(th.geoGrow<=2,"층을 바꿔도 지오메트리가 쌓이지 않음",th.geoGrow);
+/* ---------- 최후의 일격 멈칫 방지(2026-11-26 큐 양: 터지는 순간 렉): 그 순간 새 셰이더를 만들지 않고, 충격파는 첫 프레임부터 시작 ---------- */
+await goStage();
+const warm=await p.evaluate(async()=>{ Game.battle.leave(); Game.battle.begin("beccaria"); const U=Game.battle.state.units, a=U.find(u=>u.side==="ally").id, e=U.find(u=>u.side==="enemy").id;
+  const S=await __stageMod.createStage(document.getElementById("stage")); S.setFloor(Game.data.floorStage("crime")); await S.setUnits(U, Game.data.GUEST_BY.beccaria);
+  await new Promise(r=>setTimeout(r,400));
+  const progs=()=>S.renderer.info.programs.map(p=>p.name+"|"+p.cacheKey.length), p0=progs();
+  await S.play({kind:"one-sided",a:{unit:a},target:e,steps:[{aDie:{type:"관통"},winner:"a",dmg:{unit:e,hp:99,stagger:0}}],result:{dead:[e],staggered:[]}},{final:true});
+  const p1=progs(); return {n0:p0.length,n1:p1.length,newProgs:p1.filter(x=>!p0.includes(x)),firstK:S.debug.finisher.firstK,frames:S.debug.finisher.waveFrames}; });
+ok(warm.newProgs.length===0,"최후의 일격(첫 쓰러짐) 동안 새 셰이더 컴파일 없음",warm);
+ok(warm.frames>0&&warm.firstK!=null&&warm.firstK<0.2,"충격파는 첫 프레임에서 처음부터 그려짐(멈칫이 있어도 건너뛰지 않음)",warm);
 /* @@NEXT@@ */
 ok(errs.filter(e=>!/Error creating WebGL context/.test(e)).length===0,"오류 없음 (nogl 페이지의 WebGL 생성 실패 로그는 의도)",errs);
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

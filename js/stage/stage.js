@@ -16,7 +16,7 @@ import { buildProp } from "./props.js";
 import { loadCharacters, loadMonsters, makeFigure } from "./characters.js";
 import { buildTheater } from "./theater.js";
 import { lookOf, MAGIC_MODELS } from "./looks.js";
-import { CUSTOM_FX, registerFx, TIERS, tierRank, burst, flash, ring, fragments, dropBook, burnBook as burnBookFx, bonkBook, BONK_HIT_AT, typeFx } from "./fx.js";
+import { CUSTOM_FX, registerFx, TIERS, tierRank, burst, flash, ring, fragments, dropBook, burnBook as burnBookFx, bonkBook, BONK_HIT_AT, typeFx, preloadCover } from "./fx.js";
 export { registerFx };
 
 const PIXEL_RATIO_MAX = 1.5;
@@ -173,6 +173,7 @@ export async function createStage(canvas) {
     const dg = new THREE.BufferGeometry(); dg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     dust = new THREE.Points(dg, new THREE.PointsMaterial({ color: T.dust, size: 0.04, transparent: true, opacity: 0.7 })); world.add(dust);
     debug.mood = moodKey; debug.spark = T.spark;
+    warmFx();
   }
 
   function resize() {
@@ -250,7 +251,7 @@ export async function createStage(canvas) {
 
   /* ---------- 최후의 일격 충격파(2026-11-26 큐 양): 그 연출이 도는 동안만 장면을 한 번 렌더 타깃에 그리고,
      맞은 자리(화면 uv)에서 퍼지는 고리 둘레를 바깥으로 밀어 굴절처럼 + 가장자리 색 갈라짐 + 살짝 밝게. 평소엔 그대로 화면에 그린다 ---------- */
-  const waveState = { on: null }, waveRT = { rt: null };
+  const waveState = { on: null }, waveFB = { tex: null };
   const waveMat = new THREE.ShaderMaterial({ depthTest: false, depthWrite: false,
     uniforms: { tDiffuse: { value: null }, center: { value: new THREE.Vector2(0.5, 0.5) }, radius: { value: 0 }, width: { value: 0.08 }, strength: { value: 0 }, aspect: { value: 1 } },
     vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }",
@@ -262,25 +263,30 @@ export async function createStage(canvas) {
         vec2 off = dir * ring * strength;
         vec3 c = vec3(texture2D(tDiffuse, vUv - off * 1.25).r, texture2D(tDiffuse, vUv - off).g, texture2D(tDiffuse, vUv - off * 0.75).b);
         c += ring * strength * 2.5;                                              /* 둘레가 살짝 밝게 */
-        gl_FragColor = vec4(c, 1.0);
-        #include <colorspace_fragment>
+        gl_FragColor = vec4(c, 1.0);                                             /* 화면에서 복사한 값(이미 sRGB) 그대로 */
       }` });
   const waveQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), waveMat), waveScene = new THREE.Scene(), waveCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   waveQuad.frustumCulled = false; waveScene.add(waveQuad);
   debug.finisher = { n: 0, waveFrames: 0, wave: false };
   const vSize = new THREE.Vector2();
-  function renderOut(realDt) {
-    const W = waveState.on;
-    if (!W) { renderer.render(scene, cam); return; }
-    const k = Math.min(1, (performance.now() - W.t0) / 1000 / W.dur);   /* 실제 시간 기준: 느린 기기(프레임 띄엄띄엄)에서도 제때 끝남 */
+  /* 장면은 늘 그대로 화면에 그린다. 충격파 중에는 그려진 화면을 텍스처로 복사(copyFramebufferToTexture)해 일그러뜨린 판을 덮는다.
+     렌더 타깃에 장면을 다시 그리면 three 가 모든 재질 셰이더를 새로 만들어 큰 멈칫이 생긴다(2026-11-26) */
+  function waveTex() {
     renderer.getDrawingBufferSize(vSize);
-    if (!waveRT.rt) waveRT.rt = new THREE.WebGLRenderTarget(vSize.x, vSize.y, { samples: 0 });
-    else if (waveRT.rt.width !== vSize.x || waveRT.rt.height !== vSize.y) waveRT.rt.setSize(vSize.x, vSize.y);
-    waveRT.rt.texture.colorSpace = THREE.LinearSRGBColorSpace;
-    renderer.setRenderTarget(waveRT.rt); renderer.render(scene, cam); renderer.setRenderTarget(null);
-    const u = waveMat.uniforms; u.tDiffuse.value = waveRT.rt.texture; u.center.value.copy(W.center); u.aspect.value = vSize.x / Math.max(1, vSize.y);
+    if (!waveFB.tex || waveFB.tex.image.width !== vSize.x || waveFB.tex.image.height !== vSize.y) {
+      if (waveFB.tex) waveFB.tex.dispose(); waveFB.tex = new THREE.FramebufferTexture(vSize.x, vSize.y); waveFB.tex.colorSpace = THREE.NoColorSpace; }
+    return waveFB.tex;
+  }
+  function renderOut() {
+    renderer.render(scene, cam);
+    const W = waveState.on; if (!W) return;
+    if (W.t0 == null) W.t0 = performance.now();   /* 시계는 처음 그리는 프레임부터: 앞에 멈칫이 있어도 충격파를 건너뛰지 않는다 */
+    const k = Math.min(1, (performance.now() - W.t0) / 1000 / W.dur);
+    if (debug.finisher.firstK == null) debug.finisher.firstK = k;
+    const tex = waveTex(); renderer.copyFramebufferToTexture(tex);
+    const u = waveMat.uniforms; u.tDiffuse.value = tex; u.center.value.copy(W.center); u.aspect.value = vSize.x / Math.max(1, vSize.y);
     u.radius.value = 0.02 + W.max * (1 - Math.pow(1 - k, 2.2)); u.width.value = 0.05 + 0.06 * k; u.strength.value = W.str * (1 - k);
-    renderer.render(waveScene, waveCam); debug.finisher.waveFrames++;
+    const ac = renderer.autoClear; renderer.autoClear = false; renderer.render(waveScene, waveCam); renderer.autoClear = ac; debug.finisher.waveFrames++;
     if (k >= 1) { waveState.on = null; debug.finisher.wave = false; }
   }
   /* 최후의 일격: pos(월드)에서 충격파, 빨리 감기가 아니면 슬로우 FINISH_SLOW 배를 FINISH_HOLD_MS 동안 → 0.5배 200ms → 원래대로 */
@@ -288,7 +294,7 @@ export async function createStage(canvas) {
   function finisher(pos, fast) {
     debug.finisher.n++;
     const v = pos.clone().project(cam);
-    waveState.on = { t0: performance.now(), dur: fast ? 0.35 : FINISH_WAVE_S, center: new THREE.Vector2((v.x + 1) / 2, (v.y + 1) / 2), max: fast ? 0.22 : 0.34, str: fast ? 0.012 : 0.02 };
+    debug.finisher.firstK = null; waveState.on = { t0: null, dur: fast ? 0.35 : FINISH_WAVE_S, center: new THREE.Vector2((v.x + 1) / 2, (v.y + 1) / 2), max: fast ? 0.22 : 0.34, str: fast ? 0.012 : 0.02 };
     debug.finisher.wave = true; camShake.amp = Math.max(camShake.amp, fast ? 0.1 : 0.25);
     if (fast) return;
     time.scale = FINISH_SLOW; debug.slow.minScale = Math.min(debug.slow.minScale, FINISH_SLOW); slowHoldUntil = performance.now() + FINISH_HOLD_MS;
@@ -311,7 +317,7 @@ export async function createStage(canvas) {
     if (dust) { dust.rotation.y = Math.sin(now / 20000) * 0.15;   /* 크게 돌면 뒤쪽 입자가 카메라 앞으로 온다 */ dust.position.y = Math.sin(now / 3000) * 0.1; }
     camShake.amp *= 0.86;
     placeCamera(now); buildArrows();
-    renderOut(rawMs / 1000); debug.frames++;
+    renderOut(); debug.frames++;
     if (!document.hidden && !debug.contextLost) raf = requestAnimationFrame(frame);
   }
   const wake = () => { if (!raf && !document.hidden && !debug.contextLost) { last = performance.now(); raf = requestAnimationFrame(frame); } };
@@ -356,6 +362,7 @@ export async function createStage(canvas) {
         if (u.hp <= 0) { F.obj.visible = false; ringM.visible = false; }
       });
     }
+    preloadCover(coverUrl(), t => renderer.initTexture(t));   /* 이 전투 책 표지를 미리(셰이더 데우기는 빛 구성이 바뀌는 setFloor 에서) */
   }
   /* 화면 비율이 바뀌면 전투 유닛 자리를 다시 잡는다(제자리에 서 있는 유닛만 옮김) */
   function placeUnits() {
@@ -406,7 +413,7 @@ export async function createStage(canvas) {
   /* ---------- 이펙트 묶음 ---------- */
   const fxRoot = new THREE.Group(); scene.add(fxRoot);
   const live = new Set();
-  const fx = { light: borrowLight, add(obj, ms, step, cleanup) { fxRoot.add(obj); const e = { obj, ms, step, cleanup, el: 0 }; live.add(e); step(0, 0, 0); return e; },
+  const fx = debug.fxApi = { light: borrowLight, add(obj, ms, step, cleanup) { fxRoot.add(obj); const e = { obj, ms, step, cleanup, el: 0 }; live.add(e); step(0, 0, 0); return e; },
     /* 수명 전에 바로 치움(시간을 스스로 재는 연출용, ms=Infinity 로 붙인 것) */
     kill(e) { if (!live.delete(e)) return; fxRoot.remove(e.obj); e.cleanup && e.cleanup(); } };
   tickers.add(dt => { for (const e of live) { e.el += dt * 1000; const k = Math.min(1, e.el / e.ms); e.step(k, dt, e.el);
@@ -462,10 +469,24 @@ export async function createStage(canvas) {
 
   /* 종류별 로우폴리 타격 이펙트(fx.js typeFx): 맞은 쪽 몸에 이긴 주사위 종류(참격·관통·타격), 막거나 흘린 쪽엔 방어·회피. 비김엔 없음 */
   debug.typeFx = []; debug.typeFxLive = 0;
-  /* 첫 타격 때 셰이더를 만드느라 멈칫하지 않게, 무대를 만들 때 종류별 이펙트를 한 번 보이지 않게 그려 둔다 */
-  try { const warm = new THREE.Group(); fxRoot.add(warm);
-    for (const k of ["참격", "관통", "타격", "방어", "회피"]) typeFx({ add: obj => warm.add(obj) }, k, new THREE.Vector3(0, -50, 0));
-    renderer.compile(scene, cam); fxRoot.remove(warm); warm.traverse(n => { if (n.material) n.material.dispose(); }); } catch (e) { /* WebGL 없음 등 — 그냥 넘어감 */ }
+  /* 첫 타격·첫 쓰러짐·최후의 일격 때 셰이더를 만드느라 멈칫하지 않게, 쓰일 재질을 보이지 않는 곳에 한 번 붙여 미리 컴파일한다.
+     셰이더는 안개·빛 구성(층마다 등불·소품 빛 수가 다름)에 따라 달라지므로 setFloor 끝에 부른다 */
+  let dummyCover = null, warmKeep = null;
+  function warmFx() {
+    try {
+      /* compile() 만으로는 실제 그릴 때와 셰이더 키가 어긋나는 재질이 있어(투명 여부 등), 카메라 앞에 두고 색을 쓰지 않게(colorWrite=false) 한 프레임 실제로 그린다 */
+      const warm = new THREE.Group(), fake = { add: obj => warm.add(obj) }, far = new THREE.Vector3(0, 0, 0); fxRoot.add(warm);
+      warm.position.copy(cam.position).add(cam.getWorldDirection(new THREE.Vector3()).multiplyScalar(3));
+      for (const k of ["참격", "관통", "타격", "방어", "회피"]) typeFx(fake, k, far);
+      if (!dummyCover) { const c = document.createElement("canvas"); c.width = c.height = 1; dummyCover = c.toDataURL(); }
+      burst(fake, far, 0xffffff, 2); flash(fake, far, 0xffffff); ring(fake, far, 0xffffff); fragments(fake, far, [0xffffff], 2); dropBook(fake, far, dummyCover, 0xffffff); bonkBook(fake, far);
+      warm.traverse(n => { if (n.material) [].concat(n.material).forEach(m => { m.colorWrite = false; m.depthWrite = false; }); if (n.isMesh) n.frustumCulled = false; });
+      renderer.compile(scene, cam); renderer.render(scene, cam);
+      waveMat.uniforms.tDiffuse.value = waveTex(); waveMat.colorWrite = false; const ac = renderer.autoClear; renderer.autoClear = false; renderer.render(waveScene, waveCam); renderer.autoClear = ac; waveMat.colorWrite = true;
+      /* 재질을 지우면 three 가 그 셰이더도 버려 실제로 쓸 때 다시 만든다 → 마지막 데움 묶음 하나는 지우지 않고 쥐고 있는다(이전 묶음만 지움) */
+      fxRoot.remove(warm); if (warmKeep) warmKeep.traverse(n => { if (n.material) [].concat(n.material).forEach(m => m.dispose()); if (n.geometry && !n.geometry.userData.keep) n.geometry.dispose(); }); warmKeep = warm;
+    } catch (e) { debug.warmErr = String(e && e.stack || e); /* WebGL 없음 등 — 그냥 넘어감 */ }
+  }
   const bodyPos = f => { const o = f.F.obj; return o.position.clone().add(new THREE.Vector3(0, f.F.height * o.scale.y * 0.55, 0.3)); };
   function typeFxStep(st, A, B, T) {
     const side = w => w === "a" ? A : w === "b" ? B : null, other = f => f === A ? (B || T) : A;

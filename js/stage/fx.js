@@ -13,7 +13,7 @@ export const tierRank = t => Math.max(0, TIERS.indexOf(t));
    빛은 fx.light(color, distance, worldPos) 로 무대의 빛 묶음에서 빌린다(없으면 null — 빛 없이 진행).
    점광원 수가 바뀌면 three.js 가 모든 셰이더를 다시 만들어 연출 도중 멈칫하므로 새 PointLight 를 만들지 않는다. */
 const borrow = (fx, color, dist, pos) => (fx.light ? fx.light(color, dist, pos) : null);
-const tetra = new THREE.TetrahedronGeometry(0.07, 0);
+const tetra = new THREE.TetrahedronGeometry(0.07, 0); tetra.userData.keep = true;   /* 공유: 지우지 않음 */
 export function burst(fx, pos, color, n = 14, spread = 1.5) {
   const m = new THREE.MeshBasicMaterial({ color, transparent: true });
   const g = new THREE.Group(); g.position.copy(pos);
@@ -44,11 +44,13 @@ export function fragments(fx, pos, colors, n = 26) {
 /* 책이 빛나며 떨어져 바닥에 놓인다. coverUrl 은 손님 책 표지(큐 양 제공 그림) */
 const texCache = new Map();
 /* 표지 텍스처는 url 마다 한 번만 읽어 계속 같이 쓴다(dropBook·burnBook 공용, 지우지 않음) */
-function coverTex(url) {
+function coverTex(url, onLoad) {
   if (!url) return null; let tex = texCache.get(url);
-  if (!tex) { tex = new THREE.TextureLoader().load(url); tex.colorSpace = THREE.SRGBColorSpace; texCache.set(url, tex); }
+  if (!tex) { tex = new THREE.TextureLoader().load(url, t => onLoad && onLoad(t)); tex.colorSpace = THREE.SRGBColorSpace; texCache.set(url, tex); }
   return tex;
 }
+/* 책 표지를 미리 받아 GPU 에 올려 둔다(쓰러지는 순간 그림 풀기·올리기로 멈칫하지 않게). upload(tex) = renderer.initTexture */
+export function preloadCover(url, upload) { if (!url || texCache.has(url)) return; coverTex(url, t => { try { upload && upload(t); } catch (e) { /* 무시 */ } }); }
 export function dropBook(fx, pos, coverUrl, glowColor, ms = 1100) {
   const book = new THREE.Group();
   const tex = coverTex(coverUrl);
@@ -214,6 +216,7 @@ function typeGeos() {
     chunk: new THREE.OctahedronGeometry(0.08, 0),
     wedge: new THREE.ConeGeometry(0.05, 0.7, 3, 1).rotateZ(Math.PI / 2),   /* -x 쪽이 뾰족(지나간 자리) */
   };
+  for (const k in TG) TG[k].userData.keep = true;   /* 공유: 지우지 않음 */
   return TG;
 }
 const rnd = (a, b) => a + Math.random() * (b - a);
