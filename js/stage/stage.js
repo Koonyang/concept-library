@@ -262,12 +262,12 @@ export async function createStage(canvas) {
         vec2 dir = r > 0.0001 ? d / r : vec2(0.0); dir.x /= aspect;
         vec2 off = dir * ring * strength;
         vec3 c = vec3(texture2D(tDiffuse, vUv - off * 1.25).r, texture2D(tDiffuse, vUv - off).g, texture2D(tDiffuse, vUv - off * 0.75).b);
-        c += ring * strength * 2.5;                                              /* 둘레가 살짝 밝게 */
+        c += ring * strength * 9.0 * vec3(1.0, 0.92, 0.8);                       /* 둘레가 따뜻하게 밝아짐 */
         gl_FragColor = vec4(c, 1.0);                                             /* 화면에서 복사한 값(이미 sRGB) 그대로 */
       }` });
   const waveQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), waveMat), waveScene = new THREE.Scene(), waveCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   waveQuad.frustumCulled = false; waveScene.add(waveQuad);
-  debug.finisher = { n: 0, waveFrames: 0, wave: false };
+  debug.finisher = { n: 0, waveFrames: 0, wave: false }; debug.waveState = waveState;   /* 화면 확인용(tools/shot.mjs finisher 가 중간에 멈춰 세움) */
   const vSize = new THREE.Vector2();
   /* 장면은 늘 그대로 화면에 그린다. 충격파 중에는 그려진 화면을 텍스처로 복사(copyFramebufferToTexture)해 일그러뜨린 판을 덮는다.
      렌더 타깃에 장면을 다시 그리면 three 가 모든 재질 셰이더를 새로 만들어 큰 멈칫이 생긴다(2026-11-26) */
@@ -294,7 +294,7 @@ export async function createStage(canvas) {
   function finisher(pos, fast) {
     debug.finisher.n++;
     const v = pos.clone().project(cam);
-    debug.finisher.firstK = null; waveState.on = { t0: null, dur: fast ? 0.35 : FINISH_WAVE_S, center: new THREE.Vector2((v.x + 1) / 2, (v.y + 1) / 2), max: fast ? 0.22 : 0.34, str: fast ? 0.012 : 0.02 };
+    debug.finisher.firstK = null; waveState.on = { t0: null, dur: fast ? 0.35 : FINISH_WAVE_S, center: new THREE.Vector2((v.x + 1) / 2, (v.y + 1) / 2), max: fast ? 0.24 : 0.38, str: fast ? 0.025 : 0.04 };
     debug.finisher.wave = true; camShake.amp = Math.max(camShake.amp, fast ? 0.1 : 0.25);
     if (fast) return;
     time.scale = FINISH_SLOW; debug.slow.minScale = Math.min(debug.slow.minScale, FINISH_SLOW); slowHoldUntil = performance.now() + FINISH_HOLD_MS;

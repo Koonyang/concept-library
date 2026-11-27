@@ -100,7 +100,9 @@ async function run(scene, w, h) {
       await p.evaluate(async () => { Game.battle.leave(); Game.battle.begin("beccaria"); const U = Game.battle.state.units, a = U.find(u => u.side === "ally").id, e = U.find(u => u.side === "enemy").id;
         const S = await __stageMod.createStage(document.getElementById("stage")); window.__S = S; S.setFloor(Game.data.floorStage("crime")); await S.setUnits(U, Game.data.GUEST_BY.beccaria);
         S.play({ kind: "one-sided", a: { unit: a }, target: e, steps: [{ aDie: { type: "타격" }, winner: "a", dmg: { unit: e, hp: 99, stagger: 0 } }], result: { dead: [e], staggered: [] } }, { final: true }); });
-      await p.waitForFunction(() => window.__S.debug.finisher.waveFrames > 3, null, { polling: 16, timeout: 15000 });
+      await p.waitForFunction(() => window.__S.debug.finisher.waveFrames > 0, null, { polling: 16, timeout: 15000 });
+      await p.evaluate(() => { const W = window.__S.debug.waveState.on; if (W) { W.dur = 1000; W.t0 = performance.now() - 350000; } });   /* 퍼지는 중간(k≈0.35)에 멈춰 세움 */
+      await p.waitForTimeout(500);
     } else if (scene === "faces") {
       await p.goto(BASE + "tests/stage.html"); await p.waitForFunction(() => window.__stageMod);
       await p.evaluate(async ([W, H]) => {
