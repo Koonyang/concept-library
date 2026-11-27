@@ -52,4 +52,11 @@ ok(await p.evaluate(()=>JSON.parse(localStorage.getItem("concept-library-game-v1
 for(const [w,h] of [[844,390],[390,844]]){ await p.setViewportSize({width:w,height:h}); await p.waitForTimeout(300); await p.screenshot({path:join(ROOT,`shots/app-floors-${w}.png`)});
   await p.click('.floor-card[data-floor="crime"]'); await p.waitForSelector('#ui[data-screen="guests"]'); await p.waitForTimeout(300); await p.screenshot({path:join(ROOT,`shots/app-guests-${w}.png`)}); await p.click("#btn-back"); await p.waitForSelector('#ui[data-screen="floors"]'); }
 ok(errs.length===0,"오류 없음",errs);
+/* 2026-11-27: 크롬 카메라 구멍(흰 띠) 진단 — ?diag 일 때만 화면 크기·안전 영역 표시, 평소엔 없음. 페이지는 어두운 테마라고 알림(color-scheme) */
+{ await p.goto(BASE); await p.waitForFunction(()=>window.__app,null,{timeout:30000});
+  const plain=await p.evaluate(()=>({diag:!!document.getElementById("diag"),cs:(document.querySelector('meta[name="color-scheme"]')||{}).content||null}));
+  await p.goto(BASE+"?diag"); await p.waitForFunction(()=>window.__app,null,{timeout:30000}); await p.waitForTimeout(300);
+  const d=await p.evaluate(()=>{ const el=document.getElementById("diag"); return el?{text:el.textContent,pe:getComputedStyle(el).pointerEvents}:null; });
+  ok(!plain.diag&&plain.cs==="dark","평소엔 진단 없음, color-scheme=dark",plain);
+  ok(d&&/inner/.test(d.text)&&/safe/.test(d.text)&&/screen/.test(d.text)&&d.pe==="none","?diag: 화면·안전 영역 값 표시(터치 막지 않음)",d); }
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

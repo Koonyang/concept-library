@@ -80,3 +80,23 @@ showFloor(floorId);
 nav.floors();
 document.addEventListener("pointerdown", () => playBgm(), { once: true });
 window.__app = { stage, nav };
+
+/* ---------- 화면 진단(?diag, 2026-11-27): 크롬 가로 화면 왼쪽 흰 띠(카메라 구멍) 원인 찾기용. 평소엔 아무것도 안 함 ---------- */
+if (new URLSearchParams(location.search).has("diag")) {
+  const box = document.createElement("div"); box.id = "diag";
+  box.style.cssText = "position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:99;pointer-events:none;font:12px/1.45 monospace;color:#fff;background:rgba(0,0,0,.78);padding:8px 10px;border-radius:8px;white-space:pre;border:1px solid #f0c060";
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)";
+  document.body.append(box, probe);
+  const draw = () => { const cs = getComputedStyle(probe), vv = window.visualViewport, mm = q => matchMedia(q).matches;
+    box.textContent = [
+      `inner  ${innerWidth}×${innerHeight}  dpr ${devicePixelRatio}`,
+      `visual ${vv ? Math.round(vv.width) + "×" + Math.round(vv.height) + " @" + Math.round(vv.offsetLeft) + "," + Math.round(vv.offsetTop) : "-"}`,
+      `screen ${screen.width}×${screen.height}  avail ${screen.availWidth}×${screen.availHeight}`,
+      `safe   L${cs.paddingLeft} R${cs.paddingRight} T${cs.paddingTop} B${cs.paddingBottom}`,
+      `full   ${!!document.fullscreenElement}  mode ${mm("(display-mode: fullscreen)") ? "fullscreen" : mm("(display-mode: standalone)") ? "standalone" : "browser"}`,
+      `orient ${(screen.orientation && screen.orientation.type) || "-"}`,
+      `ua     ${(navigator.userAgent.match(/(Chrome|SamsungBrowser)\/[\d.]+/) || ["?"])[0]}`,
+    ].join("\n"); };
+  draw(); addEventListener("resize", draw); document.addEventListener("fullscreenchange", () => setTimeout(draw, 300)); if (window.visualViewport) visualViewport.addEventListener("resize", draw); setInterval(draw, 1000);
+}
