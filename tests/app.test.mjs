@@ -5,7 +5,7 @@ import { createServer } from "http";
 import { readFileSync, existsSync } from "fs";
 import { extname, join, normalize } from "path";
 const ROOT=LIB_ROOT;
-const MIME={".html":"text/html; charset=utf-8",".css":"text/css",".js":"text/javascript",".woff2":"font/woff2",".png":"image/png",".jpg":"image/jpeg",".svg":"image/svg+xml",".webp":"image/webp",".mp3":"audio/mpeg"};
+const MIME={".json":"application/json",".html":"text/html; charset=utf-8",".css":"text/css",".js":"text/javascript",".woff2":"font/woff2",".png":"image/png",".jpg":"image/jpeg",".svg":"image/svg+xml",".webp":"image/webp",".mp3":"audio/mpeg"};
 const server=createServer((q,r)=>{const u=decodeURIComponent((q.url||"/").split("?")[0]);const a=normalize(join(ROOT,u==="/"?"/index.html":u));if(!a.startsWith(ROOT)||!existsSync(a)){r.writeHead(404);return r.end();}r.writeHead(200,{"content-type":MIME[extname(a)]||"application/octet-stream"});r.end(readFileSync(a));});
 await new Promise(r=>server.listen(0,"127.0.0.1",r)); const BASE="http://127.0.0.1:"+server.address().port+"/";
 const b=await launchBrowser(chromium,{args:["--no-sandbox","--use-gl=swiftshader","--enable-webgl","--ignore-gpu-blocklist"]});
@@ -59,4 +59,9 @@ ok(errs.length===0,"오류 없음",errs);
   const d=await p.evaluate(()=>{ const el=document.getElementById("diag"); return el?{text:el.textContent,pe:getComputedStyle(el).pointerEvents}:null; });
   ok(!plain.diag&&plain.cs==="dark","평소엔 진단 없음, color-scheme=dark",plain);
   ok(d&&/inner/.test(d.text)&&/safe/.test(d.text)&&/screen/.test(d.text)&&d.pe==="none","?diag: 화면·안전 영역 값 표시(터치 막지 않음)",d); }
+/* 2026-11-27: 홈 화면 앱으로 설치 가능(크롬 검사 오류 없음, 테스트 브라우저의 시크릿 모드 오류만 뺌) */
+{ await p.goto(BASE.replace("127.0.0.1","localhost")); await p.waitForTimeout(2000);
+  const c=await p.context().newCDPSession(p); const r=await c.send("Page.getInstallabilityErrors");
+  const errs=(r.installabilityErrors||[]).map(e=>e.errorId).filter(id=>id!=="in-incognito");
+  ok(errs.length===0,"앱으로 설치 가능(manifest·아이콘)",r.installabilityErrors); }
 console.log("fails",fails); await b.close(); server.close(); process.exit(fails?1:0);

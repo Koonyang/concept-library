@@ -40,6 +40,10 @@ No Library of Ruina / Project Moon assets are included.
 - URL: https://quaternius.com (per-model uploads at https://poly.pizza/u/Quaternius); files taken from the npm package `@netforge/asset-library-files` (`library/lowpoly/`), whose NOTICE lists each model as Quaternius / CC0
 - Used for: enemy models (`assets/models/monsters/`, built by `tools/assets/build-monsters.mjs`: animations renamed to the game's names and reduced, meshopt removed, textures 256×256, a few meshes simplified). License text: `assets/models/LICENSE-Quaternius.txt`
 
+## 개념의 서고 — app icons (made for this game)
+- License: same as this project (made in-repo, no third-party art)
+- Used for: home-screen app icons (`assets/icons/icon-192.png`, `icon-512.png`, `icon-maskable-512.png`), drawn with a small Python/PIL script: dark stage, crimson valance, glowing open book
+
 ## three.js — three.js authors
 - License: MIT
 - URL: https://github.com/mrdoob/three.js (npm three@0.180.0)
